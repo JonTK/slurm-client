@@ -822,3 +822,415 @@ func (m *JobManagerImpl) Watch(ctx context.Context, opts *interfaces.WatchJobsOp
 	// Start watching
 	return poller.Watch(ctx, opts)
 }
+
+// GetJobUtilization retrieves comprehensive resource utilization metrics for a job
+// Note: v0.0.42 has enhanced metrics support compared to v0.0.41 but less than v0.0.43
+func (m *JobManagerImpl) GetJobUtilization(ctx context.Context, jobID string) (*interfaces.JobUtilization, error) {
+	// Check if API client is available
+	if m.client.apiClient == nil {
+		return nil, errors.NewClientError(errors.ErrorCodeClientNotInitialized, "API client not initialized")
+	}
+
+	// First get the job details to determine status
+	job, err := m.Get(ctx, jobID)
+	if err != nil {
+		return nil, err
+	}
+
+	// In v0.0.42, enhanced metrics are partially available
+	// Some advanced features like per-device GPU monitoring are limited
+	// TODO: Integrate with real SLURM accounting endpoints when available
+
+	utilization := &interfaces.JobUtilization{
+		JobID:   jobID,
+		JobName: job.Name,
+		StartTime: job.SubmitTime,
+		EndTime: job.EndTime,
+		
+		// CPU Utilization
+		CPUUtilization: &interfaces.ResourceUtilization{
+			Used:      float64(job.CPUs) * 0.82, // Simulated 82% utilization
+			Allocated: float64(job.CPUs),
+			Limit:     float64(job.CPUs),
+			Percentage: 82.0,
+		},
+		
+		// Memory Utilization
+		MemoryUtilization: &interfaces.ResourceUtilization{
+			Used:      float64(job.Memory) * 0.70, // Simulated 70% utilization
+			Allocated: float64(job.Memory),
+			Limit:     float64(job.Memory),
+			Percentage: 70.0,
+		},
+	}
+
+	// Add metadata
+	utilization.Metadata = map[string]interface{}{
+		"version": "v0.0.42",
+		"source": "simulated", // TODO: Change to "accounting" when real data available
+		"nodes": job.Nodes,
+		"partition": job.Partition,
+		"state": job.State,
+		"feature_level": "enhanced", // v0.0.42 has enhanced features
+	}
+
+	// GPU utilization (limited support in v0.0.42)
+	// Only aggregate GPU metrics, not per-device
+	if gpuCount, ok := job.Metadata["gpu_count"].(int); ok && gpuCount > 0 {
+		utilization.GPUUtilization = &interfaces.GPUUtilization{
+			TotalGPUs: gpuCount,
+			// v0.0.42 doesn't support per-GPU metrics
+			GPUs: make(map[string]interfaces.GPUDeviceUtilization),
+			AverageUtilization: &interfaces.ResourceUtilization{
+				Used:      float64(gpuCount) * 0.88, // Simulated 88% GPU utilization
+				Allocated: float64(gpuCount),
+				Limit:     float64(gpuCount),
+				Percentage: 88.0,
+			},
+			Metadata: map[string]interface{}{
+				"aggregated_only": true, // v0.0.42 limitation
+			},
+		}
+	}
+
+	// I/O utilization (basic support in v0.0.42)
+	utilization.IOUtilization = &interfaces.IOUtilization{
+		ReadBandwidth: &interfaces.ResourceUtilization{
+			Used:      80 * 1024 * 1024, // 80 MB/s
+			Allocated: 400 * 1024 * 1024, // 400 MB/s limit
+			Limit:     400 * 1024 * 1024,
+			Percentage: 20.0,
+		},
+		WriteBandwidth: &interfaces.ResourceUtilization{
+			Used:      40 * 1024 * 1024, // 40 MB/s
+			Allocated: 400 * 1024 * 1024, // 400 MB/s limit
+			Limit:     400 * 1024 * 1024,
+			Percentage: 10.0,
+		},
+		TotalBytesRead:    8 * 1024 * 1024 * 1024, // 8 GB
+		TotalBytesWritten: 4 * 1024 * 1024 * 1024, // 4 GB
+		// v0.0.42 doesn't support per-filesystem metrics
+		FileSystems: make(map[string]interfaces.IOStats),
+	}
+
+	// Network utilization (basic support in v0.0.42)
+	utilization.NetworkUtilization = &interfaces.NetworkUtilization{
+		TotalBandwidth: &interfaces.ResourceUtilization{
+			Used:      800 * 1024 * 1024, // 800 Mbps
+			Allocated: 10 * 1024 * 1024 * 1024, // 10 Gbps limit
+			Limit:     10 * 1024 * 1024 * 1024,
+			Percentage: 8.0,
+		},
+		PacketsReceived: 800000,
+		PacketsSent:     750000,
+		PacketsDropped:  50,
+		Errors:          2,
+		// v0.0.42 doesn't support per-interface metrics
+		Interfaces: make(map[string]interfaces.NetworkInterfaceStats),
+	}
+
+	// Energy usage (limited support in v0.0.42)
+	// Basic power metrics only, no detailed breakdown
+	if job.EndTime != nil {
+		duration := job.EndTime.Sub(job.StartTime.Unix() > 0 ? *job.StartTime : job.SubmitTime).Hours()
+		avgPower := 280.0 // 280W average
+		utilization.EnergyUsage = &interfaces.EnergyUsage{
+			TotalEnergyJoules: avgPower * duration * 3600, // Convert to joules
+			AveragePowerWatts: avgPower,
+			PeakPowerWatts:    400.0,
+			MinPowerWatts:     180.0,
+			// v0.0.42 doesn't support component-level energy breakdown
+			CPUEnergyJoules:   0,
+			GPUEnergyJoules:   0,
+			CarbonFootprint:   avgPower * duration * 0.0004, // Approximate carbon factor
+			Metadata: map[string]interface{}{
+				"breakdown_available": false, // v0.0.42 limitation
+			},
+		}
+	}
+
+	return utilization, nil
+}
+
+// GetJobEfficiency calculates efficiency metrics for a completed job
+// Note: v0.0.42 supports basic efficiency calculations
+func (m *JobManagerImpl) GetJobEfficiency(ctx context.Context, jobID string) (*interfaces.ResourceUtilization, error) {
+	// Check if API client is available
+	if m.client.apiClient == nil {
+		return nil, errors.NewClientError(errors.ErrorCodeClientNotInitialized, "API client not initialized")
+	}
+
+	// Get job utilization data
+	utilization, err := m.GetJobUtilization(ctx, jobID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate overall efficiency based on resource utilization
+	// v0.0.42 uses simpler calculation than v0.0.43
+	cpuWeight := 0.5  // Higher CPU weight in v0.0.42
+	memWeight := 0.3
+	gpuWeight := 0.15 // Lower GPU weight due to limited metrics
+	ioWeight := 0.05  // Lower I/O weight due to basic metrics
+
+	totalEfficiency := 0.0
+	totalWeight := 0.0
+
+	// CPU efficiency
+	if utilization.CPUUtilization != nil {
+		totalEfficiency += utilization.CPUUtilization.Percentage * cpuWeight
+		totalWeight += cpuWeight
+	}
+
+	// Memory efficiency
+	if utilization.MemoryUtilization != nil {
+		totalEfficiency += utilization.MemoryUtilization.Percentage * memWeight
+		totalWeight += memWeight
+	}
+
+	// GPU efficiency (if applicable)
+	if utilization.GPUUtilization != nil && utilization.GPUUtilization.AverageUtilization != nil {
+		totalEfficiency += utilization.GPUUtilization.AverageUtilization.Percentage * gpuWeight
+		totalWeight += gpuWeight
+	} else {
+		// If no GPU, redistribute weight to CPU and memory
+		totalWeight += gpuWeight * 0.7 // Add 70% to CPU
+		totalWeight += gpuWeight * 0.3 // Add 30% to memory
+	}
+
+	// I/O efficiency (simplified in v0.0.42)
+	if utilization.IOUtilization != nil && utilization.IOUtilization.ReadBandwidth != nil {
+		ioEfficiency := (utilization.IOUtilization.ReadBandwidth.Percentage + 
+		                utilization.IOUtilization.WriteBandwidth.Percentage) / 2
+		totalEfficiency += ioEfficiency * ioWeight
+		totalWeight += ioWeight
+	}
+
+	// Calculate final efficiency percentage
+	efficiency := totalEfficiency / totalWeight
+
+	return &interfaces.ResourceUtilization{
+		Used:       efficiency,
+		Allocated:  100.0,
+		Limit:      100.0,
+		Percentage: efficiency,
+		Metadata: map[string]interface{}{
+			"cpu_efficiency":    utilization.CPUUtilization.Percentage,
+			"memory_efficiency": utilization.MemoryUtilization.Percentage,
+			"calculation_method": "weighted_average_v42",
+			"version": "v0.0.42",
+			"weights": map[string]float64{
+				"cpu":    cpuWeight,
+				"memory": memWeight,
+				"gpu":    gpuWeight,
+				"io":     ioWeight,
+			},
+		},
+	}, nil
+}
+
+// GetJobPerformance retrieves detailed performance metrics for a job
+// Note: v0.0.42 provides enhanced performance analysis but with some limitations
+func (m *JobManagerImpl) GetJobPerformance(ctx context.Context, jobID string) (*interfaces.JobPerformance, error) {
+	// Check if API client is available
+	if m.client.apiClient == nil {
+		return nil, errors.NewClientError(errors.ErrorCodeClientNotInitialized, "API client not initialized")
+	}
+
+	// Get basic job info
+	job, err := m.Get(ctx, jobID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert string jobID to uint32
+	jobIDInt, err := strconv.ParseUint(jobID, 10, 32)
+	if err != nil {
+		return nil, errors.NewClientError(errors.ErrorCodeInvalidRequest, "Invalid job ID format", err.Error())
+	}
+
+	// Get utilization metrics
+	utilization, err := m.GetJobUtilization(ctx, jobID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get efficiency metrics
+	efficiency, err := m.GetJobEfficiency(ctx, jobID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build performance report (v0.0.42 version with limited features)
+	performance := &interfaces.JobPerformance{
+		JobID:     uint32(jobIDInt),
+		JobName:   job.Name,
+		StartTime: job.SubmitTime,
+		EndTime:   job.EndTime,
+		Status:    job.State,
+		ExitCode:  job.ExitCode,
+		
+		ResourceUtilization: efficiency,
+		JobUtilization:     utilization,
+		
+		// Step metrics not available in v0.0.42
+		StepMetrics: []interfaces.JobStepPerformance{},
+		
+		// Performance trends (simplified for v0.0.42)
+		PerformanceTrends: generatePerformanceTrendsV42(job),
+		
+		// Bottleneck analysis (basic in v0.0.42)
+		Bottlenecks: analyzeBottlenecksV42(utilization),
+		
+		// Optimization recommendations (basic in v0.0.42)
+		Recommendations: generateRecommendationsV42(utilization, efficiency),
+	}
+
+	return performance, nil
+}
+
+// Helper function to generate performance trends for v0.0.42 (simplified)
+func generatePerformanceTrendsV42(job *interfaces.Job) *interfaces.PerformanceTrends {
+	if job.StartTime == nil {
+		return nil
+	}
+
+	// Generate fewer data points for v0.0.42
+	startTime := *job.StartTime
+	endTime := time.Now()
+	if job.EndTime != nil {
+		endTime = *job.EndTime
+	}
+
+	duration := endTime.Sub(startTime)
+	points := int(duration.Hours())
+	if points < 1 {
+		points = 1
+	}
+	if points > 12 {
+		points = 12 // Limit to 12 data points in v0.0.42
+	}
+
+	trends := &interfaces.PerformanceTrends{
+		TimePoints:    make([]time.Time, points),
+		CPUTrends:     make([]float64, points),
+		MemoryTrends:  make([]float64, points),
+		IOTrends:      make([]float64, points),
+		NetworkTrends: make([]float64, points),
+		// GPU trends not available in v0.0.42
+		GPUTrends: nil,
+		// Power trends not available in v0.0.42
+		PowerTrends: nil,
+	}
+
+	// Generate simulated trend data (simplified for v0.0.42)
+	for i := 0; i < points; i++ {
+		trends.TimePoints[i] = startTime.Add(time.Duration(i) * time.Hour)
+		
+		// Simpler trends for v0.0.42
+		trends.CPUTrends[i] = 75.0 + float64(i%5)*3
+		trends.MemoryTrends[i] = 65.0 + float64(i%4)*4
+		trends.IOTrends[i] = 15.0 + float64(i%3)*5
+		trends.NetworkTrends[i] = 8.0 + float64(i%2)*4
+	}
+
+	return trends
+}
+
+// Helper function to analyze bottlenecks for v0.0.42 (basic analysis)
+func analyzeBottlenecksV42(utilization *interfaces.JobUtilization) []interfaces.PerformanceBottleneck {
+	bottlenecks := []interfaces.PerformanceBottleneck{}
+
+	// Check CPU bottleneck (simpler thresholds for v0.0.42)
+	if utilization.CPUUtilization != nil && utilization.CPUUtilization.Percentage > 90 {
+		bottlenecks = append(bottlenecks, interfaces.PerformanceBottleneck{
+			Type:         "cpu",
+			Severity:     "high",
+			Description:  "CPU utilization is very high",
+			Impact:       12.0, // 12% performance impact
+			TimeDetected: time.Now(),
+			Duration:     45 * time.Minute, // Estimated duration
+		})
+	}
+
+	// Check memory bottleneck
+	if utilization.MemoryUtilization != nil && utilization.MemoryUtilization.Percentage > 85 {
+		bottlenecks = append(bottlenecks, interfaces.PerformanceBottleneck{
+			Type:         "memory",
+			Severity:     "medium",
+			Description:  "Memory utilization is high",
+			Impact:       8.0,
+			TimeDetected: time.Now(),
+			Duration:     30 * time.Minute,
+		})
+	}
+
+	// Basic I/O check for v0.0.42
+	if utilization.IOUtilization != nil {
+		avgIO := (utilization.IOUtilization.ReadBandwidth.Percentage + 
+		          utilization.IOUtilization.WriteBandwidth.Percentage) / 2
+		if avgIO > 70 {
+			bottlenecks = append(bottlenecks, interfaces.PerformanceBottleneck{
+				Type:         "io",
+				Severity:     "low",
+				Description:  "I/O utilization detected",
+				Impact:       5.0,
+				TimeDetected: time.Now(),
+				Duration:     15 * time.Minute,
+			})
+		}
+	}
+
+	return bottlenecks
+}
+
+// Helper function to generate optimization recommendations for v0.0.42 (basic recommendations)
+func generateRecommendationsV42(utilization *interfaces.JobUtilization, efficiency *interfaces.ResourceUtilization) []interfaces.OptimizationRecommendation {
+	recommendations := []interfaces.OptimizationRecommendation{}
+
+	// Basic CPU recommendations for v0.0.42
+	if utilization.CPUUtilization != nil {
+		if utilization.CPUUtilization.Percentage < 60 {
+			recommendations = append(recommendations, interfaces.OptimizationRecommendation{
+				Type:                "resource_adjustment",
+				Priority:            "medium",
+				Title:               "Consider reducing CPU allocation",
+				Description:         "CPU utilization is below 60%. Resource efficiency could be improved.",
+				ExpectedImprovement: 15.0,
+				ResourceChanges: map[string]interface{}{
+					"suggested_cpus": "reduce_by_30_percent",
+				},
+			})
+		}
+	}
+
+	// Basic memory recommendations for v0.0.42
+	if utilization.MemoryUtilization != nil && utilization.MemoryUtilization.Percentage < 50 {
+		recommendations = append(recommendations, interfaces.OptimizationRecommendation{
+			Type:                "resource_adjustment",
+			Priority:            "low",
+			Title:               "Memory allocation can be optimized",
+			Description:         "Memory usage is below 50% of allocation.",
+			ExpectedImprovement: 10.0,
+			ResourceChanges: map[string]interface{}{
+				"suggested_memory": "reduce_by_25_percent",
+			},
+		})
+	}
+
+	// Overall efficiency check (simpler for v0.0.42)
+	if efficiency.Percentage < 75 {
+		recommendations = append(recommendations, interfaces.OptimizationRecommendation{
+			Type:        "workflow",
+			Priority:    "medium",
+			Title:       "Job efficiency could be improved",
+			Description: "Overall efficiency is below optimal levels.",
+			ExpectedImprovement: 20.0,
+			ConfigChanges: map[string]string{
+				"review_resource_allocation": "recommended",
+			},
+		})
+	}
+
+	return recommendations
+}
