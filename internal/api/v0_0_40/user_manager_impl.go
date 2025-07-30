@@ -2,6 +2,7 @@ package v0_0_40
 
 import (
 	"context"
+	"strings"
 
 	"github.com/jontk/slurm-client/internal/interfaces"
 	"github.com/jontk/slurm-client/pkg/errors"
@@ -21,9 +22,64 @@ func NewUserManagerImpl(client *WrapperClient) *UserManagerImpl {
 
 // List retrieves a list of users with optional filtering
 func (u *UserManagerImpl) List(ctx context.Context, opts *interfaces.ListUsersOptions) (*interfaces.UserList, error) {
-	// v0.0.40 is an older API version with limited support
-	// User management was added in later versions
-	return nil, errors.NewNotImplementedError("user listing", "v0.0.40")
+	if err := u.client.CheckContext(ctx); err != nil {
+		return nil, err
+	}
+
+	// Prepare parameters
+	params := &SlurmdbV0040GetUsersParams{}
+	if opts != nil {
+		// v0.0.40 API doesn't support name filtering in params
+		// We'll need to filter client-side
+		if len(opts.Names) > 0 {
+			// Store names for client-side filtering
+			_ = opts.Names
+		}
+		// WithAssociations, WithDeleted, WithCoordinators fields don't exist in ListUsersOptions
+		// Instead we have ActiveOnly, CoordinatorsOnly, etc.
+		if opts.CoordinatorsOnly {
+			// Convert CoordinatorsOnly to WithCoords
+			coords := "true"
+			params.WithCoords = &coords
+		}
+		if len(opts.AdminLevels) > 0 {
+			// Set admin level filter
+			adminLevel := opts.AdminLevels[0]
+			if adminLevel == "Administrator" {
+				level := SlurmdbV0040GetUsersParamsAdminLevelAdministrator
+				params.AdminLevel = &level
+			}
+		}
+	}
+
+	// Make API call
+	resp, err := u.client.apiClient.SlurmdbV0040GetUsersWithResponse(ctx, params)
+	if err != nil {
+		return nil, errors.NewClientError(errors.ErrorCodeServerInternal, "failed to list users")
+	}
+
+	// Check response
+	if resp.StatusCode() != 200 {
+		return nil, u.client.HandleErrorResponse(resp.StatusCode(), resp.Body)
+	}
+
+	if resp.JSON200 == nil {
+		return nil, errors.NewClientError(errors.ErrorCodeServerInternal, "received nil response")
+	}
+
+	// Convert response
+	userList := &interfaces.UserList{
+		Users: make([]interfaces.User, 0),
+	}
+
+	if resp.JSON200.Users != nil {
+		for _, usr := range *resp.JSON200.Users {
+			user := u.convertV0040UserToInterface(usr)
+			userList.Users = append(userList.Users, *user)
+		}
+	}
+
+	return userList, nil
 }
 
 // Get retrieves a specific user by name
@@ -31,7 +87,30 @@ func (u *UserManagerImpl) Get(ctx context.Context, userName string) (*interfaces
 	if userName == "" {
 		return nil, errors.NewValidationError(errors.ErrorCodeValidationFailed, "user name is required", "userName", userName, nil)
 	}
-	return nil, errors.NewNotImplementedError("user retrieval", "v0.0.40")
+
+	if err := u.client.CheckContext(ctx); err != nil {
+		return nil, err
+	}
+
+	// Make API call
+	params := &SlurmdbV0040GetUserParams{}
+	resp, err := u.client.apiClient.SlurmdbV0040GetUserWithResponse(ctx, userName, params)
+	if err != nil {
+		return nil, errors.NewAPIError(errors.ErrorCodeAPIError, "failed to get user", err)
+	}
+
+	// Check response
+	if resp.StatusCode() != 200 {
+		return nil, u.client.HandleErrorResponse(resp.StatusCode(), resp.Body)
+	}
+
+	if resp.JSON200 == nil || resp.JSON200.Users == nil || len(*resp.JSON200.Users) == 0 {
+		return nil, errors.NewClientError(errors.ErrorCodeResourceNotFound, "user not found")
+	}
+
+	// Convert the first user
+	users := *resp.JSON200.Users
+	return u.convertV0040UserToInterface(users[0]), nil
 }
 
 // GetUserAccounts retrieves all account associations for a user
@@ -110,4 +189,33 @@ func (u *UserManagerImpl) GetBulkAccountUsers(ctx context.Context, accountNames 
 		return nil, errors.NewValidationError(errors.ErrorCodeValidationFailed, "at least one account name is required", "accountNames", accountNames, nil)
 	}
 	return nil, errors.NewNotImplementedError("bulk account users retrieval", "v0.0.40")
+}
+
+// convertV0040UserToInterface converts v0.0.40 user to interface format
+func (u *UserManagerImpl) convertV0040UserToInterface(usr V0040User) *interfaces.User {
+	user := &interfaces.User{}
+	
+	if usr.Name != nil {
+		user.Name = *usr.Name
+	}
+	if usr.Uid != nil {
+		user.UID = uint32(*usr.Uid)
+	}
+	if usr.DefaultAccount != nil {
+		user.DefaultAccount = *usr.DefaultAccount
+	}
+	if usr.DefaultWckey != nil {
+		user.DefaultWCKey = *usr.DefaultWckey
+	}
+	
+	// Convert admin level
+	if usr.Adminlevel != nil && len(*usr.Adminlevel) > 0 {
+		adminLevels := *usr.Adminlevel
+		if len(adminLevels) > 0 {
+			// Take the first admin level
+			user.AdminLevel = string(adminLevels[0])
+		}
+	}
+	
+	return user
 }

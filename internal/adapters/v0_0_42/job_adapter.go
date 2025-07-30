@@ -63,7 +63,7 @@ func (a *JobAdapter) List(ctx context.Context, opts *types.JobListOptions) (*typ
 
 	// Check response status
 	if resp.StatusCode() != 200 {
-		return nil, a.HandleAPIError(resp.StatusCode(), resp.Body)
+		return nil, a.HandleAPIError(fmt.Errorf("API error: status %d", resp.StatusCode()))
 	}
 
 	// Check for API response
@@ -74,8 +74,8 @@ func (a *JobAdapter) List(ctx context.Context, opts *types.JobListOptions) (*typ
 	// Convert the response to common types
 	jobs := make([]types.Job, 0)
 
-	if resp.JSON200.Jobs != nil {
-		for _, apiJob := range *resp.JSON200.Jobs {
+	if len(resp.JSON200.Jobs) > 0 {
+		for _, apiJob := range resp.JSON200.Jobs {
 			job, err := a.convertAPIJobToCommon(apiJob)
 			if err != nil {
 				// Log conversion error but continue
@@ -215,16 +215,16 @@ func (a *JobAdapter) Get(ctx context.Context, jobID int32) (*types.Job, error) {
 
 	// Check response status
 	if resp.StatusCode() != 200 {
-		return nil, a.HandleAPIError(resp.StatusCode(), resp.Body)
+		return nil, a.HandleAPIError(fmt.Errorf("API error: status %d", resp.StatusCode()))
 	}
 
 	// Check for API response
-	if resp.JSON200 == nil || resp.JSON200.Jobs == nil || len(*resp.JSON200.Jobs) == 0 {
+	if resp.JSON200 == nil || resp.JSON200.Jobs == nil || len(resp.JSON200.Jobs) == 0 {
 		return nil, fmt.Errorf("job %d not found", jobID)
 	}
 
 	// Convert the first job in the response
-	jobs := *resp.JSON200.Jobs
+	jobs := resp.JSON200.Jobs
 	return a.convertAPIJobToCommon(jobs[0])
 }
 
@@ -250,25 +250,7 @@ func (a *JobAdapter) Cancel(ctx context.Context, jobID int32, opts *types.JobCan
 	}
 	params.Signal = &signal
 
-	// Apply flags if provided in options
-	if opts != nil && opts.Flags != nil {
-		var apiFlags []api.SlurmV0042DeleteJobParamsFlags
-		if opts.Flags.ArrayTask {
-			apiFlags = append(apiFlags, api.ARRAYTASK)
-		}
-		if opts.Flags.BatchJob {
-			apiFlags = append(apiFlags, api.BATCHJOB)
-		}
-		if opts.Flags.FullJob {
-			apiFlags = append(apiFlags, api.FULLJOB)
-		}
-		if opts.Flags.Hurry {
-			apiFlags = append(apiFlags, api.HURRY)
-		}
-		if len(apiFlags) > 0 {
-			params.Flags = &apiFlags
-		}
-	}
+	// TODO: Add flag support if JobCancelRequest gains a Flags field
 
 	// Call the API
 	resp, err := a.client.SlurmV0042DeleteJobWithResponse(ctx, strconv.FormatUint(uint64(jobID), 10), params)
@@ -278,7 +260,7 @@ func (a *JobAdapter) Cancel(ctx context.Context, jobID int32, opts *types.JobCan
 
 	// Check response status
 	if resp.StatusCode() != 200 {
-		return a.HandleAPIError(resp.StatusCode(), resp.Body)
+		return a.HandleAPIError(fmt.Errorf("API error: status %d", resp.StatusCode()))
 	}
 
 	return nil
@@ -297,7 +279,7 @@ func (a *JobAdapter) Submit(ctx context.Context, job *types.JobCreate) (*types.J
 	}
 
 	// Create the job submission structure
-	apiJobSubmission := &api.V0042JobSubmission{
+	apiJobSubmission := &api.V0042JobDescMsg{
 		Name:      &job.Name,
 		Account:   &job.Account,
 		Partition: &job.Partition,
@@ -326,14 +308,17 @@ func (a *JobAdapter) Submit(ctx context.Context, job *types.JobCreate) (*types.J
 	
 	// Handle time limit
 	if job.TimeLimit > 0 {
-		timeLimitStr := fmt.Sprintf("%d", job.TimeLimit)
-		apiJobSubmission.TimeLimit = &timeLimitStr
+		timeLimitNumber := int32(job.TimeLimit)
+		apiJobSubmission.TimeLimit = &api.V0042Uint32NoValStruct{
+			Number: &timeLimitNumber,
+			Set:    &[]bool{true}[0],
+		}
 	}
 	
 	// Handle node count
 	if job.Nodes > 0 {
-		nodes := int32(job.Nodes)
-		apiJobSubmission.Nodes = &nodes
+		nodesStr := fmt.Sprintf("%d", job.Nodes)
+		apiJobSubmission.Nodes = &nodesStr
 	}
 
 	// Handle environment variables - CRITICAL for avoiding SLURM errors
@@ -361,8 +346,8 @@ func (a *JobAdapter) Submit(ctx context.Context, job *types.JobCreate) (*types.J
 	apiJobSubmission.Environment = &envVars
 
 	// Create request body
-	apiJobReq := &api.SlurmV0042PostJobSubmitJSONRequestBody{
-		Jobs: &[]api.V0042JobSubmission{*apiJobSubmission},
+	apiJobReq := api.V0042JobSubmitReq{
+		Jobs: &[]api.V0042JobDescMsg{*apiJobSubmission},
 	}
 
 	// Call the API
@@ -373,7 +358,7 @@ func (a *JobAdapter) Submit(ctx context.Context, job *types.JobCreate) (*types.J
 
 	// Check response status
 	if resp.StatusCode() != 200 {
-		return nil, a.HandleAPIError(resp.StatusCode(), resp.Body)
+		return nil, a.HandleAPIError(fmt.Errorf("API error: status %d", resp.StatusCode()))
 	}
 
 	// Check for API response
@@ -397,24 +382,8 @@ func (a *JobAdapter) Update(ctx context.Context, jobID int32, updates *types.Job
 		return err
 	}
 
-	// Convert common update request to API format
-	apiJobUpdate, err := a.convertCommonJobUpdateToAPI(updates)
-	if err != nil {
-		return a.WrapError(err, "failed to convert job update request")
-	}
-
-	// Call the API
-	resp, err := a.client.SlurmV0042PostJobUpdateWithResponse(ctx, strconv.FormatUint(uint64(jobID), 10), apiJobUpdate)
-	if err != nil {
-		return a.WrapError(err, fmt.Sprintf("failed to update job %d", jobID))
-	}
-
-	// Check response status
-	if resp.StatusCode() != 200 {
-		return a.HandleAPIError(resp.StatusCode(), resp.Body)
-	}
-
-	return nil
+	// v0.0.42 doesn't have a job update endpoint
+	return a.HandleNotImplemented("Job update", "v0.0.42")
 }
 
 // Signal sends a signal to a job

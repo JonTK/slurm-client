@@ -86,9 +86,9 @@ func (c *WrapperClient) Clusters() interfaces.ClusterManager {
 }
 
 
-// Associations returns the AssociationManager (stub - not supported in v0.0.40)
+// Associations returns the AssociationManager
 func (c *WrapperClient) Associations() interfaces.AssociationManager {
-	return &common.AssociationManagerStub{Version: "v0.0.40"}
+	return &AssociationManager{client: c}
 }
 
 // Close closes the client

@@ -193,3 +193,8 @@ func (b *BaseManager) Resume(ctx context.Context, jobID string) error {
 func (b *BaseManager) Requeue(ctx context.Context, jobID string) error {
 	return fmt.Errorf("requeue operation not implemented for %s in version %s", b.resourceType, b.version)
 }
+
+// HandleNotImplemented returns a not implemented error for an operation
+func (b *BaseManager) HandleNotImplemented(operation string, version string) error {
+	return errors.NewNotImplementedError(operation, version)
+}

@@ -2,8 +2,8 @@ package v0_0_41
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
-	"time"
 
 	"github.com/jontk/slurm-client/internal/common/types"
 	api "github.com/jontk/slurm-client/internal/api/v0_0_41"
@@ -11,215 +11,173 @@ import (
 
 // convertAPIPartitionToCommon converts a v0.0.41 API Partition to common Partition type
 func (a *PartitionAdapter) convertAPIPartitionToCommon(apiPartition interface{}) (*types.Partition, error) {
-	// Type assertion to handle the anonymous struct
-	partData, ok := apiPartition.(struct {
-		Accounts               *struct {
-			Allowed *string `json:"allowed,omitempty"`
-			Deny    *string `json:"deny,omitempty"`
-		} `json:"accounts,omitempty"`
-		AlternativeName        *string `json:"alternative_name,omitempty"`
-		BillingWeights         *string `json:"billing_weights,omitempty"`
-		DefaultMemoryPerCpu    *api.V0041OpenapiPartitionRespPartitionsDefaultMemoryPerCpu `json:"default_memory_per_cpu,omitempty"`
-		DefaultTimeLimit       *api.V0041OpenapiPartitionRespPartitionsDefaultTimeLimit `json:"default_time_limit,omitempty"`
-		DenyAccounts           *string `json:"deny_accounts,omitempty"`
-		DenyQos                *string `json:"deny_qos,omitempty"`
-		GraceTime              *int32  `json:"grace_time,omitempty"`
-		Maximums               *struct {
-			CpusPerNode           *api.V0041OpenapiPartitionRespPartitionsMaximumsCpusPerNode           `json:"cpus_per_node,omitempty"`
-			CpusPerSocket         *api.V0041OpenapiPartitionRespPartitionsMaximumsCpusPerSocket         `json:"cpus_per_socket,omitempty"`
-			MemoryPerCpu          *api.V0041OpenapiPartitionRespPartitionsMaximumsMemoryPerCpu          `json:"memory_per_cpu,omitempty"`
-			MemoryPerNode         *api.V0041OpenapiPartitionRespPartitionsMaximumsMemoryPerNode         `json:"memory_per_node,omitempty"`
-			Nodes                 *api.V0041OpenapiPartitionRespPartitionsMaximumsNodes                 `json:"nodes,omitempty"`
-			OversubscribeFlags    *[]api.V0041OpenapiPartitionRespPartitionsMaximumsOversubscribeFlags  `json:"oversubscribe_flags,omitempty"`
-			OversubscribeJobs     *api.V0041OpenapiPartitionRespPartitionsMaximumsOversubscribeJobs     `json:"oversubscribe_jobs,omitempty"`
-			PartitionWall         *api.V0041OpenapiPartitionRespPartitionsMaximumsPartitionWall         `json:"partition_wall,omitempty"`
-			SharedSpace           *api.V0041OpenapiPartitionRespPartitionsMaximumsSharedSpace           `json:"shared_space,omitempty"`
-			Time                  *api.V0041OpenapiPartitionRespPartitionsMaximumsTime                  `json:"time,omitempty"`
-		} `json:"maximums,omitempty"`
-		MaximumMemoryPerNode   *api.V0041OpenapiPartitionRespPartitionsMaximumMemoryPerNode `json:"maximum_memory_per_node,omitempty"`
-		MaximumMemoryPerCpu    *api.V0041OpenapiPartitionRespPartitionsMaximumMemoryPerCpu  `json:"maximum_memory_per_cpu,omitempty"`
-		Minimums               *struct {
-			Nodes *api.V0041OpenapiPartitionRespPartitionsMinimumsNodes `json:"nodes,omitempty"`
-		} `json:"minimums,omitempty"`
-		Name                   *string   `json:"name,omitempty"`
-		Nodes                  *string   `json:"nodes,omitempty"`
-		AllowedAllocationNodes *string   `json:"allowed_allocation_nodes,omitempty"`
-		PartitionState         *[]api.V0041OpenapiPartitionRespPartitionsPartitionState `json:"partition_state,omitempty"`
-		PreemptMode            *[]string `json:"preempt_mode,omitempty"`
-		Priority               *struct {
-			JobFactor *api.V0041OpenapiPartitionRespPartitionsPriorityJobFactor `json:"job_factor,omitempty"`
-			Tier      *api.V0041OpenapiPartitionRespPartitionsPriorityTier      `json:"tier,omitempty"`
-		} `json:"priority,omitempty"`
-		Qos                    *struct {
-			Allowed *string `json:"allowed,omitempty"`
-			Deny    *string `json:"deny,omitempty"`
-			Forced  *string `json:"forced,omitempty"`
-		} `json:"qos,omitempty"`
-		DefaultQos             *string `json:"default_qos,omitempty"`
-		SelectType             *[]api.V0041OpenapiPartitionRespPartitionsSelectType `json:"select_type,omitempty"`
-		TresEnabled            *string `json:"tres_enabled,omitempty"`
-		Timeouts               *struct {
-			ResumeTimeout  *api.V0041OpenapiPartitionRespPartitionsTimeoutsResumeTimeout  `json:"resume_timeout,omitempty"`
-			SuspendTimeout *api.V0041OpenapiPartitionRespPartitionsTimeoutsSuspendTimeout `json:"suspend_timeout,omitempty"`
-			SuspendTime    *api.V0041OpenapiPartitionRespPartitionsTimeoutsSuspendTime    `json:"suspend_time,omitempty"`
-		} `json:"timeouts,omitempty"`
-		SuspendTime            *api.V0041OpenapiPartitionRespPartitionsSuspendTime `json:"suspend_time,omitempty"`
-	})
+	// Use map interface for handling anonymous structs in v0.0.41
+	partitionData, ok := apiPartition.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("unexpected partition data type")
+		return nil, fmt.Errorf("unexpected partition data type: %T", apiPartition)
 	}
 
 	partition := &types.Partition{}
 
-	// Basic fields
-	if partData.Name != nil {
-		partition.Name = *partData.Name
-	}
-	if partData.Nodes != nil {
-		partition.Nodes = *partData.Nodes
-	}
-	if partData.AlternativeName != nil {
-		partition.AlternateName = *partData.AlternativeName
-	}
-
-	// State
-	if partData.PartitionState != nil && len(*partData.PartitionState) > 0 {
-		// Convert state to string
-		partition.State = string((*partData.PartitionState)[0])
-	}
-
-	// Time limits
-	if partData.DefaultTimeLimit != nil && partData.DefaultTimeLimit.Number != nil {
-		partition.DefaultTime = time.Duration(*partData.DefaultTimeLimit.Number) * time.Minute
-	}
-	if partData.Maximums != nil && partData.Maximums.Time != nil && partData.Maximums.Time.Number != nil {
-		partition.MaxTime = time.Duration(*partData.Maximums.Time.Number) * time.Minute
-	}
-
-	// Memory settings
-	if partData.DefaultMemoryPerCpu != nil && partData.DefaultMemoryPerCpu.Number != nil {
-		partition.DefMemPerCPU = uint64(*partData.DefaultMemoryPerCpu.Number)
-	}
-	if partData.MaximumMemoryPerCpu != nil && partData.MaximumMemoryPerCpu.Number != nil {
-		partition.MaxMemPerCPU = uint64(*partData.MaximumMemoryPerCpu.Number)
-	}
-	if partData.MaximumMemoryPerNode != nil && partData.MaximumMemoryPerNode.Number != nil {
-		partition.MaxMemPerNode = uint64(*partData.MaximumMemoryPerNode.Number)
-	}
-
-	// Node counts
-	if partData.Maximums != nil && partData.Maximums.Nodes != nil && partData.Maximums.Nodes.Number != nil {
-		partition.MaxNodes = uint32(*partData.Maximums.Nodes.Number)
-	}
-	if partData.Minimums != nil && partData.Minimums.Nodes != nil && partData.Minimums.Nodes.Number != nil {
-		partition.MinNodes = uint32(*partData.Minimums.Nodes.Number)
-	}
-
-	// Priority
-	if partData.Priority != nil {
-		if partData.Priority.Tier != nil && partData.Priority.Tier.Number != nil {
-			partition.PriorityTier = *partData.Priority.Tier.Number
+	// Basic fields - using safe type assertions
+	if v, ok := partitionData["name"]; ok {
+		if name, ok := v.(string); ok {
+			partition.Name = name
 		}
-		if partData.Priority.JobFactor != nil && partData.Priority.JobFactor.Number != nil {
-			partition.PriorityJobFactor = *partData.Priority.JobFactor.Number
+	}
+	if v, ok := partitionData["nodes"]; ok {
+		if nodes, ok := v.(string); ok {
+			partition.Nodes = nodes
+		}
+	}
+	if v, ok := partitionData["state"]; ok {
+		if states, ok := v.([]interface{}); ok && len(states) > 0 {
+			if state, ok := states[0].(string); ok {
+				partition.State = types.PartitionState(state)
+			}
 		}
 	}
 
-	// QoS
-	if partData.DefaultQos != nil {
-		partition.QoS = *partData.DefaultQos
-	}
-	if partData.Qos != nil {
-		if partData.Qos.Allowed != nil {
-			partition.AllowQos = strings.Split(*partData.Qos.Allowed, ",")
-		}
-		if partData.Qos.Deny != nil {
-			partition.DenyQos = strings.Split(*partData.Qos.Deny, ",")
+	// Resource limits
+	if v, ok := partitionData["max_cpus_per_node"]; ok {
+		if maxCpus, ok := v.(float64); ok {
+			partition.MaxCPUsPerNode = int32(maxCpus)
 		}
 	}
-
-	// Accounts
-	if partData.Accounts != nil {
-		if partData.Accounts.Allowed != nil {
-			partition.AllowAccounts = strings.Split(*partData.Accounts.Allowed, ",")
-		}
-		if partData.Accounts.Deny != nil {
-			partition.DenyAccounts = strings.Split(*partData.Accounts.Deny, ",")
+	if v, ok := partitionData["max_memory_per_node"]; ok {
+		if maxMem, ok := v.(float64); ok {
+			partition.MaxMemPerNode = int64(maxMem)
 		}
 	}
-
-	// Grace time
-	if partData.GraceTime != nil {
-		partition.GraceTime = uint32(*partData.GraceTime)
-	}
-
-	// Preempt mode
-	if partData.PreemptMode != nil {
-		partition.PreemptMode = strings.Join(*partData.PreemptMode, ",")
-	}
-
-	// Oversubscribe
-	if partData.Maximums != nil && partData.Maximums.OversubscribeFlags != nil && len(*partData.Maximums.OversubscribeFlags) > 0 {
-		// Convert oversubscribe flags to string
-		var flags []string
-		for _, flag := range *partData.Maximums.OversubscribeFlags {
-			flags = append(flags, string(flag))
+	if v, ok := partitionData["max_nodes"]; ok {
+		if maxNodes, ok := v.(float64); ok {
+			partition.MaxNodes = int32(maxNodes)
 		}
-		partition.OverSubscribe = strings.Join(flags, ",")
 	}
-
-	// TREs
-	if partData.TresEnabled != nil {
-		partition.TRESBillingWeights = *partData.TresEnabled
-	}
-
-	// Select type
-	if partData.SelectType != nil && len(*partData.SelectType) > 0 {
-		// Convert select type to string
-		var selectTypes []string
-		for _, st := range *partData.SelectType {
-			selectTypes = append(selectTypes, string(st))
-		}
-		partition.SelectTypeParameters = strings.Join(selectTypes, ",")
-	}
-
-	// Timeouts
-	if partData.Timeouts != nil {
-		if partData.Timeouts.ResumeTimeout != nil && partData.Timeouts.ResumeTimeout.Number != nil {
-			partition.ResumeTimeout = uint32(*partData.Timeouts.ResumeTimeout.Number)
-		}
-		if partData.Timeouts.SuspendTimeout != nil && partData.Timeouts.SuspendTimeout.Number != nil {
-			partition.SuspendTimeout = uint32(*partData.Timeouts.SuspendTimeout.Number)
-		}
-		if partData.Timeouts.SuspendTime != nil && partData.Timeouts.SuspendTime.Number != nil {
-			partition.SuspendTime = uint32(*partData.Timeouts.SuspendTime.Number)
+	if v, ok := partitionData["min_nodes"]; ok {
+		if minNodes, ok := v.(float64); ok {
+			partition.MinNodes = int32(minNodes)
 		}
 	}
 
-	// Billing weights
-	if partData.BillingWeights != nil {
-		partition.BillingWeights = *partData.BillingWeights
+	// Time limits - handle structured objects
+	if v, ok := partitionData["max_time"]; ok {
+		if timeStruct, ok := v.(map[string]interface{}); ok {
+			if number, ok := timeStruct["number"].(float64); ok {
+				partition.MaxTime = int32(number)
+			}
+		} else if maxTime, ok := v.(float64); ok {
+			partition.MaxTime = int32(maxTime)
+		}
+	}
+	if v, ok := partitionData["default_time"]; ok {
+		if timeStruct, ok := v.(map[string]interface{}); ok {
+			if number, ok := timeStruct["number"].(float64); ok {
+				partition.DefaultTime = int32(number)
+			}
+		} else if defaultTime, ok := v.(float64); ok {
+			partition.DefaultTime = int32(defaultTime)
+		}
 	}
 
-	// Calculate total nodes if possible
-	if partition.Nodes != "" {
-		nodeList := parseNodeList(partition.Nodes)
-		partition.TotalNodes = uint32(len(nodeList))
+	// Priority and preemption
+	if v, ok := partitionData["priority_job_factor"]; ok {
+		if priority, ok := v.(float64); ok {
+			partition.PriorityJobFactor = int32(priority)
+		}
 	}
+	if v, ok := partitionData["priority_tier"]; ok {
+		if tier, ok := v.(float64); ok {
+			partition.PriorityTier = int32(tier)
+		}
+	}
+	if v, ok := partitionData["preempt_mode"]; ok {
+		if modes, ok := v.([]interface{}); ok && len(modes) > 0 {
+			modeStrings := make([]string, len(modes))
+			for i, mode := range modes {
+				if modeStr, ok := mode.(string); ok {
+					modeStrings[i] = modeStr
+				}
+			}
+			partition.PreemptMode = modeStrings
+		}
+	}
+
+	// Allowed groups and accounts
+	if v, ok := partitionData["allowed_groups"]; ok {
+		if groups, ok := v.(string); ok {
+			partition.AllowGroups = strings.Split(groups, ",")
+		}
+	}
+	if v, ok := partitionData["allowed_accounts"]; ok {
+		if accounts, ok := v.(string); ok {
+			partition.AllowAccounts = strings.Split(accounts, ",")
+		}
+	}
+	if v, ok := partitionData["allowed_qos"]; ok {
+		if qos, ok := v.(string); ok {
+			partition.AllowQoS = strings.Split(qos, ",")
+		}
+	}
+
+	// Boolean flags
+	// Default field doesn't exist in common Partition type
+	// Skip default flag conversion
+	if v, ok := partitionData["root_only"]; ok {
+		if rootOnly, ok := v.(bool); ok {
+			partition.RootOnly = rootOnly
+		}
+	}
+	// Shared field doesn't exist in common Partition type
+	// Skip shared flag conversion
+
+	// Other fields
+	if v, ok := partitionData["grace_time"]; ok {
+		if graceTime, ok := v.(float64); ok {
+			partition.GraceTime = int32(graceTime)
+		}
+	}
+	if v, ok := partitionData["over_time_limit"]; ok {
+		if overTime, ok := v.(float64); ok {
+			partition.OverTimeLimit = int32(overTime)
+		}
+	}
+
+	// CPU allocation ratio - CPUBind field doesn't exist in common Partition type
+	// Skip cpu_bind conversion
+
+	// Features - RequiredFeatures field doesn't exist in common Partition type
+	// Skip required_features conversion
 
 	return partition, nil
 }
 
-// convertCommonToAPIPartition converts common Partition to v0.0.41 API request (not supported)
-func (a *PartitionAdapter) convertCommonToAPIPartition(partition *types.Partition) interface{} {
-	// v0.0.41 doesn't support partition creation/update through the API
-	// This function is here for interface compliance but returns nil
-	return nil
+// convertCommonToAPIPartitionCreate converts common partition create request to v0.0.41 API format
+func (a *PartitionAdapter) convertCommonToAPIPartitionCreate(create *types.PartitionCreate) interface{} {
+	// Create a basic partition creation request structure
+	// v0.0.41 doesn't support partition creation, return nil
+	var createReq interface{}
+
+	// Note: The exact structure for partition creation in v0.0.41 may be different
+	// This is a placeholder implementation that would need to be adjusted
+	// based on the actual API structure
+
+	// For now, return an empty request
+	_ = create
+	return createReq
 }
 
-// convertCommonToAPIPartitionUpdate converts common PartitionUpdate to v0.0.41 API request (not supported)
+// convertCommonToAPIPartitionUpdate converts common partition update request to v0.0.41 API format
 func (a *PartitionAdapter) convertCommonToAPIPartitionUpdate(update *types.PartitionUpdate) interface{} {
-	// v0.0.41 doesn't support partition update through the API
-	// This function is here for interface compliance but returns nil
-	return nil
+	// Create a basic partition update request structure
+	// v0.0.41 doesn't support partition updates, return nil
+	var updateReq interface{}
+
+	// Note: The exact structure for partition updates in v0.0.41 may be different
+	// This is a placeholder implementation that would need to be adjusted
+	// based on the actual API structure
+
+	// For now, return an empty request
+	_ = update
+	return updateReq
 }
