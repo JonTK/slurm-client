@@ -288,15 +288,14 @@ func (f *ClientFactory) createV0_0_40Client() (SlurmClient, error) {
 
 	// Check if adapters should be used
 	if f.useAdapters {
-		// Create adapter client config
-		/*config := &ClientConfig{
+		// Create adapter client config  
+		config := &interfaces.ClientConfig{
 			BaseURL:    f.baseURL,
 			HTTPClient: httpClient,
 			APIKey:     "",    // Not used when we have auth provider
 			Debug:      f.config.Debug,
 		}
-		return NewAdapterClient("v0.0.40", config)*/
-		return nil, fmt.Errorf("adapter implementation is incomplete and disabled")
+		return NewAdapterClient("v0.0.40", config)
 	}
 
 	// Create the wrapper client config
@@ -322,15 +321,14 @@ func (f *ClientFactory) createV0_0_41Client() (SlurmClient, error) {
 
 	// Check if adapters should be used
 	if f.useAdapters {
-		// Create adapter client config
-		/*config := &ClientConfig{
+		// Create adapter client config  
+		config := &interfaces.ClientConfig{
 			BaseURL:    f.baseURL,
 			HTTPClient: httpClient,
 			APIKey:     "",    // Not used when we have auth provider
 			Debug:      f.config.Debug,
 		}
-		return NewAdapterClient("v0.0.41", config)*/
-		return nil, fmt.Errorf("adapter implementation is incomplete and disabled")
+		return NewAdapterClient("v0.0.41", config)
 	}
 
 	// Create the wrapper client config
@@ -356,15 +354,14 @@ func (f *ClientFactory) createV0_0_42Client() (SlurmClient, error) {
 
 	// Check if adapters should be used
 	if f.useAdapters {
-		// Create adapter client config
-		/*config := &ClientConfig{
+		// Create adapter client config  
+		config := &interfaces.ClientConfig{
 			BaseURL:    f.baseURL,
 			HTTPClient: httpClient,
 			APIKey:     "",    // Not used when we have auth provider
 			Debug:      f.config.Debug,
 		}
-		return NewAdapterClient("v0.0.42", config)*/
-		return nil, fmt.Errorf("adapter implementation is incomplete and disabled")
+		return NewAdapterClient("v0.0.42", config)
 	}
 
 	// Create the wrapper client config
@@ -390,15 +387,14 @@ func (f *ClientFactory) createV0_0_43Client() (SlurmClient, error) {
 
 	// Check if adapters should be used
 	if f.useAdapters {
-		// Create adapter client config
-		/*config := &ClientConfig{
+		// Create adapter client config  
+		config := &interfaces.ClientConfig{
 			BaseURL:    f.baseURL,
 			HTTPClient: httpClient,
 			APIKey:     "",    // Not used when we have auth provider
 			Debug:      f.config.Debug,
 		}
-		return NewAdapterClient("v0.0.43", config)*/
-		return nil, fmt.Errorf("adapter implementation is incomplete and disabled")
+		return NewAdapterClient("v0.0.43", config)
 	}
 
 	// Create the wrapper client config
