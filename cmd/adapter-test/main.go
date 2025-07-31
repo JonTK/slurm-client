@@ -30,7 +30,7 @@ func main() {
 
 	// Create configuration
 	cfg := config.NewDefault()
-	cfg.BaseURL = "https://rocky9.ar.jontk.com/slurm"
+	cfg.BaseURL = "http://rocky9.ar.jontk.com:6820"
 	cfg.Debug = true
 
 	// Create JWT authentication provider
@@ -75,12 +75,16 @@ func main() {
 	fmt.Println("\n=== Testing Job Submission ===")
 	testJob := &interfaces.JobSubmission{
 		Name:      fmt.Sprintf("adapter-test-%s-%d", version, time.Now().Unix()),
-		Partition: "sla",
+		Partition: "normal",
 		Script:    "#!/bin/bash\necho 'Hello from adapter test'\nsleep 10\necho 'Done'",
 		TimeLimit: 1, // 1 minute
 		Nodes:     1,
 		CPUs:      1,
+		WorkingDir: "/tmp",
 		Environment: map[string]string{
+			"PATH": "/usr/bin:/bin",
+			"USER": "root",
+			"HOME": "/tmp",
 			"TEST_VAR": "adapter_test",
 		},
 	}
