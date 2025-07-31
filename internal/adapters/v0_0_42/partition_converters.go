@@ -21,13 +21,13 @@ func (a *PartitionAdapter) convertAPIPartitionToCommon(apiPartition api.V0042Par
 	if apiPartition.Partition != nil && apiPartition.Partition.State != nil {
 		// Convert partition state flags to string
 		state := a.convertPartitionStatesToString(apiPartition.Partition.State)
-		partition.State = state
+		partition.State = types.PartitionState(state)
 	}
 
 	// Node information
 	if apiPartition.Nodes != nil {
 		if apiPartition.Nodes.Total != nil {
-			partition.TotalNodes = uint32(*apiPartition.Nodes.Total)
+			partition.TotalNodes = int32(*apiPartition.Nodes.Total)
 		}
 		if apiPartition.Nodes.Configured != nil {
 			partition.Nodes = *apiPartition.Nodes.Configured
@@ -40,49 +40,49 @@ func (a *PartitionAdapter) convertAPIPartitionToCommon(apiPartition api.V0042Par
 	// CPU information
 	if apiPartition.Cpus != nil {
 		if apiPartition.Cpus.Total != nil {
-			partition.TotalCPUs = uint32(*apiPartition.Cpus.Total)
+			partition.TotalCPUs = int32(*apiPartition.Cpus.Total)
 		}
 	}
 
 	// Time limits
 	if apiPartition.Defaults != nil && apiPartition.Defaults.Time != nil {
-		partition.DefaultTime = uint32(apiPartition.Defaults.Time.Number)
+		partition.DefaultTime = int32(*apiPartition.Defaults.Time.Number)
 	}
 	if apiPartition.Maximums != nil && apiPartition.Maximums.Time != nil {
-		partition.MaxTime = uint32(apiPartition.Maximums.Time.Number)
+		partition.MaxTime = int32(*apiPartition.Maximums.Time.Number)
 	}
 
 	// Memory limits
 	if apiPartition.Defaults != nil {
 		if apiPartition.Defaults.MemoryPerCpu != nil && *apiPartition.Defaults.MemoryPerCpu > 0 {
-			partition.DefMemPerCPU = uint64(*apiPartition.Defaults.MemoryPerCpu)
+			partition.DefaultMemPerCPU = int64(*apiPartition.Defaults.MemoryPerCpu)
 		}
-		if apiPartition.Defaults.PartitionMemoryPerCpu != nil && apiPartition.Defaults.PartitionMemoryPerCpu.Number > 0 {
-			partition.DefMemPerCPU = apiPartition.Defaults.PartitionMemoryPerCpu.Number
+		if apiPartition.Defaults.PartitionMemoryPerCpu != nil && apiPartition.Defaults.PartitionMemoryPerCpu.Number != nil && *apiPartition.Defaults.PartitionMemoryPerCpu.Number > 0 {
+			partition.DefaultMemPerCPU = *apiPartition.Defaults.PartitionMemoryPerCpu.Number
 		}
-		if apiPartition.Defaults.PartitionMemoryPerNode != nil && apiPartition.Defaults.PartitionMemoryPerNode.Number > 0 {
-			partition.DefMemPerNode = apiPartition.Defaults.PartitionMemoryPerNode.Number
+		if apiPartition.Defaults.PartitionMemoryPerNode != nil && apiPartition.Defaults.PartitionMemoryPerNode.Number != nil && *apiPartition.Defaults.PartitionMemoryPerNode.Number > 0 {
+			partition.DefMemPerNode = *apiPartition.Defaults.PartitionMemoryPerNode.Number
 		}
 	}
 
 	if apiPartition.Maximums != nil {
 		if apiPartition.Maximums.MemoryPerCpu != nil && *apiPartition.Maximums.MemoryPerCpu > 0 {
-			partition.MaxMemPerCPU = uint64(*apiPartition.Maximums.MemoryPerCpu)
+			partition.MaxMemPerCPU = int64(*apiPartition.Maximums.MemoryPerCpu)
 		}
-		if apiPartition.Maximums.PartitionMemoryPerCpu != nil && apiPartition.Maximums.PartitionMemoryPerCpu.Number > 0 {
-			partition.MaxMemPerCPU = apiPartition.Maximums.PartitionMemoryPerCpu.Number
+		if apiPartition.Maximums.PartitionMemoryPerCpu != nil && apiPartition.Maximums.PartitionMemoryPerCpu.Number != nil && *apiPartition.Maximums.PartitionMemoryPerCpu.Number > 0 {
+			partition.MaxMemPerCPU = *apiPartition.Maximums.PartitionMemoryPerCpu.Number
 		}
-		if apiPartition.Maximums.PartitionMemoryPerNode != nil && apiPartition.Maximums.PartitionMemoryPerNode.Number > 0 {
-			partition.MaxMemPerNode = apiPartition.Maximums.PartitionMemoryPerNode.Number
+		if apiPartition.Maximums.PartitionMemoryPerNode != nil && apiPartition.Maximums.PartitionMemoryPerNode.Number != nil && *apiPartition.Maximums.PartitionMemoryPerNode.Number > 0 {
+			partition.MaxMemPerNode = *apiPartition.Maximums.PartitionMemoryPerNode.Number
 		}
 	}
 
 	// Node limits
 	if apiPartition.Minimums != nil && apiPartition.Minimums.Nodes != nil {
-		partition.MinNodes = uint32(*apiPartition.Minimums.Nodes)
+		partition.MinNodes = int32(*apiPartition.Minimums.Nodes)
 	}
 	if apiPartition.Maximums != nil && apiPartition.Maximums.Nodes != nil {
-		partition.MaxNodes = uint32(apiPartition.Maximums.Nodes.Number)
+		partition.MaxNodes = int32(*apiPartition.Maximums.Nodes.Number)
 	}
 
 	// Priority
@@ -98,7 +98,7 @@ func (a *PartitionAdapter) convertAPIPartitionToCommon(apiPartition api.V0042Par
 	// QoS
 	if apiPartition.Qos != nil {
 		if apiPartition.Qos.Assigned != nil {
-			partition.QoS = strings.Split(*apiPartition.Qos.Assigned, ",")
+			partition.QoS = *apiPartition.Qos.Assigned
 		}
 		if apiPartition.Qos.Allowed != nil {
 			partition.AllowQoS = strings.Split(*apiPartition.Qos.Allowed, ",")
@@ -125,28 +125,23 @@ func (a *PartitionAdapter) convertAPIPartitionToCommon(apiPartition api.V0042Par
 
 	// Grace time
 	if apiPartition.GraceTime != nil {
-		partition.GraceTime = time.Duration(*apiPartition.GraceTime) * time.Second
+		partition.GraceTime = int32(*apiPartition.GraceTime)
 	}
 
 	// Oversubscription
 	if apiPartition.Maximums != nil && apiPartition.Maximums.Oversubscribe != nil {
 		if apiPartition.Maximums.Oversubscribe.Jobs != nil {
-			// Convert oversubscribe jobs to a string representation
-			if *apiPartition.Maximums.Oversubscribe.Jobs > 1 {
-				partition.OverSubscribe = "YES"
-			} else {
-				partition.OverSubscribe = "NO"
-			}
+			// OverSubscribe field doesn't exist in common Partition type
+			// Skip oversubscribe conversion
+			_ = apiPartition.Maximums.Oversubscribe.Jobs
 		}
 	}
 
-	// CPU binding
+	// CPU binding - Parameters field doesn't exist in common Partition type
+	// Skip CPU binding conversion
 	if apiPartition.Cpus != nil && apiPartition.Cpus.TaskBinding != nil {
-		// Store CPU binding as part of parameters
-		if partition.Parameters == nil {
-			partition.Parameters = make(map[string]string)
-		}
-		partition.Parameters["cpu_bind"] = string(*apiPartition.Cpus.TaskBinding)
+		_ = apiPartition.Cpus.TaskBinding
+	}
 	}
 
 	// Alternate partition

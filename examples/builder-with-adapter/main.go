@@ -316,15 +316,17 @@ func cloneAndModifyQoS(ctx context.Context, adapter common.VersionAdapter) error
 		// Apply variant-specific modifications
 		builder := variant.modifier(cloned)
 		
+		// Get the built QoS from the modified builder
+		builtQoS, _ := builder.Build()
+		
 		// Update the name
-		builder = builders.NewQoSBuilder(variant.name).
+		newBuilder := builders.NewQoSBuilder(variant.name).
 			WithDescription(fmt.Sprintf("GPU QoS variant: %s", variant.name)).
-			WithPriority(builder.Build().Priority). // Preserve modified priority
-			WithFlags(builder.Build().Flags...).    // Preserve all flags
-			WithLimits()
+			WithPriority(builtQoS.Priority). // Preserve modified priority
+			WithFlags(builtQoS.Flags...)    // Preserve all flags
 
 		// Build the QoS
-		qos, err := builder.Build()
+		qos, err := newBuilder.Build()
 		if err != nil {
 			return fmt.Errorf("failed to build %s: %w", variant.name, err)
 		}

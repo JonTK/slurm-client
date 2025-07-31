@@ -2,9 +2,11 @@ package v0_0_41
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jontk/slurm-client/internal/common"
 	"github.com/jontk/slurm-client/internal/interfaces"
+	"github.com/jontk/slurm-client/pkg/errors"
 )
 
 // Standalone operations - not implemented in this API version
@@ -67,4 +69,40 @@ func (c *WrapperClient) CreateTRES(ctx context.Context, req *interfaces.CreateTR
 func (c *WrapperClient) Reconfigure(ctx context.Context) (*interfaces.ReconfigureResponse, error) {
 	stub := &common.StandaloneOperationsStub{Version: "v0.0.41"}
 	return stub.Reconfigure(ctx)
+}
+
+// HandleErrorResponse handles HTTP error responses
+func (c *WrapperClient) HandleErrorResponse(statusCode int, body []byte) error {
+	// Try to parse the response as structured error
+	if len(body) > 0 {
+		// Log the body for debugging (in production, you'd use a proper logger)
+		// fmt.Printf("Error response body: %s\n", string(body))
+	}
+	
+	// Map HTTP status code to error
+	var code errors.ErrorCode
+	switch statusCode {
+	case 400:
+		code = errors.ErrorCodeInvalidRequest
+	case 401:
+		code = errors.ErrorCodeUnauthorized
+	case 403:
+		code = errors.ErrorCodePermissionDenied
+	case 404:
+		code = errors.ErrorCodeResourceNotFound
+	case 409:
+		code = errors.ErrorCodeConflict
+	case 422:
+		code = errors.ErrorCodeValidationFailed
+	case 429:
+		code = errors.ErrorCodeRateLimited
+	case 500:
+		code = errors.ErrorCodeServerInternal
+	case 502, 503, 504:
+		code = errors.ErrorCodeSlurmDaemonDown
+	default:
+		code = errors.ErrorCodeUnknown
+	}
+	
+	return errors.NewSlurmError(code, fmt.Sprintf("HTTP %d error", statusCode))
 }

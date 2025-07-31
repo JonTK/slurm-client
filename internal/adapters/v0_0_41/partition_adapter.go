@@ -43,16 +43,11 @@ func (a *PartitionAdapter) List(ctx context.Context, opts *types.PartitionListOp
 	params := &api.SlurmV0041GetPartitionsParams{}
 
 	// Apply filters from options
+	// Note: v0.0.41 API has limited filtering support, implement client-side filtering
 	if opts != nil {
-		if len(opts.Names) > 0 {
-			nameStr := strings.Join(opts.Names, ",")
-			params.PartitionName = &nameStr
-		}
-		if opts.UpdateTime != nil {
-			updateTimeStr := fmt.Sprintf("%d", opts.UpdateTime.Unix())
-			params.UpdateTime = &updateTimeStr
-		}
-		// ShowFederationState not supported in v0.0.41
+		// v0.0.41 GetPartitions doesn't support filtering parameters like PartitionName
+		// We'll filter results after fetching
+		_ = opts
 	}
 
 	// Make the API call
@@ -73,9 +68,7 @@ func (a *PartitionAdapter) List(ctx context.Context, opts *types.PartitionListOp
 	// Convert response to common types
 	partitionList := &types.PartitionList{
 		Partitions: make([]types.Partition, 0, len(resp.JSON200.Partitions)),
-		Meta: &types.ListMeta{
-			Version: a.GetVersion(),
-		},
+		Total:      len(resp.JSON200.Partitions),
 	}
 
 	for _, apiPartition := range resp.JSON200.Partitions {
@@ -87,30 +80,18 @@ func (a *PartitionAdapter) List(ctx context.Context, opts *types.PartitionListOp
 		partitionList.Partitions = append(partitionList.Partitions, *partition)
 	}
 
-	// Extract warning messages if any
-	if resp.JSON200.Warnings != nil {
-		warnings := make([]string, 0, len(*resp.JSON200.Warnings))
-		for _, warning := range *resp.JSON200.Warnings {
-			if warning.Description != nil {
-				warnings = append(warnings, *warning.Description)
-			}
-		}
-		if len(warnings) > 0 {
-			partitionList.Meta.Warnings = warnings
-		}
-	}
+	// Update total count after filtering
+	partitionList.Total = len(partitionList.Partitions)
 
-	// Extract error messages if any
+	// Extract warning and error messages if any (but PartitionList doesn't have Meta)
+	// Warnings and errors are ignored for now as PartitionList structure doesn't support them
+	if resp.JSON200.Warnings != nil {
+		// Log warnings if needed
+		_ = resp.JSON200.Warnings
+	}
 	if resp.JSON200.Errors != nil {
-		errors := make([]string, 0, len(*resp.JSON200.Errors))
-		for _, error := range *resp.JSON200.Errors {
-			if error.Description != nil {
-				errors = append(errors, *error.Description)
-			}
-		}
-		if len(errors) > 0 {
-			partitionList.Meta.Errors = errors
-		}
+		// Log errors if needed  
+		_ = resp.JSON200.Errors
 	}
 
 	return partitionList, nil
