@@ -437,15 +437,15 @@ func convertAdminLevelToAPI(level string) api.SlurmdbV0041GetUsersParamsAdminLev
 }
 
 // convertUserAdminLevelToAPI converts common admin level to association API admin level
-func convertUserAdminLevelToAPI(level string) api.SlurmdbV0041PostUsersAssociationJSONBodyUserAdminlevel {
+func convertUserAdminLevelToAPI(level string) api.V0041OpenapiUsersAddCondRespUserAdminlevel {
 	switch strings.ToLower(level) {
 	case "administrator":
-		return api.SlurmdbV0041PostUsersAssociationJSONBodyUserAdminlevelAdministrator
+		return api.V0041OpenapiUsersAddCondRespUserAdminlevelAdministrator
 	case "operator":
-		return api.SlurmdbV0041PostUsersAssociationJSONBodyUserAdminlevelOperator
+		return api.V0041OpenapiUsersAddCondRespUserAdminlevelOperator
 	case "none":
-		return api.SlurmdbV0041PostUsersAssociationJSONBodyUserAdminlevelNone
+		return api.V0041OpenapiUsersAddCondRespUserAdminlevelNone
 	default:
-		return api.SlurmdbV0041PostUsersAssociationJSONBodyUserAdminlevelNone
+		return api.V0041OpenapiUsersAddCondRespUserAdminlevelNone
 	}
 }

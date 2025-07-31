@@ -44,20 +44,9 @@ func (a *NodeAdapter) List(ctx context.Context, opts *types.NodeListOptions) (*t
 	params.Flags = &flags
 
 	// Apply filters from options
-	if opts != nil {
-		if len(opts.Names) > 0 {
-			nodeStr := strings.Join(opts.Names, ",")
-			params.NodeName = &nodeStr
-		}
-		if len(opts.States) > 0 {
-			stateStr := strings.Join(opts.States, ",")
-			params.State = &stateStr
-		}
-		if len(opts.Partitions) > 0 {
-			partitionStr := strings.Join(opts.Partitions, ",")
-			params.Partition = &partitionStr
-		}
-	}
+	// Note: v0.0.42 GetNodes doesn't support filtering by name, state, or partition
+	// We'll need to filter the results after fetching all nodes
+	_ = opts
 
 	// Call the API
 	resp, err := a.client.SlurmV0042GetNodesWithResponse(ctx, params)
@@ -67,7 +56,7 @@ func (a *NodeAdapter) List(ctx context.Context, opts *types.NodeListOptions) (*t
 
 	// Check response status
 	if resp.StatusCode() != 200 {
-		return nil, a.HandleAPIError(resp.StatusCode(), resp.Body)
+		return nil, a.HandleHTTPResponse(resp.HTTPResponse, resp.Body)
 	}
 
 	// Check for API response
@@ -77,17 +66,70 @@ func (a *NodeAdapter) List(ctx context.Context, opts *types.NodeListOptions) (*t
 
 	// Convert the response to common types
 	nodeList := &types.NodeList{
-		Nodes: make([]*types.Node, 0),
+		Nodes: make([]types.Node, 0),
 	}
 
 	if resp.JSON200.Nodes != nil {
-		for _, apiNode := range *resp.JSON200.Nodes {
+		for _, apiNode := range resp.JSON200.Nodes {
 			node, err := a.convertAPINodeToCommon(apiNode)
 			if err != nil {
 				// Log conversion error but continue
 				continue
 			}
-			nodeList.Nodes = append(nodeList.Nodes, node)
+			// Apply filters if options were provided
+			if opts != nil {
+				// Filter by name
+				if len(opts.Names) > 0 {
+					match := false
+					for _, name := range opts.Names {
+						if node.Name == name {
+							match = true
+							break
+						}
+					}
+					if !match {
+						continue
+					}
+				}
+				
+				// Filter by state
+				if len(opts.States) > 0 {
+					match := false
+					for _, state := range opts.States {
+						if string(node.State) == string(state) {
+							match = true
+							break
+						}
+					}
+					if !match {
+						continue
+					}
+				}
+				
+				// Filter by partition
+				if len(opts.Partitions) > 0 {
+					match := false
+					for _, partition := range opts.Partitions {
+						// Check if the node belongs to the partition
+						// This might need to be adjusted based on how partitions are stored in nodes
+						// Check if partition is in the node's partition list
+						for _, nodePartition := range node.Partitions {
+							if nodePartition == partition {
+								match = true
+								break
+							}
+						}
+						if match {
+							break
+						}
+					}
+					if !match {
+						continue
+					}
+				}
+			}
+			
+			nodeList.Nodes = append(nodeList.Nodes, *node)
 		}
 	}
 
@@ -119,16 +161,16 @@ func (a *NodeAdapter) Get(ctx context.Context, name string) (*types.Node, error)
 
 	// Check response status
 	if resp.StatusCode() != 200 {
-		return nil, a.HandleAPIError(resp.StatusCode(), resp.Body)
+		return nil, a.HandleHTTPResponse(resp.HTTPResponse, resp.Body)
 	}
 
 	// Check for API response
-	if resp.JSON200 == nil || resp.JSON200.Nodes == nil || len(*resp.JSON200.Nodes) == 0 {
+	if resp.JSON200 == nil || resp.JSON200.Nodes == nil || len(resp.JSON200.Nodes) == 0 {
 		return nil, fmt.Errorf("node %s not found", name)
 	}
 
 	// Convert the first node in the response
-	nodes := *resp.JSON200.Nodes
+	nodes := resp.JSON200.Nodes
 	return a.convertAPINodeToCommon(nodes[0])
 }
 
@@ -151,14 +193,14 @@ func (a *NodeAdapter) Update(ctx context.Context, name string, updates *types.No
 	}
 
 	// Call the API
-	resp, err := a.client.SlurmV0042PostNodeWithResponse(ctx, name, apiNodeUpdate)
+	resp, err := a.client.SlurmV0042PostNodeWithResponse(ctx, name, *apiNodeUpdate)
 	if err != nil {
 		return a.WrapError(err, fmt.Sprintf("failed to update node %s", name))
 	}
 
 	// Check response status
 	if resp.StatusCode() != 200 {
-		return a.HandleAPIError(resp.StatusCode(), resp.Body)
+		return a.HandleHTTPResponse(resp.HTTPResponse, resp.Body)
 	}
 
 	return nil

@@ -680,6 +680,78 @@ func (m *UserManager) GetBulkAccountUsers(ctx context.Context, accountNames []st
 	return m.impl.GetBulkAccountUsers(ctx, accountNames)
 }
 
+// AssociationManager implements the AssociationManager interface for API version v0.0.40
+type AssociationManager struct {
+	client *WrapperClient
+	impl   *AssociationManagerImpl
+}
+
+// List retrieves a list of associations with optional filtering
+func (m *AssociationManager) List(ctx context.Context, opts *interfaces.ListAssociationsOptions) (*interfaces.AssociationList, error) {
+	if m.impl == nil {
+		m.impl = NewAssociationManagerImpl(m.client)
+	}
+	return m.impl.List(ctx, opts)
+}
+
+// Get retrieves a specific association by ID
+func (m *AssociationManager) Get(ctx context.Context, associationID string) (*interfaces.Association, error) {
+	if m.impl == nil {
+		m.impl = NewAssociationManagerImpl(m.client)
+	}
+	return m.impl.Get(ctx, associationID)
+}
+
+// Create creates a new association
+func (m *AssociationManager) Create(ctx context.Context, association *interfaces.AssociationCreate) (*interfaces.AssociationCreateResponse, error) {
+	if m.impl == nil {
+		m.impl = NewAssociationManagerImpl(m.client)
+	}
+	return m.impl.Create(ctx, association)
+}
+
+// Update updates an existing association
+func (m *AssociationManager) Update(ctx context.Context, associationID string, update *interfaces.AssociationUpdate) error {
+	if m.impl == nil {
+		m.impl = NewAssociationManagerImpl(m.client)
+	}
+	return m.impl.Update(ctx, associationID, update)
+}
+
+// Delete deletes an association
+func (m *AssociationManager) Delete(ctx context.Context, associationID string) error {
+	if m.impl == nil {
+		m.impl = NewAssociationManagerImpl(m.client)
+	}
+	return m.impl.Delete(ctx, associationID)
+}
+
+
+// GetUserAssociations retrieves associations for a user
+func (m *AssociationManager) GetUserAssociations(ctx context.Context, userName string) ([]*interfaces.Association, error) {
+	if m.impl == nil {
+		m.impl = NewAssociationManagerImpl(m.client)
+	}
+	return m.impl.GetUserAssociations(ctx, userName)
+}
+
+// GetAccountAssociations retrieves associations for an account
+func (m *AssociationManager) GetAccountAssociations(ctx context.Context, accountName string) ([]*interfaces.Association, error) {
+	if m.impl == nil {
+		m.impl = NewAssociationManagerImpl(m.client)
+	}
+	return m.impl.GetAccountAssociations(ctx, accountName)
+}
+
+// GetClusterAssociations retrieves associations for a cluster
+func (m *AssociationManager) GetClusterAssociations(ctx context.Context, clusterName string) ([]*interfaces.Association, error) {
+	if m.impl == nil {
+		m.impl = NewAssociationManagerImpl(m.client)
+	}
+	return m.impl.GetClusterAssociations(ctx, clusterName)
+}
+
+
 
 
 

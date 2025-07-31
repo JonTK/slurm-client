@@ -54,9 +54,9 @@ func (a *PartitionAdapter) List(ctx context.Context, opts *types.PartitionListOp
 		return nil, a.WrapError(err, "failed to list partitions")
 	}
 
-	// Check response status
-	if resp.StatusCode() != 200 {
-		return nil, a.HandleAPIError(resp.StatusCode(), resp.Body)
+	// Handle response - use HandleHTTPResponse instead
+	if err := a.HandleHTTPResponse(resp.HTTPResponse, resp.Body); err != nil {
+		return nil, err
 	}
 
 	// Check for API response
@@ -66,11 +66,11 @@ func (a *PartitionAdapter) List(ctx context.Context, opts *types.PartitionListOp
 
 	// Convert the response to common types
 	partitionList := &types.PartitionList{
-		Partitions: make([]*types.Partition, 0),
+		Partitions: make([]types.Partition, 0),
 	}
 
 	if resp.JSON200.Partitions != nil {
-		for _, apiPartition := range *resp.JSON200.Partitions {
+		for _, apiPartition := range resp.JSON200.Partitions {
 			partition, err := a.convertAPIPartitionToCommon(apiPartition)
 			if err != nil {
 				// Log conversion error but continue
@@ -91,7 +91,7 @@ func (a *PartitionAdapter) List(ctx context.Context, opts *types.PartitionListOp
 				}
 			}
 			
-			partitionList.Partitions = append(partitionList.Partitions, partition)
+			partitionList.Partitions = append(partitionList.Partitions, *partition)
 		}
 	}
 
@@ -121,18 +121,18 @@ func (a *PartitionAdapter) Get(ctx context.Context, name string) (*types.Partiti
 		return nil, a.WrapError(err, fmt.Sprintf("failed to get partition %s", name))
 	}
 
-	// Check response status
-	if resp.StatusCode() != 200 {
-		return nil, a.HandleAPIError(resp.StatusCode(), resp.Body)
+	// Handle response - use HandleHTTPResponse instead
+	if err := a.HandleHTTPResponse(resp.HTTPResponse, resp.Body); err != nil {
+		return nil, err
 	}
 
 	// Check for API response
-	if resp.JSON200 == nil || resp.JSON200.Partitions == nil || len(*resp.JSON200.Partitions) == 0 {
+	if resp.JSON200 == nil || resp.JSON200.Partitions == nil || len(resp.JSON200.Partitions) == 0 {
 		return nil, fmt.Errorf("partition %s not found", name)
 	}
 
 	// Convert the first partition in the response
-	partitions := *resp.JSON200.Partitions
+	partitions := resp.JSON200.Partitions
 	return a.convertAPIPartitionToCommon(partitions[0])
 }
 

@@ -2,9 +2,11 @@ package v0_0_40
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jontk/slurm-client/internal/common"
 	"github.com/jontk/slurm-client/internal/interfaces"
+	"github.com/jontk/slurm-client/pkg/errors"
 )
 
 // Standalone operations - not implemented in this API version
@@ -67,4 +69,35 @@ func (c *WrapperClient) CreateTRES(ctx context.Context, req *interfaces.CreateTR
 func (c *WrapperClient) Reconfigure(ctx context.Context) (*interfaces.ReconfigureResponse, error) {
 	stub := &common.StandaloneOperationsStub{Version: "v0.0.40"}
 	return stub.Reconfigure(ctx)
+}
+
+// CheckContext validates the context
+func (c *WrapperClient) CheckContext(ctx context.Context) error {
+	if ctx == nil {
+		return errors.NewValidationError(errors.ErrorCodeValidationFailed, "context is required", "ctx", nil, nil)
+	}
+	return nil
+}
+
+// HandleErrorResponse handles error responses from the API
+func (c *WrapperClient) HandleErrorResponse(statusCode int, body []byte) error {
+	return c.handleHTTPError(statusCode, body)
+}
+
+// handleHTTPError handles HTTP error responses
+func (c *WrapperClient) handleHTTPError(statusCode int, body []byte) error {
+	switch statusCode {
+	case 400:
+		return errors.NewAPIError(errors.ErrorCodeAPIError, fmt.Sprintf("Bad Request: %s", string(body)), nil)
+	case 401:
+		return errors.NewAuthError(errors.ErrorCodeAuthFailed, "Authentication failed")
+	case 403:
+		return errors.NewAuthError(errors.ErrorCodeAuthFailed, "Permission denied")
+	case 404:
+		return errors.NewClientError(errors.ErrorCodeResourceNotFound, "Resource not found")
+	case 500:
+		return errors.NewAPIError(errors.ErrorCodeAPIError, fmt.Sprintf("Internal Server Error: %s", string(body)), nil)
+	default:
+		return errors.NewAPIError(errors.ErrorCodeAPIError, fmt.Sprintf("HTTP %d: %s", statusCode, string(body)), nil)
+	}
 }

@@ -440,12 +440,84 @@ func (m *JobManagerImpl) Cancel(ctx context.Context, jobID string) error {
 
 // Update updates job properties
 func (m *JobManagerImpl) Update(ctx context.Context, jobID string, update *interfaces.JobUpdate) error {
-	// Note: v0.0.41 has different update structure
-	return errors.NewClientError(
-		errors.ErrorCodeUnsupportedOperation,
-		"Job updates not implemented for v0.0.41",
-		"The v0.0.41 job update requires complex inline struct mapping that differs significantly from other API versions",
-	)
+	// Check if API client is available
+	if m.client.apiClient == nil {
+		return errors.NewClientError(errors.ErrorCodeClientNotInitialized, "API client not initialized")
+	}
+
+	// Validate jobID
+	if jobID == "" {
+		return errors.NewValidationError(errors.ErrorCodeValidationFailed, "job ID is required", "jobID", jobID, nil)
+	}
+
+	// Validate update data
+	if update == nil {
+		return errors.NewValidationError(errors.ErrorCodeValidationFailed, "update data is required", "update", update, nil)
+	}
+
+	// Create job description message for update
+	jobDesc := V0041JobDescMsg{}
+
+	// Map update fields to v0.0.41 format
+	if update.TimeLimit != nil {
+		// Convert time limit from minutes to v0.0.41 time structure
+		timeLimitNumber := int32(*update.TimeLimit)
+		jobDesc.TimeLimit = &struct {
+			Infinite *bool  `json:"infinite,omitempty"`
+			Number   *int32 `json:"number,omitempty"`
+			Set      *bool  `json:"set,omitempty"`
+		}{
+			Number: &timeLimitNumber,
+			Set:    &[]bool{true}[0],
+		}
+	}
+
+	if update.Priority != nil {
+		// Convert priority to v0.0.41 priority structure
+		priorityNumber := int32(*update.Priority)
+		jobDesc.Priority = &struct {
+			Infinite *bool  `json:"infinite,omitempty"`
+			Number   *int32 `json:"number,omitempty"`
+			Set      *bool  `json:"set,omitempty"`
+		}{
+			Number: &priorityNumber,
+			Set:    &[]bool{true}[0],
+		}
+	}
+
+	if update.Name != nil {
+		jobDesc.Name = update.Name
+	}
+
+	// Call the API to update the job
+	resp, err := m.client.apiClient.SlurmV0041PostJobWithResponse(ctx, jobID, jobDesc)
+	if err != nil {
+		wrappedErr := errors.WrapError(err)
+		return errors.EnhanceErrorWithVersion(wrappedErr, "v0.0.41")
+	}
+
+	// Check HTTP status and handle API errors
+	if resp.StatusCode() != 200 {
+		var responseBody []byte
+		responseBody = resp.Body
+		return m.client.HandleErrorResponse(resp.StatusCode(), responseBody)
+	}
+
+	// Check for errors in the response
+	if resp.JSON200 != nil && resp.JSON200.Errors != nil && len(*resp.JSON200.Errors) > 0 {
+		// Extract error messages
+		var errMsgs []string
+		for _, e := range *resp.JSON200.Errors {
+			if e.Error != nil {
+				errMsgs = append(errMsgs, *e.Error)
+			}
+		}
+		if len(errMsgs) > 0 {
+			return errors.NewSlurmError(errors.ErrorCodeServerInternal, strings.Join(errMsgs, "; "))
+		}
+	}
+
+	return nil
 }
 
 // Steps retrieves job steps for a job

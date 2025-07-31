@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	// "log"
 
 	"github.com/jontk/slurm-client/internal/adapters/common"
 	v0_0_43 "github.com/jontk/slurm-client/internal/adapters/v0_0_43"
-	"github.com/jontk/slurm-client/internal/common/types"
+	// "github.com/jontk/slurm-client/internal/common/types"
 	api "github.com/jontk/slurm-client/internal/api/v0_0_43"
 )
 
@@ -37,10 +37,10 @@ func main() {
 }
 
 func demonstrateManagerUsage(adapter common.VersionAdapter) {
-	ctx := context.Background()
+	_ = context.Background()
 	
 	// QoS Management
-	fmt.println("🎯 QoS Management:")
+	fmt.Println("🎯 QoS Management:")
 	qosManager := adapter.GetQoSManager()
 	fmt.Printf("   - Manager type: %T\n", qosManager)
 	
@@ -109,14 +109,14 @@ func demonstrateManagerUsage(adapter common.VersionAdapter) {
 
 // Example of how to work with multiple managers in a coordinated way
 func coordinatedManagerExample(adapter common.VersionAdapter) {
-	ctx := context.Background()
+	_ = context.Background()
 	
 	fmt.Println("🎭 Coordinated Manager Operations:")
 	
 	// Get multiple managers
-	qosManager := adapter.GetQoSManager()
-	jobManager := adapter.GetJobManager()
-	accountManager := adapter.GetAccountManager()
+	_ = adapter.GetQoSManager()
+	_ = adapter.GetJobManager()
+	_ = adapter.GetAccountManager()
 	
 	// Example: Create a job with specific QoS and Account
 	/*
