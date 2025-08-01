@@ -236,3 +236,9 @@ func (a *NodeAdapter) Delete(ctx context.Context, name string) error {
 	// Node deletion is typically done through slurm.conf, not API
 	return fmt.Errorf("node deletion not supported via v0.0.42 API")
 }
+
+// Watch provides real-time node status updates (not fully implemented in v0.0.42)
+func (a *NodeAdapter) Watch(ctx context.Context, opts *types.NodeWatchOptions) (<-chan types.NodeWatchEvent, error) {
+	// For now, return not implemented error to satisfy interface
+	return nil, fmt.Errorf("watch functionality not fully implemented in v0.0.42 adapter")
+}
