@@ -152,6 +152,37 @@ type AssociationLimits struct {
 	MinTRES map[string]int64 `json:"min_tres,omitempty"`
 }
 
+// NodeWatchOptions represents options for watching node events
+type NodeWatchOptions struct {
+	// NodeNames is the list of specific nodes to watch (empty means all nodes)
+	NodeNames []string `json:"node_names,omitempty"`
+	// States to filter by (e.g., "idle", "allocated", "down")
+	States []NodeState `json:"states,omitempty"`
+	// Partitions to filter by
+	Partitions []string `json:"partitions,omitempty"`
+	// MaxEvents maximum number of events to return
+	MaxEvents int32 `json:"max_events,omitempty"`
+}
+
+// NodeEvent represents a node state change event
+type NodeEvent struct {
+	// EventTime when the event occurred
+	EventTime time.Time `json:"event_time"`
+	// EventType type of event (state_change, drain, resume, etc.)
+	EventType string `json:"event_type"`
+	// NodeName of the node
+	NodeName string `json:"node_name"`
+	// PreviousState before the event
+	PreviousState NodeState `json:"previous_state,omitempty"`
+	// NewState after the event
+	NewState NodeState `json:"new_state"`
+	// Reason for the state change
+	Reason string `json:"reason,omitempty"`
+	// Partitions affected by the event
+	Partitions []string `json:"partitions,omitempty"`
+}
+
 // Type aliases for compatibility
 type JobWatchEvent = JobEvent
+type NodeWatchEvent = NodeEvent
 type ResourceLimits = AssociationLimits
