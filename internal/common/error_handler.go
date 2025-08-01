@@ -60,18 +60,33 @@ func extractErrorDetail(err ErrorDetail) errors.SlurmAPIErrorDetail {
 	
 	if num := err.GetErrorNumber(); num != nil {
 		detail.ErrorNumber = *num
-	}
-	
-	if code := err.GetError(); code != nil {
-		detail.ErrorCode = *code
+		
+		// Enhance error description with SLURM-specific information
+		if desc := err.GetDescription(); desc != nil {
+			enhancedDesc := EnhanceErrorMessage(int32(*num), *desc)
+			detail.Description = enhancedDesc
+		} else {
+			// If no description provided, use SLURM error description
+			detail.Description = GetErrorDescription(int32(*num))
+		}
+		
+		// Add error category
+		if info := GetErrorInfo(int32(*num)); info != nil {
+			detail.ErrorCode = info.Name
+		}
+	} else {
+		// No error number, use original description
+		if desc := err.GetDescription(); desc != nil {
+			detail.Description = *desc
+		}
+		
+		if code := err.GetError(); code != nil {
+			detail.ErrorCode = *code
+		}
 	}
 	
 	if src := err.GetSource(); src != nil {
 		detail.Source = *src
-	}
-	
-	if desc := err.GetDescription(); desc != nil {
-		detail.Description = *desc
 	}
 	
 	return detail
