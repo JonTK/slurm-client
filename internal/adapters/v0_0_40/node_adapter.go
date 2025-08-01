@@ -302,3 +302,8 @@ func (a *NodeAdapter) validateNodeUpdate(update *types.NodeUpdate) error {
 	}
 	return nil
 }
+
+// Watch provides real-time node status updates (not supported in v0.0.40)
+func (a *NodeAdapter) Watch(ctx context.Context, opts *types.NodeWatchOptions) (<-chan types.NodeWatchEvent, error) {
+	return nil, fmt.Errorf("watch functionality not supported in API v0.0.40")
+}

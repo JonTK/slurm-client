@@ -315,16 +315,57 @@ func (m *adapterJobManager) Cancel(ctx context.Context, jobID string) error {
 }
 
 func (m *adapterJobManager) Watch(ctx context.Context, opts *interfaces.WatchJobsOptions) (<-chan interfaces.JobEvent, error) {
-	// For adapters, we'll use polling-based watch functionality
-	// Since the adapters don't have native watch support, we create a poller
-	// that periodically calls List to detect changes
+	// Convert WatchJobsOptions to types.JobWatchOptions
+	adapterOpts := &types.JobWatchOptions{}
 	
-	// Note: This is a simple implementation. For production use, you might want to:
-	// 1. Make the poll interval configurable
-	// 2. Add proper state tracking to detect changes
-	// 3. Implement more sophisticated change detection logic
+	if opts != nil {
+		// Convert JobIDs from []string to []int32
+		if len(opts.JobIDs) > 0 {
+			// Just watch the first job ID for now (adapter expects single job ID)
+			jobIDInt, err := strconv.ParseInt(opts.JobIDs[0], 10, 32)
+			if err == nil {
+				adapterOpts.JobID = int32(jobIDInt)
+			}
+		}
+		
+		// Convert state filters
+		if len(opts.States) > 0 {
+			adapterOpts.EventTypes = opts.States
+		}
+	}
 	
-	return nil, fmt.Errorf("watch functionality requires polling implementation - not yet implemented for adapters")
+	// Call adapter's Watch method
+	adapterEventChan, err := m.adapter.Watch(ctx, adapterOpts)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Create interface event channel
+	interfaceEventChan := make(chan interfaces.JobEvent, 10)
+	
+	// Start goroutine to convert events
+	go func() {
+		defer close(interfaceEventChan)
+		
+		for adapterEvent := range adapterEventChan {
+			// Convert types.JobWatchEvent to interfaces.JobEvent
+			interfaceEvent := interfaces.JobEvent{
+				Type:      adapterEvent.EventType,
+				JobID:     strconv.Itoa(int(adapterEvent.JobID)),
+				OldState:  string(adapterEvent.PreviousState),
+				NewState:  string(adapterEvent.NewState),
+				Timestamp: adapterEvent.EventTime,
+			}
+			
+			select {
+			case interfaceEventChan <- interfaceEvent:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	
+	return interfaceEventChan, nil
 }
 
 func (m *adapterJobManager) AnalyzeBatchJobs(ctx context.Context, jobIDs []string, opts *interfaces.BatchAnalysisOptions) (*interfaces.BatchJobAnalysis, error) {
@@ -520,16 +561,60 @@ func (m *adapterNodeManager) Update(ctx context.Context, nodeName string, update
 }
 
 func (m *adapterNodeManager) Watch(ctx context.Context, opts *interfaces.WatchNodesOptions) (<-chan interfaces.NodeEvent, error) {
-	// For adapters, we'll use polling-based watch functionality
-	// Since the adapters don't have native watch support, we create a poller
-	// that periodically calls List to detect changes
+	// Convert WatchNodesOptions to types.NodeWatchOptions
+	adapterOpts := &types.NodeWatchOptions{}
 	
-	// Note: This is a simple implementation. For production use, you might want to:
-	// 1. Make the poll interval configurable
-	// 2. Add proper state tracking to detect changes
-	// 3. Implement more sophisticated change detection logic
+	if opts != nil {
+		// Convert node names
+		if len(opts.NodeNames) > 0 {
+			adapterOpts.NodeNames = opts.NodeNames
+		}
+		
+		// Convert states
+		if len(opts.States) > 0 {
+			for _, state := range opts.States {
+				adapterOpts.States = append(adapterOpts.States, types.NodeState(state))
+			}
+		}
+		
+		// Convert partition
+		if opts.Partition != "" {
+			adapterOpts.Partitions = []string{opts.Partition}
+		}
+	}
 	
-	return nil, fmt.Errorf("watch functionality requires polling implementation - not yet implemented for adapters")
+	// Call adapter's Watch method
+	adapterEventChan, err := m.adapter.Watch(ctx, adapterOpts)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Create interface event channel
+	interfaceEventChan := make(chan interfaces.NodeEvent, 10)
+	
+	// Start goroutine to convert events
+	go func() {
+		defer close(interfaceEventChan)
+		
+		for adapterEvent := range adapterEventChan {
+			// Convert types.NodeWatchEvent to interfaces.NodeEvent
+			interfaceEvent := interfaces.NodeEvent{
+				Type:      adapterEvent.EventType,
+				NodeName:  adapterEvent.NodeName,
+				OldState:  string(adapterEvent.PreviousState),
+				NewState:  string(adapterEvent.NewState),
+				Timestamp: adapterEvent.EventTime,
+			}
+			
+			select {
+			case interfaceEventChan <- interfaceEvent:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	
+	return interfaceEventChan, nil
 }
 
 // Helper function to convert types.Node to interfaces.Node

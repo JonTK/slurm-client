@@ -545,3 +545,8 @@ func (a *JobAdapter) validateJobNotifyRequest(req *types.JobNotifyRequest) error
 	}
 	return nil
 }
+
+// Watch provides real-time job status updates (not supported in v0.0.40)
+func (a *JobAdapter) Watch(ctx context.Context, opts *types.JobWatchOptions) (<-chan types.JobWatchEvent, error) {
+	return nil, fmt.Errorf("watch functionality not supported in API v0.0.40")
+}

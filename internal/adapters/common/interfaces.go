@@ -47,6 +47,7 @@ type JobAdapter interface {
 	Signal(ctx context.Context, req *types.JobSignalRequest) error
 	Hold(ctx context.Context, req *types.JobHoldRequest) error
 	Notify(ctx context.Context, req *types.JobNotifyRequest) error
+	Watch(ctx context.Context, opts *types.JobWatchOptions) (<-chan types.JobWatchEvent, error)
 }
 
 // PartitionAdapter defines the interface for Partition management across versions
@@ -64,6 +65,7 @@ type NodeAdapter interface {
 	Get(ctx context.Context, nodeName string) (*types.Node, error)
 	Update(ctx context.Context, nodeName string, update *types.NodeUpdate) error
 	Delete(ctx context.Context, nodeName string) error
+	Watch(ctx context.Context, opts *types.NodeWatchOptions) (<-chan types.NodeWatchEvent, error)
 }
 
 // AccountAdapter defines the interface for Account management across versions
