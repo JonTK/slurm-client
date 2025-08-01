@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jontk/slurm-client/internal/common"
 	"github.com/jontk/slurm-client/internal/common/types"
@@ -267,6 +268,233 @@ func (a *NodeAdapter) Delete(ctx context.Context, nodeName string) error {
 	}
 
 	return common.HandleAPIResponse(responseAdapter, "v0.0.43")
+}
+
+// Watch watches for node state changes using polling
+func (a *NodeAdapter) Watch(ctx context.Context, opts *types.NodeWatchOptions) (<-chan types.NodeWatchEvent, error) {
+	// Use base validation
+	if err := a.ValidateContext(ctx); err != nil {
+		return nil, err
+	}
+	if err := a.CheckClientInitialized(a.client); err != nil {
+		return nil, err
+	}
+
+	// Create the event channel
+	eventCh := make(chan types.NodeWatchEvent, 10) // Buffered channel to prevent blocking
+
+	// Start polling in a goroutine
+	go func() {
+		defer close(eventCh)
+
+		// Poll interval - configurable, but default to 5 seconds
+		pollInterval := 5 * time.Second
+
+		// Keep track of node states to detect changes
+		nodeStates := make(map[string]types.NodeState)
+
+		// Create a ticker for polling
+		ticker := time.NewTicker(pollInterval)
+		defer ticker.Stop()
+
+		// Initial poll to populate the state map
+		a.pollNodes(ctx, opts, nodeStates, eventCh, true)
+
+		// Poll for changes
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				a.pollNodes(ctx, opts, nodeStates, eventCh, false)
+			}
+		}
+	}()
+
+	return eventCh, nil
+}
+
+// pollNodes polls for node changes and sends events
+func (a *NodeAdapter) pollNodes(ctx context.Context, opts *types.NodeWatchOptions, nodeStates map[string]types.NodeState, eventCh chan<- types.NodeWatchEvent, isInitial bool) {
+	// Create list options based on watch options
+	listOpts := &types.NodeListOptions{}
+	
+	// If watching specific nodes, filter by node names
+	if opts != nil && len(opts.NodeNames) > 0 {
+		listOpts.Names = opts.NodeNames
+	}
+
+	// If watching specific states, filter by states
+	if opts != nil && len(opts.States) > 0 {
+		listOpts.States = opts.States
+	}
+
+	// If watching specific partitions, filter by partitions
+	if opts != nil && len(opts.Partitions) > 0 {
+		listOpts.Partitions = opts.Partitions
+	}
+
+	// Get current node list
+	nodeList, err := a.List(ctx, listOpts)
+	if err != nil {
+		// Send error event
+		select {
+		case eventCh <- types.NodeWatchEvent{
+			EventTime: time.Now(),
+			EventType: "error",
+			NodeName:  "",
+			Reason:    fmt.Sprintf("Failed to poll nodes: %v", err),
+		}:
+		case <-ctx.Done():
+		}
+		return
+	}
+
+	// Check for state changes
+	for _, node := range nodeList.Nodes {
+		previousState, exists := nodeStates[node.Name]
+		currentState := node.State
+
+		// Update the state map
+		nodeStates[node.Name] = currentState
+
+		// Skip initial population unless it's a special event
+		if isInitial {
+			continue
+		}
+
+		// Send event if state changed
+		if exists && previousState != currentState {
+			eventType := a.getEventTypeFromNodeStateChange(previousState, currentState)
+			
+			event := types.NodeWatchEvent{
+				EventTime:     time.Now(),
+				EventType:     eventType,
+				NodeName:      node.Name,
+				PreviousState: previousState,
+				NewState:      currentState,
+				Reason:        a.getReasonFromNodeStateChange(previousState, currentState, node.Reason),
+				Partitions:    node.Partitions,
+			}
+
+			select {
+			case eventCh <- event:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}
+
+	// Check for removed nodes (nodes that existed before but don't exist now)
+	for nodeName, previousState := range nodeStates {
+		found := false
+		for _, node := range nodeList.Nodes {
+			if node.Name == nodeName {
+				found = true
+				break
+			}
+		}
+
+		// If node is not found, it might have been removed
+		if !found {
+			// Send removal event
+			event := types.NodeWatchEvent{
+				EventTime:     time.Now(),
+				EventType:     "removed",
+				NodeName:      nodeName,
+				PreviousState: previousState,
+				NewState:      types.NodeStateUnknown,
+				Reason:        "Node removed from cluster",
+			}
+
+			select {
+			case eventCh <- event:
+			case <-ctx.Done():
+				return
+			}
+
+			// Remove from state map
+			delete(nodeStates, nodeName)
+		}
+	}
+}
+
+// getEventTypeFromNodeStateChange determines the event type based on node state transition
+func (a *NodeAdapter) getEventTypeFromNodeStateChange(previous, current types.NodeState) string {
+	switch current {
+	case types.NodeStateIdle:
+		if previous == types.NodeStateAllocated || previous == types.NodeStateMixed {
+			return "freed"
+		}
+		return "idle"
+	case types.NodeStateAllocated:
+		if previous == types.NodeStateIdle {
+			return "allocated"
+		}
+		return "state_change"
+	case types.NodeStateMixed:
+		return "mixed"
+	case types.NodeStateDown:
+		return "down"
+	case types.NodeStateError:
+		return "error"
+	case types.NodeStateDraining:
+		return "draining"
+	case types.NodeStateDrained:
+		return "drained"
+	case types.NodeStateResuming:
+		return "resuming"
+	case types.NodeStateFail:
+		return "fail"
+	case types.NodeStateMaintenance:
+		return "maintenance"
+	case types.NodeStateRebooting:
+		return "rebooting"
+	default:
+		return "state_change"
+	}
+}
+
+// getReasonFromNodeStateChange provides a reason for the node state change
+func (a *NodeAdapter) getReasonFromNodeStateChange(previous, current types.NodeState, nodeReason string) string {
+	// If the node has a specific reason, use that
+	if nodeReason != "" {
+		return nodeReason
+	}
+
+	// Otherwise, provide a generic reason based on state transition
+	switch current {
+	case types.NodeStateIdle:
+		if previous == types.NodeStateAllocated || previous == types.NodeStateMixed {
+			return "Node jobs completed, now idle"
+		}
+		return "Node is idle and available"
+	case types.NodeStateAllocated:
+		if previous == types.NodeStateIdle {
+			return "Node allocated to jobs"
+		}
+		return "Node fully allocated"
+	case types.NodeStateMixed:
+		return "Node partially allocated"
+	case types.NodeStateDown:
+		return "Node is down"
+	case types.NodeStateError:
+		return "Node in error state"
+	case types.NodeStateDraining:
+		return "Node is draining jobs"
+	case types.NodeStateDrained:
+		return "Node has been drained"
+	case types.NodeStateResuming:
+		return "Node is resuming from power save"
+	case types.NodeStateFail:
+		return "Node has failed"
+	case types.NodeStateMaintenance:
+		return "Node is in maintenance mode"
+	case types.NodeStateRebooting:
+		return "Node is rebooting"
+	default:
+		return fmt.Sprintf("Node state changed from %s to %s", previous, current)
+	}
 }
 
 // validateNodeUpdate validates node update request

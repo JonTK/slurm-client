@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/jontk/slurm-client/internal/common"
 	"github.com/jontk/slurm-client/internal/common/types"
@@ -215,9 +216,13 @@ func (a *JobAdapter) Submit(ctx context.Context, job *types.JobCreate) (*types.J
 		reqBody.Script = &job.Script
 	}
 	
-	// Handle working directory
+	// Handle working directory - REQUIRED in SLURM v25.05.0
 	if job.WorkingDirectory != "" {
 		reqBody.CurrentWorkingDirectory = &job.WorkingDirectory
+	} else {
+		// Default to /tmp if not specified to avoid SLURM error
+		defaultWorkDir := "/tmp"
+		reqBody.CurrentWorkingDirectory = &defaultWorkDir
 	}
 	
 	// Handle standard output/error/input
@@ -272,8 +277,13 @@ func (a *JobAdapter) Submit(ctx context.Context, job *types.JobCreate) (*types.J
 	// Set environment in request body
 	reqBody.Environment = &envVars
 
-	// Call the generated OpenAPI client - job submission doesn't need job ID
-	resp, err := a.client.SlurmV0043PostJobWithResponse(ctx, "0", reqBody)
+	// Create job submit request wrapping the job description
+	submitReq := api.V0043JobSubmitReq{
+		Job: &reqBody,
+	}
+
+	// Call the generated OpenAPI client - use the dedicated submit endpoint
+	resp, err := a.client.SlurmV0043PostJobSubmitWithResponse(ctx, submitReq)
 	if err != nil {
 		return nil, a.HandleAPIError(err)
 	}
@@ -299,19 +309,25 @@ func (a *JobAdapter) Submit(ctx context.Context, job *types.JobCreate) (*types.J
 	var warnings []string
 	var errors []string
 
-	// Extract job ID from response - V0043OpenapiJobPostResponse structure
-	if resp.JSON200 != nil && resp.JSON200.Results != nil && len(*resp.JSON200.Results) > 0 {
-		result := (*resp.JSON200.Results)[0]
-		if result.JobId != nil {
-			jobID = *result.JobId
-		}
+	// Extract job ID from response - V0043OpenapiJobSubmitResponse structure
+	if resp.JSON200 != nil && resp.JSON200.JobId != nil {
+		jobID = *resp.JSON200.JobId
 	}
 	
-	// Note: V0043JobArrayResponseMsgEntry doesn't have Warnings field
-	// Handle warnings through errors array if available
+	// Extract warnings if available
+	if resp.JSON200 != nil && resp.JSON200.Warnings != nil {
+		for _, warn := range *resp.JSON200.Warnings {
+			// V0043OpenapiWarning has Description and Source fields
+			if warn.Description != nil {
+				warnings = append(warnings, *warn.Description)
+			} else if warn.Source != nil {
+				warnings = append(warnings, *warn.Source)
+			}
+		}
+	}
 
 	// Check for errors in response
-	if resp.JSON200.Errors != nil {
+	if resp.JSON200 != nil && resp.JSON200.Errors != nil {
 		for _, apiErr := range *resp.JSON200.Errors {
 			if apiErr.Error != nil {
 				errors = append(errors, *apiErr.Error)
@@ -504,6 +520,217 @@ func (a *JobAdapter) Notify(ctx context.Context, req *types.JobNotifyRequest) er
 	}
 
 	return a.Update(ctx, req.JobID, update)
+}
+
+// Watch watches for job state changes using polling
+func (a *JobAdapter) Watch(ctx context.Context, opts *types.JobWatchOptions) (<-chan types.JobWatchEvent, error) {
+	// Use base validation
+	if err := a.ValidateContext(ctx); err != nil {
+		return nil, err
+	}
+	if err := a.CheckClientInitialized(a.client); err != nil {
+		return nil, err
+	}
+
+	// Create the event channel
+	eventCh := make(chan types.JobWatchEvent, 10) // Buffered channel to prevent blocking
+
+	// Start polling in a goroutine
+	go func() {
+		defer close(eventCh)
+
+		// Poll interval - configurable, but default to 5 seconds
+		pollInterval := 5 * time.Second
+
+		// Keep track of job states to detect changes
+		jobStates := make(map[int32]types.JobState)
+
+		// Create a ticker for polling
+		ticker := time.NewTicker(pollInterval)
+		defer ticker.Stop()
+
+		// Initial poll to populate the state map
+		a.pollJobs(ctx, opts, jobStates, eventCh, true)
+
+		// Poll for changes
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				a.pollJobs(ctx, opts, jobStates, eventCh, false)
+			}
+		}
+	}()
+
+	return eventCh, nil
+}
+
+// pollJobs polls for job changes and sends events
+func (a *JobAdapter) pollJobs(ctx context.Context, opts *types.JobWatchOptions, jobStates map[int32]types.JobState, eventCh chan<- types.JobWatchEvent, isInitial bool) {
+	// Create list options based on watch options
+	listOpts := &types.JobListOptions{}
+	
+	// If watching a specific job, filter by job ID
+	if opts != nil && opts.JobID != 0 {
+		listOpts.JobIDs = []int32{opts.JobID}
+	}
+
+	// Get current job list
+	jobList, err := a.List(ctx, listOpts)
+	if err != nil {
+		// Send error event
+		select {
+		case eventCh <- types.JobWatchEvent{
+			EventTime: time.Now(),
+			EventType: "error",
+			JobID:     0,
+			Reason:    fmt.Sprintf("Failed to poll jobs: %v", err),
+		}:
+		case <-ctx.Done():
+		}
+		return
+	}
+
+	// Check for state changes
+	for _, job := range jobList.Jobs {
+		previousState, exists := jobStates[job.JobID]
+		currentState := job.State
+
+		// Update the state map
+		jobStates[job.JobID] = currentState
+
+		// Skip initial population unless it's a completion event or the user wants all events
+		if isInitial {
+			continue
+		}
+
+		// Send event if state changed
+		if exists && previousState != currentState {
+			eventType := a.getEventTypeFromStateChange(previousState, currentState)
+			
+			// Filter by event types if specified
+			if opts != nil && len(opts.EventTypes) > 0 {
+				found := false
+				for _, et := range opts.EventTypes {
+					if et == eventType {
+						found = true
+						break
+					}
+				}
+				if !found {
+					continue
+				}
+			}
+
+			event := types.JobWatchEvent{
+				EventTime:     time.Now(),
+				EventType:     eventType,
+				JobID:         job.JobID,
+				JobName:       job.Name,
+				UserName:      job.UserName,
+				PreviousState: previousState,
+				NewState:      currentState,
+				NodeList:      job.NodeList,
+				Reason:        a.getReasonFromStateChange(previousState, currentState),
+			}
+
+			select {
+			case eventCh <- event:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}
+
+	// Check for completed/removed jobs (jobs that existed before but don't exist now)
+	for jobID, previousState := range jobStates {
+		found := false
+		for _, job := range jobList.Jobs {
+			if job.JobID == jobID {
+				found = true
+				break
+			}
+		}
+
+		// If job is not found and was not in a terminal state, it might have been removed
+		if !found && !a.isTerminalState(previousState) {
+			// Send completion event
+			event := types.JobWatchEvent{
+				EventTime:     time.Now(),
+				EventType:     "completed",
+				JobID:         jobID,
+				PreviousState: previousState,
+				NewState:      types.JobStateCompleted,
+				Reason:        "Job completed and removed from active list",
+			}
+
+			select {
+			case eventCh <- event:
+			case <-ctx.Done():
+				return
+			}
+
+			// Remove from state map
+			delete(jobStates, jobID)
+		}
+	}
+}
+
+// getEventTypeFromStateChange determines the event type based on state transition
+func (a *JobAdapter) getEventTypeFromStateChange(previous, current types.JobState) string {
+	switch current {
+	case types.JobStateRunning:
+		if previous == types.JobStatePending {
+			return "start"
+		}
+		return "running"
+	case types.JobStateCompleted:
+		return "end"
+	case types.JobStateFailed:
+		return "fail"
+	case types.JobStateCancelled:
+		return "cancel"
+	case types.JobStatePending:
+		return "submit"
+	case types.JobStateSuspended:
+		return "suspend"
+	default:
+		return "state_change"
+	}
+}
+
+// getReasonFromStateChange provides a reason for the state change
+func (a *JobAdapter) getReasonFromStateChange(previous, current types.JobState) string {
+	switch current {
+	case types.JobStateRunning:
+		if previous == types.JobStatePending {
+			return "Job started execution"
+		}
+		return "Job resumed execution"
+	case types.JobStateCompleted:
+		return "Job completed successfully"
+	case types.JobStateFailed:
+		return "Job failed during execution"
+	case types.JobStateCancelled:
+		return "Job was cancelled"
+	case types.JobStatePending:
+		return "Job submitted and waiting for resources"
+	case types.JobStateSuspended:
+		return "Job was suspended"
+	default:
+		return fmt.Sprintf("Job state changed from %s to %s", previous, current)
+	}
+}
+
+// isTerminalState checks if a job state is terminal
+func (a *JobAdapter) isTerminalState(state types.JobState) bool {
+	switch state {
+	case types.JobStateCompleted, types.JobStateFailed, types.JobStateCancelled:
+		return true
+	default:
+		return false
+	}
 }
 
 // validateJobCreate validates job creation request
