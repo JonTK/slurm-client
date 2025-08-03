@@ -208,7 +208,8 @@ func (a *AccountAdapter) Delete(ctx context.Context, name string) error {
 	return nil
 }
 
-// CreateAssociation creates associations for accounts (not supported in v0.0.42)
+// CreateAssociation creates associations for accounts (implementation needs API structure fixes)
 func (a *AccountAdapter) CreateAssociation(ctx context.Context, req *types.AccountAssociationRequest) (*types.AssociationCreateResponse, error) {
-	return nil, fmt.Errorf("CreateAssociation not supported in API v0.0.42")
+	// TODO: Fix API type mappings for v0.0.42
+	return nil, fmt.Errorf("CreateAssociation implementation needs API structure fixes for v0.0.42")
 }
