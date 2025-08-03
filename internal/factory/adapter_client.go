@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jontk/slurm-client/internal/adapters/common"
+	interfacecommon "github.com/jontk/slurm-client/internal/common"
 	v040adapter "github.com/jontk/slurm-client/internal/adapters/v0_0_40"
 	v041adapter "github.com/jontk/slurm-client/internal/adapters/v0_0_41"
 	v042adapter "github.com/jontk/slurm-client/internal/adapters/v0_0_42"
@@ -136,6 +137,11 @@ func (c *AdapterClient) Clusters() interfaces.ClusterManager {
 // Associations returns the AssociationManager
 func (c *AdapterClient) Associations() interfaces.AssociationManager {
 	return &adapterAssociationManager{adapter: c.adapter.GetAssociationManager()}
+}
+
+// WCKeys returns the WCKeyManager (not supported by legacy adapter)
+func (c *AdapterClient) WCKeys() interfaces.WCKeyManager {
+	return &interfacecommon.WCKeyManagerStub{Version: c.version}
 }
 
 // Close closes the client
@@ -501,6 +507,11 @@ func convertJobToInterface(job types.Job) interfaces.Job {
 		ExitCode:    0, // Not available in types.Job
 		Metadata:    make(map[string]interface{}),
 	}
+}
+
+// Allocate allocates resources for a job (not supported by legacy adapters)
+func (m *adapterJobManager) Allocate(ctx context.Context, req *interfaces.JobAllocateRequest) (*interfaces.JobAllocateResponse, error) {
+	return nil, fmt.Errorf("job allocation not supported by legacy adapters")
 }
 
 // adapterNodeManager wraps a common.NodeAdapter to implement interfaces.NodeManager
@@ -898,6 +909,11 @@ func (m *adapterInfoManager) Version(ctx context.Context) (*interfaces.APIVersio
 		Description: "SLURM REST API",
 		Deprecated:  false,
 	}, nil
+}
+
+// PingDatabase tests connectivity to the SLURM database (not supported by legacy adapters)  
+func (m *adapterInfoManager) PingDatabase(ctx context.Context) error {
+	return fmt.Errorf("database ping not supported by legacy adapters")
 }
 
 // Other manager implementations...
@@ -1421,21 +1437,16 @@ func (m *adapterAssociationManager) Create(ctx context.Context, associations []*
 	}
 
 	// Call adapter
-	result, err := m.adapter.Create(ctx, adapterAssoc)
+	_, err := m.adapter.Create(ctx, adapterAssoc)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert result - create a basic association from the response
-	association := &interfaces.Association{
-		User:    result.UserName,
-		Account: result.AccountName,
-		Cluster: result.Cluster,
-	}
-	
+	// Convert result - the adapter returns just status and message
+	// We can't reconstruct the association details from the response
 	return &interfaces.AssociationCreateResponse{
-		Associations: []*interfaces.Association{association},
-		Created:      1,
+		Associations: []*interfaces.Association{}, // Empty since we don't have details in response
+		Created:      1, // Assume success if no error
 		Updated:      0,
 		Errors:       nil,
 		Warnings:     nil,

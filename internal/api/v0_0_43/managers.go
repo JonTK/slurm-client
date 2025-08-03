@@ -38,6 +38,14 @@ func (m *JobManager) Submit(ctx context.Context, job *interfaces.JobSubmission) 
 	return m.impl.Submit(ctx, job)
 }
 
+// Allocate allocates resources for a job
+func (m *JobManager) Allocate(ctx context.Context, req *interfaces.JobAllocateRequest) (*interfaces.JobAllocateResponse, error) {
+	if m.impl == nil {
+		m.impl = NewJobManagerImpl(m.client)
+	}
+	return m.impl.Allocate(ctx, req)
+}
+
 // Cancel cancels a job
 func (m *JobManager) Cancel(ctx context.Context, jobID string) error {
 	if m.impl == nil {
@@ -350,6 +358,14 @@ func (m *InfoManager) Ping(ctx context.Context) error {
 		m.impl = NewInfoManagerImpl(m.client)
 	}
 	return m.impl.Ping(ctx)
+}
+
+// PingDatabase tests connectivity to the SLURM database
+func (m *InfoManager) PingDatabase(ctx context.Context) error {
+	if m.impl == nil {
+		m.impl = NewInfoManagerImpl(m.client)
+	}
+	return m.impl.PingDatabase(ctx)
 }
 
 // Stats retrieves cluster statistics
@@ -802,4 +818,50 @@ func (m *AssociationManager) ValidateAssociation(ctx context.Context, user, acco
 		m.impl = NewAssociationManagerImpl(m.client)
 	}
 	return m.impl.ValidateAssociation(ctx, user, account, cluster)
+}
+
+// WCKeyManager implements the WCKeyManager interface for API version v0.0.43
+type WCKeyManager struct {
+	client *WrapperClient
+	impl   *WCKeyManagerImpl
+}
+
+// List returns WCKeys with optional filtering
+func (m *WCKeyManager) List(ctx context.Context, opts *interfaces.WCKeyListOptions) (*interfaces.WCKeyList, error) {
+	if m.impl == nil {
+		m.impl = NewWCKeyManagerImpl(m.client)
+	}
+	return m.impl.List(ctx, opts)
+}
+
+// Get retrieves a specific WCKey
+func (m *WCKeyManager) Get(ctx context.Context, wckeyName, user, cluster string) (*interfaces.WCKey, error) {
+	if m.impl == nil {
+		m.impl = NewWCKeyManagerImpl(m.client)
+	}
+	return m.impl.Get(ctx, wckeyName, user, cluster)
+}
+
+// Create creates a new WCKey
+func (m *WCKeyManager) Create(ctx context.Context, wckey *interfaces.WCKeyCreate) (*interfaces.WCKeyCreateResponse, error) {
+	if m.impl == nil {
+		m.impl = NewWCKeyManagerImpl(m.client)
+	}
+	return m.impl.Create(ctx, wckey)
+}
+
+// Update updates an existing WCKey
+func (m *WCKeyManager) Update(ctx context.Context, wckeyName, user, cluster string, update *interfaces.WCKeyUpdate) error {
+	if m.impl == nil {
+		m.impl = NewWCKeyManagerImpl(m.client)
+	}
+	return m.impl.Update(ctx, wckeyName, user, cluster, update)
+}
+
+// Delete deletes a WCKey
+func (m *WCKeyManager) Delete(ctx context.Context, wckeyID string) error {
+	if m.impl == nil {
+		m.impl = NewWCKeyManagerImpl(m.client)
+	}
+	return m.impl.Delete(ctx, wckeyID)
 }
