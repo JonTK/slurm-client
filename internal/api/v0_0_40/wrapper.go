@@ -91,6 +91,11 @@ func (c *WrapperClient) Associations() interfaces.AssociationManager {
 	return &AssociationManager{client: c}
 }
 
+// WCKeys returns the WCKeyManager (not available in v0.0.40)
+func (c *WrapperClient) WCKeys() interfaces.WCKeyManager {
+	return &common.WCKeyManagerStub{Version: "v0.0.40"}
+}
+
 // Close closes the client
 func (c *WrapperClient) Close() error {
 	// No resources to close for HTTP client

@@ -2279,3 +2279,8 @@ func (j *JobManagerImpl) GenerateEfficiencyReport(ctx context.Context, opts *int
 		Summary: interfaces.ExecutiveSummary{},
 	}, nil
 }
+
+// Allocate allocates resources for a job (not available in v0.0.40)
+func (m *JobManagerImpl) Allocate(ctx context.Context, req *interfaces.JobAllocateRequest) (*interfaces.JobAllocateResponse, error) {
+	return nil, errors.NewNotImplementedError("Allocate", "v0.0.40")
+}

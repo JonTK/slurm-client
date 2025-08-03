@@ -64,3 +64,33 @@ func (s *StandaloneOperationsStub) CreateTRES(ctx context.Context, req *interfac
 func (s *StandaloneOperationsStub) Reconfigure(ctx context.Context) (*interfaces.ReconfigureResponse, error) {
 	return nil, errors.NewNotImplementedError("reconfiguration", s.Version)
 }
+
+// WCKeyManagerStub provides stub implementations for WCKey operations in older API versions
+type WCKeyManagerStub struct {
+	Version string
+}
+
+// List returns not implemented error
+func (w *WCKeyManagerStub) List(ctx context.Context, opts *interfaces.WCKeyListOptions) (*interfaces.WCKeyList, error) {
+	return nil, errors.NewNotImplementedError("WCKey listing", w.Version)
+}
+
+// Get returns not implemented error
+func (w *WCKeyManagerStub) Get(ctx context.Context, wckeyName, user, cluster string) (*interfaces.WCKey, error) {
+	return nil, errors.NewNotImplementedError("WCKey retrieval", w.Version)
+}
+
+// Create returns not implemented error
+func (w *WCKeyManagerStub) Create(ctx context.Context, wckey *interfaces.WCKeyCreate) (*interfaces.WCKeyCreateResponse, error) {
+	return nil, errors.NewNotImplementedError("WCKey creation", w.Version)
+}
+
+// Update returns not implemented error
+func (w *WCKeyManagerStub) Update(ctx context.Context, wckeyName, user, cluster string, update *interfaces.WCKeyUpdate) error {
+	return errors.NewNotImplementedError("WCKey update", w.Version)
+}
+
+// Delete returns not implemented error
+func (w *WCKeyManagerStub) Delete(ctx context.Context, wckeyID string) error {
+	return errors.NewNotImplementedError("WCKey deletion", w.Version)
+}
