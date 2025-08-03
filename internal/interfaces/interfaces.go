@@ -44,6 +44,9 @@ type SlurmClient interface {
 	// Associations returns the AssociationManager for this version (v0.0.43+)
 	Associations() AssociationManager
 
+	// WCKeys returns the WCKeyManager for this version (v0.0.43+)
+	WCKeys() WCKeyManager
+
 	// === Standalone Operations ===
 	
 	// GetLicenses retrieves license information
@@ -90,6 +93,9 @@ type JobManager interface {
 
 	// Submit submits a new job
 	Submit(ctx context.Context, job *JobSubmission) (*JobSubmitResponse, error)
+
+	// Allocate allocates resources for a job (v0.0.43+)
+	Allocate(ctx context.Context, req *JobAllocateRequest) (*JobAllocateResponse, error)
 
 	// Cancel cancels a job
 	Cancel(ctx context.Context, jobID string) error
@@ -214,6 +220,9 @@ type InfoManager interface {
 	// Ping tests connectivity to the cluster
 	Ping(ctx context.Context) error
 
+	// PingDatabase tests connectivity to the SLURM database (v0.0.43+)
+	PingDatabase(ctx context.Context) error
+
 	// Stats retrieves cluster statistics
 	Stats(ctx context.Context) (*ClusterStats, error)
 
@@ -307,6 +316,22 @@ type JobSubmission struct {
 
 // JobSubmitResponse represents the response from job submission
 type JobSubmitResponse struct {
+	JobID string `json:"job_id"`
+}
+
+// JobAllocateRequest represents a job allocation request (v0.0.43+)
+type JobAllocateRequest struct {
+	Name      string `json:"name"`
+	Partition string `json:"partition,omitempty"`
+	Nodes     int    `json:"nodes"`
+	CPUs      int    `json:"cpus"`
+	TimeLimit int    `json:"time_limit"` // in minutes
+	Account   string `json:"account,omitempty"`
+	QoS       string `json:"qos,omitempty"`
+}
+
+// JobAllocateResponse represents the response from job allocation (v0.0.43+)
+type JobAllocateResponse struct {
 	JobID string `json:"job_id"`
 }
 
@@ -1971,6 +1996,59 @@ type AssociationManager interface {
 	GetUserAssociations(ctx context.Context, userName string) ([]*Association, error)
 	GetAccountAssociations(ctx context.Context, accountName string) ([]*Association, error)
 	ValidateAssociation(ctx context.Context, user, account, cluster string) (bool, error)
+}
+
+// WCKeyManager manages WCKey (Workload Characterization Key) operations (v0.0.43+)
+type WCKeyManager interface {
+	// List returns WCKeys with optional filtering
+	List(ctx context.Context, opts *WCKeyListOptions) (*WCKeyList, error)
+	// Get retrieves a specific WCKey
+	Get(ctx context.Context, wckeyName, user, cluster string) (*WCKey, error)
+	// Create creates a new WCKey
+	Create(ctx context.Context, wckey *WCKeyCreate) (*WCKeyCreateResponse, error)
+	// Update updates an existing WCKey
+	Update(ctx context.Context, wckeyName, user, cluster string, update *WCKeyUpdate) error
+	// Delete deletes a WCKey
+	Delete(ctx context.Context, wckeyID string) error
+}
+
+// WCKey represents a Workload Characterization Key
+type WCKey struct {
+	Name    string `json:"name"`
+	User    string `json:"user"`
+	Cluster string `json:"cluster"`
+}
+
+// WCKeyList represents a list of WCKeys
+type WCKeyList struct {
+	WCKeys []WCKey `json:"wckeys"`
+	Total  int     `json:"total"`
+}
+
+// WCKeyCreate represents a WCKey creation request
+type WCKeyCreate struct {
+	Name    string `json:"name"`
+	User    string `json:"user"`
+	Cluster string `json:"cluster"`
+}
+
+// WCKeyCreateResponse represents the response from WCKey creation
+type WCKeyCreateResponse struct {
+	WCKeyName string `json:"wckey_name"`
+}
+
+// WCKeyUpdate represents a WCKey update request
+type WCKeyUpdate struct {
+	Name *string `json:"name,omitempty"`
+}
+
+// WCKeyListOptions provides options for listing WCKeys
+type WCKeyListOptions struct {
+	Names    []string `json:"names,omitempty"`
+	Users    []string `json:"users,omitempty"`
+	Clusters []string `json:"clusters,omitempty"`
+	Limit    int      `json:"limit,omitempty"`
+	Offset   int      `json:"offset,omitempty"`
 }
 
 // User represents a SLURM user
