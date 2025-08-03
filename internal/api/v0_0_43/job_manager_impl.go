@@ -472,6 +472,106 @@ func (m *JobManagerImpl) Submit(ctx context.Context, job *interfaces.JobSubmissi
 	return result, nil
 }
 
+// Allocate allocates resources for a job
+func (m *JobManagerImpl) Allocate(ctx context.Context, req *interfaces.JobAllocateRequest) (*interfaces.JobAllocateResponse, error) {
+	// Check if API client is available
+	if m.client.apiClient == nil {
+		return nil, errors.NewClientError(errors.ErrorCodeClientNotInitialized, "API client not initialized")
+	}
+
+	// Convert interface JobAllocateRequest to API V0043JobDescMsg
+	jobDesc := &V0043JobDescMsg{
+		Name:         &req.Name,
+		MinimumNodes: int32Ptr(int32(req.Nodes)),
+		MinimumCpus:  int32Ptr(int32(req.CPUs)),
+		TimeLimit:    &V0043Uint32NoValStruct{Number: int32Ptr(int32(req.TimeLimit))},
+	}
+
+	if req.Partition != "" {
+		jobDesc.Partition = &req.Partition
+	}
+	if req.Account != "" {
+		jobDesc.Account = &req.Account
+	}
+	if req.QoS != "" {
+		jobDesc.Qos = &req.QoS
+	}
+
+	// Create the request body using the correct API type
+	requestBody := V0043JobAllocReq{
+		Job: jobDesc,
+	}
+
+	// Call the generated OpenAPI client for job allocation
+	resp, err := m.client.apiClient.SlurmV0043PostJobAllocateWithResponse(ctx, requestBody)
+	if err != nil {
+		wrappedErr := errors.WrapError(err)
+		return nil, errors.EnhanceErrorWithVersion(wrappedErr, "v0.0.43")
+	}
+
+	// Check HTTP status (200 and 201 for creation is success)
+	if resp.StatusCode() != 200 && resp.StatusCode() != 201 {
+		var responseBody []byte
+		if resp.JSON200 != nil {
+			// Try to extract error details from response
+			if resp.JSON200.Errors != nil && len(*resp.JSON200.Errors) > 0 {
+				apiErrors := make([]errors.SlurmAPIErrorDetail, len(*resp.JSON200.Errors))
+				for i, apiErr := range *resp.JSON200.Errors {
+					var errorNumber int
+					if apiErr.ErrorNumber != nil {
+						errorNumber = int(*apiErr.ErrorNumber)
+					}
+					var errorCode string
+					if apiErr.Error != nil {
+						errorCode = *apiErr.Error
+					}
+					var source string
+					if apiErr.Source != nil {
+						source = *apiErr.Source
+					}
+					var description string
+					if apiErr.Description != nil {
+						description = *apiErr.Description
+					}
+
+					apiErrors[i] = errors.SlurmAPIErrorDetail{
+						ErrorNumber: errorNumber,
+						ErrorCode:   errorCode,
+						Source:      source,
+						Description: description,
+					}
+				}
+				apiError := errors.NewSlurmAPIError(resp.StatusCode(), "v0.0.43", apiErrors)
+				return nil, apiError.SlurmError
+			}
+		}
+
+		// Fall back to HTTP error handling
+		httpErr := errors.WrapHTTPError(resp.StatusCode(), responseBody, "v0.0.43")
+		return nil, httpErr
+	}
+
+	// Check for unexpected response format
+	if resp.JSON200 == nil {
+		return nil, errors.NewClientError(errors.ErrorCodeServerInternal, "Unexpected response format", "Expected JSON response but got nil")
+	}
+
+	// Convert response to interface type
+	result := &interfaces.JobAllocateResponse{}
+	if resp.JSON200.JobId != nil {
+		result.JobID = strconv.FormatInt(int64(*resp.JSON200.JobId), 10)
+	} else {
+		return nil, errors.NewClientError(errors.ErrorCodeServerInternal, "Job allocation successful but no job ID returned")
+	}
+
+	return result, nil
+}
+
+// int32Ptr is a helper function to convert int32 to *int32
+func int32Ptr(val int32) *int32 {
+	return &val
+}
+
 // convertJobSubmissionToAPI converts interfaces.JobSubmission to V0043JobDescMsg
 func convertJobSubmissionToAPI(job *interfaces.JobSubmission) (*V0043JobDescMsg, error) {
 	if job == nil {

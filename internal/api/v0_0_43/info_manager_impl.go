@@ -189,6 +189,70 @@ func (m *InfoManagerImpl) Ping(ctx context.Context) error {
 	return nil
 }
 
+// PingDatabase tests connectivity to the SLURM database
+func (m *InfoManagerImpl) PingDatabase(ctx context.Context) error {
+	// Check if API client is available
+	if m.client.apiClient == nil {
+		return errors.NewClientError(errors.ErrorCodeClientNotInitialized, "API client not initialized")
+	}
+
+	// Call the database config endpoint (v0.0.43 feature) to test database connectivity
+	resp, err := m.client.apiClient.SlurmdbV0043GetConfigWithResponse(ctx)
+	if err != nil {
+		wrappedErr := errors.WrapError(err)
+		return errors.EnhanceErrorWithVersion(wrappedErr, "v0.0.43")
+	}
+
+	// Check HTTP status and handle API errors
+	if resp.StatusCode() != 200 {
+		var responseBody []byte
+		if resp.JSON200 != nil {
+			// Try to extract error details from response
+			if resp.JSON200.Errors != nil && len(*resp.JSON200.Errors) > 0 {
+				apiErrors := make([]errors.SlurmAPIErrorDetail, len(*resp.JSON200.Errors))
+				for i, apiErr := range *resp.JSON200.Errors {
+					var errorNumber int
+					if apiErr.ErrorNumber != nil {
+						errorNumber = int(*apiErr.ErrorNumber)
+					}
+					var errorCode string
+					if apiErr.Error != nil {
+						errorCode = *apiErr.Error
+					}
+					var source string
+					if apiErr.Source != nil {
+						source = *apiErr.Source
+					}
+					var description string
+					if apiErr.Description != nil {
+						description = *apiErr.Description
+					}
+
+					apiErrors[i] = errors.SlurmAPIErrorDetail{
+						ErrorNumber: errorNumber,
+						ErrorCode:   errorCode,
+						Source:      source,
+						Description: description,
+					}
+				}
+				apiError := errors.NewSlurmAPIError(resp.StatusCode(), "v0.0.43", apiErrors)
+				return apiError.SlurmError
+			}
+		}
+
+		// Fall back to HTTP error handling
+		httpErr := errors.WrapHTTPError(resp.StatusCode(), responseBody, "v0.0.43")
+		return httpErr
+	}
+
+	// Check for unexpected response format
+	if resp.JSON200 == nil {
+		return errors.NewClientError(errors.ErrorCodeServerInternal, "Unexpected response format", "Expected JSON response but got nil")
+	}
+
+	return nil
+}
+
 // Stats retrieves cluster statistics
 func (m *InfoManagerImpl) Stats(ctx context.Context) (*interfaces.ClusterStats, error) {
 	// Check if API client is available

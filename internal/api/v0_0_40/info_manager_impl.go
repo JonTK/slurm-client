@@ -375,3 +375,8 @@ func (m *InfoManagerImpl) Version(ctx context.Context) (*interfaces.APIVersion, 
 
 	return apiVersion, nil
 }
+
+// PingDatabase tests connectivity to the SLURM database (not available in v0.0.40)
+func (m *InfoManagerImpl) PingDatabase(ctx context.Context) error {
+	return errors.NewNotImplementedError("PingDatabase", "v0.0.40")
+}

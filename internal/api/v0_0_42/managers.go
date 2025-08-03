@@ -254,6 +254,14 @@ func (m *JobManager) GenerateEfficiencyReport(ctx context.Context, opts *interfa
 	return m.impl.GenerateEfficiencyReport(ctx, opts)
 }
 
+// Allocate allocates resources for a job
+func (m *JobManager) Allocate(ctx context.Context, req *interfaces.JobAllocateRequest) (*interfaces.JobAllocateResponse, error) {
+	if m.impl == nil {
+		m.impl = NewJobManagerImpl(m.client)
+	}
+	return m.impl.Allocate(ctx, req)
+}
+
 // NodeManager implements the NodeManager interface for API version v0.0.42
 type NodeManager struct {
 	client *WrapperClient
@@ -366,6 +374,14 @@ func (m *InfoManager) Version(ctx context.Context) (*interfaces.APIVersion, erro
 		m.impl = NewInfoManagerImpl(m.client)
 	}
 	return m.impl.Version(ctx)
+}
+
+// PingDatabase tests connectivity to the SLURM database
+func (m *InfoManager) PingDatabase(ctx context.Context) error {
+	if m.impl == nil {
+		m.impl = NewInfoManagerImpl(m.client)
+	}
+	return m.impl.PingDatabase(ctx)
 }
 
 // ReservationManager implements the ReservationManager interface for API version v0.0.42
