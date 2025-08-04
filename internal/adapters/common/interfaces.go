@@ -21,6 +21,7 @@ type VersionAdapter interface {
 	GetUserManager() UserAdapter
 	GetAssociationManager() AssociationAdapter
 	GetWCKeyManager() WCKeyAdapter
+	GetClusterManager() ClusterAdapter
 
 	// Standalone operations (non-CRUD)
 	GetStandaloneManager() StandaloneAdapter
@@ -156,4 +157,12 @@ type WCKeyAdapter interface {
 	Get(ctx context.Context, wcKeyID string) (*types.WCKey, error)
 	Create(ctx context.Context, wckey *types.WCKeyCreate) (*types.WCKeyCreateResponse, error)
 	Delete(ctx context.Context, wcKeyID string) error
+}
+
+// ClusterAdapter defines the interface for Cluster management across versions
+type ClusterAdapter interface {
+	List(ctx context.Context, opts *types.ClusterListOptions) (*types.ClusterList, error)
+	Get(ctx context.Context, clusterName string) (*types.Cluster, error)
+	Create(ctx context.Context, cluster *types.ClusterCreate) (*types.ClusterCreateResponse, error)
+	Delete(ctx context.Context, clusterName string) error
 }

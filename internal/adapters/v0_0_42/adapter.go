@@ -22,6 +22,7 @@ type Adapter struct {
 	associationAdapter   *AssociationAdapter
 	standaloneAdapter    *StandaloneAdapter
 	wckeyAdapter         *WCKeyAdapter
+	clusterAdapter       *ClusterAdapter
 }
 
 // NewAdapter creates a new v0.0.42 adapter
@@ -39,6 +40,7 @@ func NewAdapter(client *api.ClientWithResponses) *Adapter {
 		associationAdapter:   NewAssociationAdapter(client),
 		standaloneAdapter:    NewStandaloneAdapter(client),
 		wckeyAdapter:         NewWCKeyAdapter(client),
+		clusterAdapter:       NewClusterAdapter(client),
 	}
 }
 
@@ -95,4 +97,9 @@ func (a *Adapter) GetStandaloneManager() common.StandaloneAdapter {
 // GetWCKeyManager returns the WCKey adapter for this version
 func (a *Adapter) GetWCKeyManager() common.WCKeyAdapter {
 	return a.wckeyAdapter
+}
+
+// GetClusterManager returns the Cluster adapter for this version
+func (a *Adapter) GetClusterManager() common.ClusterAdapter {
+	return a.clusterAdapter
 }
