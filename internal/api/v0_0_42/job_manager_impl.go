@@ -3436,12 +3436,98 @@ func (m *JobManagerImpl) Allocate(ctx context.Context, req *interfaces.JobAlloca
 
 // Hold holds a job (prevents it from running)
 func (m *JobManagerImpl) Hold(ctx context.Context, jobID string) error {
-	return errors.NewNotImplementedError("Hold", "v0.0.42")
+	// Check if API client is available
+	if m.client == nil || m.client.apiClient == nil {
+		return errors.NewClientError(errors.ErrorCodeClientNotInitialized, "API client not initialized")
+	}
+
+	// Convert job ID to int32
+	jobIDInt, err := strconv.ParseInt(jobID, 10, 32)
+	if err != nil {
+		return errors.NewValidationError(errors.ErrorCodeValidationFailed, "invalid job ID", "jobID", jobID, err)
+	}
+
+	// Create job update request with hold = true
+	holdTrue := true
+	reqBody := V0042JobDescMsg{
+		Hold: &holdTrue,
+	}
+
+	// Call the job update endpoint to set hold
+	resp, err := m.client.apiClient.SlurmV0042PostJobWithResponse(ctx, jobID, reqBody)
+	if err != nil {
+		wrappedErr := errors.WrapError(err)
+		return errors.EnhanceErrorWithVersion(wrappedErr, "v0.0.42")
+	}
+
+	// Handle response errors
+	if resp.JSON200 != nil && resp.JSON200.Errors != nil && len(*resp.JSON200.Errors) > 0 {
+		// Extract error details
+		var errorMessages []string
+		for _, apiErr := range *resp.JSON200.Errors {
+			if apiErr.Error != nil {
+				errorMessages = append(errorMessages, *apiErr.Error)
+			}
+		}
+		if len(errorMessages) > 0 {
+			return errors.NewSlurmError(errors.ErrorCodeServerInternal, strings.Join(errorMessages, "; "))
+		}
+	}
+
+	// Check for non-success status codes
+	if resp.StatusCode() < 200 || resp.StatusCode() >= 300 {
+		return errors.NewSlurmError(errors.ErrorCodeServerInternal, fmt.Sprintf("failed to hold job %d", jobIDInt))
+	}
+
+	return nil
 }
 
 // Release releases a held job (allows it to run)
 func (m *JobManagerImpl) Release(ctx context.Context, jobID string) error {
-	return errors.NewNotImplementedError("Release", "v0.0.42")
+	// Check if API client is available
+	if m.client == nil || m.client.apiClient == nil {
+		return errors.NewClientError(errors.ErrorCodeClientNotInitialized, "API client not initialized")
+	}
+
+	// Convert job ID to int32
+	jobIDInt, err := strconv.ParseInt(jobID, 10, 32)
+	if err != nil {
+		return errors.NewValidationError(errors.ErrorCodeValidationFailed, "invalid job ID", "jobID", jobID, err)
+	}
+
+	// Create job update request with hold = false
+	holdFalse := false
+	reqBody := V0042JobDescMsg{
+		Hold: &holdFalse,
+	}
+
+	// Call the job update endpoint to release hold
+	resp, err := m.client.apiClient.SlurmV0042PostJobWithResponse(ctx, jobID, reqBody)
+	if err != nil {
+		wrappedErr := errors.WrapError(err)
+		return errors.EnhanceErrorWithVersion(wrappedErr, "v0.0.42")
+	}
+
+	// Handle response errors
+	if resp.JSON200 != nil && resp.JSON200.Errors != nil && len(*resp.JSON200.Errors) > 0 {
+		// Extract error details
+		var errorMessages []string
+		for _, apiErr := range *resp.JSON200.Errors {
+			if apiErr.Error != nil {
+				errorMessages = append(errorMessages, *apiErr.Error)
+			}
+		}
+		if len(errorMessages) > 0 {
+			return errors.NewSlurmError(errors.ErrorCodeServerInternal, strings.Join(errorMessages, "; "))
+		}
+	}
+
+	// Check for non-success status codes
+	if resp.StatusCode() < 200 || resp.StatusCode() >= 300 {
+		return errors.NewSlurmError(errors.ErrorCodeServerInternal, fmt.Sprintf("failed to release job %d", jobIDInt))
+	}
+
+	return nil
 }
 
 // Signal sends a signal to a job
@@ -3451,5 +3537,48 @@ func (m *JobManagerImpl) Signal(ctx context.Context, jobID string, signal string
 
 // Notify sends a message to a job
 func (m *JobManagerImpl) Notify(ctx context.Context, jobID string, message string) error {
-	return errors.NewNotImplementedError("Notify", "v0.0.42")
+	// Check if API client is available
+	if m.client == nil || m.client.apiClient == nil {
+		return errors.NewClientError(errors.ErrorCodeClientNotInitialized, "API client not initialized")
+	}
+
+	// Convert job ID to int32 for validation
+	_, err := strconv.ParseInt(jobID, 10, 32)
+	if err != nil {
+		return errors.NewValidationError(errors.ErrorCodeValidationFailed, "invalid job ID", "jobID", jobID, err)
+	}
+
+	// For v0.0.42, we simulate notification by updating the job comment
+	// This is a workaround as the API doesn't have dedicated notification endpoints
+	reqBody := V0042JobDescMsg{
+		Comment: &message,
+	}
+
+	// Call the job update endpoint to set the comment
+	resp, err := m.client.apiClient.SlurmV0042PostJobWithResponse(ctx, jobID, reqBody)
+	if err != nil {
+		wrappedErr := errors.WrapError(err)
+		return errors.EnhanceErrorWithVersion(wrappedErr, "v0.0.42")
+	}
+
+	// Handle response errors
+	if resp.JSON200 != nil && resp.JSON200.Errors != nil && len(*resp.JSON200.Errors) > 0 {
+		// Extract error details
+		var errorMessages []string
+		for _, apiErr := range *resp.JSON200.Errors {
+			if apiErr.Error != nil {
+				errorMessages = append(errorMessages, *apiErr.Error)
+			}
+		}
+		if len(errorMessages) > 0 {
+			return errors.NewSlurmError(errors.ErrorCodeServerInternal, strings.Join(errorMessages, "; "))
+		}
+	}
+
+	// Check for non-success status codes
+	if resp.StatusCode() < 200 || resp.StatusCode() >= 300 {
+		return errors.NewSlurmError(errors.ErrorCodeServerInternal, fmt.Sprintf("failed to notify job %s", jobID))
+	}
+
+	return nil
 }
