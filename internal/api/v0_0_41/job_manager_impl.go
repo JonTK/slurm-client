@@ -2481,3 +2481,22 @@ func (m *JobManagerImpl) Allocate(ctx context.Context, req *interfaces.JobAlloca
 	return nil, errors.NewNotImplementedError("Allocate", "v0.0.41")
 }
 
+// Hold holds a job (prevents it from running)
+func (m *JobManagerImpl) Hold(ctx context.Context, jobID string) error {
+	return errors.NewNotImplementedError("Hold", "v0.0.41")
+}
+
+// Release releases a held job (allows it to run)
+func (m *JobManagerImpl) Release(ctx context.Context, jobID string) error {
+	return errors.NewNotImplementedError("Release", "v0.0.41")
+}
+
+// Signal sends a signal to a job
+func (m *JobManagerImpl) Signal(ctx context.Context, jobID string, signal string) error {
+	return errors.NewNotImplementedError("Signal", "v0.0.41")
+}
+
+// Notify sends a message to a job
+func (m *JobManagerImpl) Notify(ctx context.Context, jobID string, message string) error {
+	return errors.NewNotImplementedError("Notify", "v0.0.41")
+}

@@ -262,6 +262,38 @@ func (m *JobManager) Allocate(ctx context.Context, req *interfaces.JobAllocateRe
 	return m.impl.Allocate(ctx, req)
 }
 
+// Hold holds a job (prevents it from running)
+func (m *JobManager) Hold(ctx context.Context, jobID string) error {
+	if m.impl == nil {
+		m.impl = NewJobManagerImpl(m.client)
+	}
+	return m.impl.Hold(ctx, jobID)
+}
+
+// Release releases a held job (allows it to run)
+func (m *JobManager) Release(ctx context.Context, jobID string) error {
+	if m.impl == nil {
+		m.impl = NewJobManagerImpl(m.client)
+	}
+	return m.impl.Release(ctx, jobID)
+}
+
+// Signal sends a signal to a job
+func (m *JobManager) Signal(ctx context.Context, jobID string, signal string) error {
+	if m.impl == nil {
+		m.impl = NewJobManagerImpl(m.client)
+	}
+	return m.impl.Signal(ctx, jobID, signal)
+}
+
+// Notify sends a message to a job
+func (m *JobManager) Notify(ctx context.Context, jobID string, message string) error {
+	if m.impl == nil {
+		m.impl = NewJobManagerImpl(m.client)
+	}
+	return m.impl.Notify(ctx, jobID, message)
+}
+
 // NodeManager implements the NodeManager interface for API version v0.0.40
 type NodeManager struct {
 	client *WrapperClient
@@ -300,6 +332,30 @@ func (m *NodeManager) Watch(ctx context.Context, opts *interfaces.WatchNodesOpti
 	return m.impl.Watch(ctx, opts)
 }
 
+// Delete deletes a node
+func (m *NodeManager) Delete(ctx context.Context, nodeName string) error {
+	if m.impl == nil {
+		m.impl = NewNodeManagerImpl(m.client)
+	}
+	return m.impl.Delete(ctx, nodeName)
+}
+
+// Drain drains a node, preventing new jobs from being scheduled on it
+func (m *NodeManager) Drain(ctx context.Context, nodeName string, reason string) error {
+	if m.impl == nil {
+		m.impl = NewNodeManagerImpl(m.client)
+	}
+	return m.impl.Drain(ctx, nodeName, reason)
+}
+
+// Resume resumes a drained node, allowing new jobs to be scheduled on it
+func (m *NodeManager) Resume(ctx context.Context, nodeName string) error {
+	if m.impl == nil {
+		m.impl = NewNodeManagerImpl(m.client)
+	}
+	return m.impl.Resume(ctx, nodeName)
+}
+
 // PartitionManager implements the PartitionManager interface for API version v0.0.40
 type PartitionManager struct {
 	client *WrapperClient
@@ -336,6 +392,22 @@ func (m *PartitionManager) Watch(ctx context.Context, opts *interfaces.WatchPart
 		m.impl = NewPartitionManagerImpl(m.client)
 	}
 	return m.impl.Watch(ctx, opts)
+}
+
+// Create creates a new partition
+func (m *PartitionManager) Create(ctx context.Context, partition *interfaces.PartitionCreate) (*interfaces.PartitionCreateResponse, error) {
+	if m.impl == nil {
+		m.impl = NewPartitionManagerImpl(m.client)
+	}
+	return m.impl.Create(ctx, partition)
+}
+
+// Delete deletes a partition
+func (m *PartitionManager) Delete(ctx context.Context, partitionName string) error {
+	if m.impl == nil {
+		m.impl = NewPartitionManagerImpl(m.client)
+	}
+	return m.impl.Delete(ctx, partitionName)
 }
 
 // InfoManager implements the InfoManager interface for API version v0.0.40
@@ -602,6 +674,14 @@ func (m *AccountManager) GetFairShareHierarchy(ctx context.Context, rootAccount 
 	return m.impl.GetFairShareHierarchy(ctx, rootAccount)
 }
 
+// CreateAssociation creates a user-account association
+func (m *AccountManager) CreateAssociation(ctx context.Context, userName, accountName string, opts *interfaces.AssociationOptions) (*interfaces.AssociationCreateResponse, error) {
+	if m.impl == nil {
+		m.impl = NewAccountManagerImpl(m.client)
+	}
+	return m.impl.CreateAssociation(ctx, userName, accountName, opts)
+}
+
 // UserManager implements the UserManager interface for API version v0.0.40
 type UserManager struct {
 	client *WrapperClient
@@ -694,6 +774,38 @@ func (m *UserManager) GetBulkAccountUsers(ctx context.Context, accountNames []st
 		m.impl = NewUserManagerImpl(m.client)
 	}
 	return m.impl.GetBulkAccountUsers(ctx, accountNames)
+}
+
+// Create creates a new user
+func (m *UserManager) Create(ctx context.Context, user *interfaces.UserCreate) (*interfaces.UserCreateResponse, error) {
+	if m.impl == nil {
+		m.impl = NewUserManagerImpl(m.client)
+	}
+	return m.impl.Create(ctx, user)
+}
+
+// Update updates a user
+func (m *UserManager) Update(ctx context.Context, userName string, update *interfaces.UserUpdate) error {
+	if m.impl == nil {
+		m.impl = NewUserManagerImpl(m.client)
+	}
+	return m.impl.Update(ctx, userName, update)
+}
+
+// Delete deletes a user
+func (m *UserManager) Delete(ctx context.Context, userName string) error {
+	if m.impl == nil {
+		m.impl = NewUserManagerImpl(m.client)
+	}
+	return m.impl.Delete(ctx, userName)
+}
+
+// CreateAssociation creates a user-account association
+func (m *UserManager) CreateAssociation(ctx context.Context, accountName string, opts *interfaces.AssociationOptions) (*interfaces.AssociationCreateResponse, error) {
+	if m.impl == nil {
+		m.impl = NewUserManagerImpl(m.client)
+	}
+	return m.impl.CreateAssociation(ctx, accountName, opts)
 }
 
 // AssociationManager implements the AssociationManager interface for API version v0.0.40

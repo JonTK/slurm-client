@@ -2284,3 +2284,23 @@ func (j *JobManagerImpl) GenerateEfficiencyReport(ctx context.Context, opts *int
 func (m *JobManagerImpl) Allocate(ctx context.Context, req *interfaces.JobAllocateRequest) (*interfaces.JobAllocateResponse, error) {
 	return nil, errors.NewNotImplementedError("Allocate", "v0.0.40")
 }
+
+// Hold holds a job (prevents it from running)
+func (m *JobManagerImpl) Hold(ctx context.Context, jobID string) error {
+	return errors.NewNotImplementedError("Hold", "v0.0.40")
+}
+
+// Release releases a held job (allows it to run)
+func (m *JobManagerImpl) Release(ctx context.Context, jobID string) error {
+	return errors.NewNotImplementedError("Release", "v0.0.40")
+}
+
+// Signal sends a signal to a job
+func (m *JobManagerImpl) Signal(ctx context.Context, jobID string, signal string) error {
+	return errors.NewNotImplementedError("Signal", "v0.0.40")
+}
+
+// Notify sends a message to a job
+func (m *JobManagerImpl) Notify(ctx context.Context, jobID string, message string) error {
+	return errors.NewNotImplementedError("Notify", "v0.0.40")
+}

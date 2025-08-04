@@ -74,6 +74,8 @@ type NodeAdapter interface {
 	Get(ctx context.Context, nodeName string) (*types.Node, error)
 	Update(ctx context.Context, nodeName string, update *types.NodeUpdate) error
 	Delete(ctx context.Context, nodeName string) error
+	Drain(ctx context.Context, nodeName string, reason string) error
+	Resume(ctx context.Context, nodeName string) error
 	Watch(ctx context.Context, opts *types.NodeWatchOptions) (<-chan types.NodeWatchEvent, error)
 }
 

@@ -183,3 +183,23 @@ func (u *UserManagerImpl) GetBulkAccountUsers(ctx context.Context, accountNames 
 
 	return nil, errors.NewNotImplementedError("bulk account users not supported", "v0.0.41")
 }
+
+// Create creates a new user
+func (m *UserManagerImpl) Create(ctx context.Context, user *interfaces.UserCreate) (*interfaces.UserCreateResponse, error) {
+	return nil, errors.NewNotImplementedError("Create", "v0.0.41")
+}
+
+// Update updates a user
+func (m *UserManagerImpl) Update(ctx context.Context, userName string, update *interfaces.UserUpdate) error {
+	return errors.NewNotImplementedError("Update", "v0.0.41")
+}
+
+// Delete deletes a user
+func (m *UserManagerImpl) Delete(ctx context.Context, userName string) error {
+	return errors.NewNotImplementedError("Delete", "v0.0.41")
+}
+
+// CreateAssociation creates a user-account association
+func (m *UserManagerImpl) CreateAssociation(ctx context.Context, accountName string, opts *interfaces.AssociationOptions) (*interfaces.AssociationCreateResponse, error) {
+	return nil, errors.NewNotImplementedError("CreateAssociation", "v0.0.41")
+}

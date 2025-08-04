@@ -502,3 +502,29 @@ func (m *NodeManagerImpl) Watch(ctx context.Context, opts *interfaces.WatchNodes
 	// Start watching
 	return poller.Watch(ctx, opts)
 }
+
+// Delete deletes a node
+func (m *NodeManagerImpl) Delete(ctx context.Context, nodeName string) error {
+	return errors.NewNotImplementedError("Delete", "v0.0.42")
+}
+
+// Drain drains a node, preventing new jobs from being scheduled on it
+func (m *NodeManagerImpl) Drain(ctx context.Context, nodeName string, reason string) error {
+	// v0.0.42 supports drain operations, but implement using Update method like v0.0.43
+	drainState := "DRAIN"
+	update := &interfaces.NodeUpdate{
+		State:  &drainState,
+		Reason: &reason,
+	}
+	return m.Update(ctx, nodeName, update)
+}
+
+// Resume resumes a drained node, allowing new jobs to be scheduled on it
+func (m *NodeManagerImpl) Resume(ctx context.Context, nodeName string) error {
+	// v0.0.42 supports resume operations, but implement using Update method like v0.0.43
+	resumeState := "RESUME"
+	update := &interfaces.NodeUpdate{
+		State: &resumeState,
+	}
+	return m.Update(ctx, nodeName, update)
+}
