@@ -340,6 +340,22 @@ func (m *NodeManager) Delete(ctx context.Context, nodeName string) error {
 	return m.impl.Delete(ctx, nodeName)
 }
 
+// Drain drains a node, preventing new jobs from being scheduled on it
+func (m *NodeManager) Drain(ctx context.Context, nodeName string, reason string) error {
+	if m.impl == nil {
+		m.impl = NewNodeManagerImpl(m.client)
+	}
+	return m.impl.Drain(ctx, nodeName, reason)
+}
+
+// Resume resumes a drained node, allowing new jobs to be scheduled on it
+func (m *NodeManager) Resume(ctx context.Context, nodeName string) error {
+	if m.impl == nil {
+		m.impl = NewNodeManagerImpl(m.client)
+	}
+	return m.impl.Resume(ctx, nodeName)
+}
+
 // PartitionManager implements the PartitionManager interface for API version v0.0.41
 type PartitionManager struct {
 	client *WrapperClient

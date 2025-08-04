@@ -713,6 +713,16 @@ func (m *adapterNodeManager) Delete(ctx context.Context, nodeName string) error 
 	return m.adapter.Delete(ctx, nodeName)
 }
 
+// Drain drains a node, preventing new jobs from being scheduled on it
+func (m *adapterNodeManager) Drain(ctx context.Context, nodeName string, reason string) error {
+	return m.adapter.Drain(ctx, nodeName, reason)
+}
+
+// Resume resumes a drained node, allowing new jobs to be scheduled on it
+func (m *adapterNodeManager) Resume(ctx context.Context, nodeName string) error {
+	return m.adapter.Resume(ctx, nodeName)
+}
+
 // Helper function to convert types.Node to interfaces.Node
 func convertNodeToInterface(node types.Node) interfaces.Node {
 	// Copy features directly

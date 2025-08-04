@@ -324,3 +324,24 @@ func (a *NodeAdapter) convertCommonNodeUpdateToAPI(name string, update *types.No
 	// For now, return a basic structure
 	return &api.SlurmV0042PostNodeJSONRequestBody{}, nil
 }
+
+// Drain drains a node, preventing new jobs from being scheduled on it
+func (a *NodeAdapter) Drain(ctx context.Context, nodeName string, reason string) error {
+	// v0.0.42 supports drain operations through the Update method
+	drainState := types.NodeState("DRAIN")
+	update := &types.NodeUpdate{
+		State:  &drainState,
+		Reason: &reason,
+	}
+	return a.Update(ctx, nodeName, update)
+}
+
+// Resume resumes a drained node, allowing new jobs to be scheduled on it
+func (a *NodeAdapter) Resume(ctx context.Context, nodeName string) error {
+	// v0.0.42 supports resume operations through the Update method
+	resumeState := types.NodeState("RESUME")
+	update := &types.NodeUpdate{
+		State: &resumeState,
+	}
+	return a.Update(ctx, nodeName, update)
+}

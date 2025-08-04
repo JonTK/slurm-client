@@ -486,6 +486,39 @@ func convertNodeUpdateToAPI(update *interfaces.NodeUpdate) (*V0043UpdateNodeMsg,
 	return nodeUpdate, nil
 }
 
+// Drain drains a node, preventing new jobs from being scheduled on it
+func (m *NodeManagerImpl) Drain(ctx context.Context, nodeName string, reason string) error {
+	// Check if API client is available
+	if m.client.apiClient == nil {
+		return errors.NewClientError(errors.ErrorCodeClientNotInitialized, "API client not initialized")
+	}
+	
+	// Create node update with DRAIN state
+	drainState := "DRAIN"
+	update := &interfaces.NodeUpdate{
+		State:  &drainState,
+		Reason: &reason,
+	}
+	
+	return m.Update(ctx, nodeName, update)
+}
+
+// Resume resumes a drained node, allowing new jobs to be scheduled on it
+func (m *NodeManagerImpl) Resume(ctx context.Context, nodeName string) error {
+	// Check if API client is available
+	if m.client.apiClient == nil {
+		return errors.NewClientError(errors.ErrorCodeClientNotInitialized, "API client not initialized")
+	}
+	
+	// Create node update with RESUME state  
+	resumeState := "RESUME"
+	update := &interfaces.NodeUpdate{
+		State: &resumeState,
+	}
+	
+	return m.Update(ctx, nodeName, update)
+}
+
 // Watch provides real-time node updates through polling
 // Note: v0.0.43 API does not support native streaming/WebSocket node monitoring
 func (m *NodeManagerImpl) Watch(ctx context.Context, opts *interfaces.WatchNodesOptions) (<-chan interfaces.NodeEvent, error) {

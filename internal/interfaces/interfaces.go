@@ -208,6 +208,12 @@ type NodeManager interface {
 	// Delete removes a node from the cluster (if supported by version)
 	Delete(ctx context.Context, nodeName string) error
 
+	// Drain drains a node, preventing new jobs from being scheduled on it
+	Drain(ctx context.Context, nodeName string, reason string) error
+
+	// Resume resumes a drained node, allowing new jobs to be scheduled on it
+	Resume(ctx context.Context, nodeName string) error
+
 	// Watch provides real-time node updates (if supported by version)
 	Watch(ctx context.Context, opts *WatchNodesOptions) (<-chan NodeEvent, error)
 }

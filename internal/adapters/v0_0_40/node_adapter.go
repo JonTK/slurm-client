@@ -306,6 +306,16 @@ func (a *NodeAdapter) validateNodeUpdate(update *types.NodeUpdate) error {
 	return nil
 }
 
+// Drain drains a node, preventing new jobs from being scheduled on it
+func (a *NodeAdapter) Drain(ctx context.Context, nodeName string, reason string) error {
+	return fmt.Errorf("drain functionality not supported in API v0.0.40")
+}
+
+// Resume resumes a drained node, allowing new jobs to be scheduled on it
+func (a *NodeAdapter) Resume(ctx context.Context, nodeName string) error {
+	return fmt.Errorf("resume functionality not supported in API v0.0.40")
+}
+
 // Watch provides real-time node status updates (not supported in v0.0.40)
 func (a *NodeAdapter) Watch(ctx context.Context, opts *types.NodeWatchOptions) (<-chan types.NodeWatchEvent, error) {
 	return nil, fmt.Errorf("watch functionality not supported in API v0.0.40")
