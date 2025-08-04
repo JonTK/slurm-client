@@ -77,3 +77,13 @@ func (m *PartitionManagerImpl) Watch(ctx context.Context, opts *interfaces.Watch
 
 	return eventChan, nil
 }
+
+// Create creates a new partition
+func (m *PartitionManagerImpl) Create(ctx context.Context, partition *interfaces.PartitionCreate) (*interfaces.PartitionCreateResponse, error) {
+	return nil, errors.NewNotImplementedError("Create", "v0.0.41")
+}
+
+// Delete deletes a partition
+func (m *PartitionManagerImpl) Delete(ctx context.Context, partitionName string) error {
+	return errors.NewNotImplementedError("Delete", "v0.0.41")
+}

@@ -322,6 +322,64 @@ func (m *adapterJobManager) Cancel(ctx context.Context, jobID string) error {
 	return m.adapter.Cancel(ctx, int32(jobIDInt), nil)
 }
 
+// Hold holds a job (prevents it from running)
+func (m *adapterJobManager) Hold(ctx context.Context, jobID string) error {
+	// Convert string to int32 for adapter
+	jobIDInt, err := strconv.ParseInt(jobID, 10, 32)
+	if err != nil {
+		return fmt.Errorf("invalid job ID: %w", err)
+	}
+	// Create hold request (hold = true)
+	req := &types.JobHoldRequest{
+		JobID: int32(jobIDInt),
+		Hold:  true,
+	}
+	return m.adapter.Hold(ctx, req)
+}
+
+// Release releases a held job (allows it to run)
+func (m *adapterJobManager) Release(ctx context.Context, jobID string) error {
+	// Convert string to int32 for adapter
+	jobIDInt, err := strconv.ParseInt(jobID, 10, 32)
+	if err != nil {
+		return fmt.Errorf("invalid job ID: %w", err)
+	}
+	// Create hold request (hold = false to release)
+	req := &types.JobHoldRequest{
+		JobID: int32(jobIDInt),
+		Hold:  false,
+	}
+	return m.adapter.Hold(ctx, req)
+}
+
+// Signal sends a signal to a job
+func (m *adapterJobManager) Signal(ctx context.Context, jobID string, signal string) error {
+	// Convert string to int32 for adapter
+	jobIDInt, err := strconv.ParseInt(jobID, 10, 32)
+	if err != nil {
+		return fmt.Errorf("invalid job ID: %w", err)
+	}
+	req := &types.JobSignalRequest{
+		JobID:  int32(jobIDInt),
+		Signal: signal,
+	}
+	return m.adapter.Signal(ctx, req)
+}
+
+// Notify sends a message to a job
+func (m *adapterJobManager) Notify(ctx context.Context, jobID string, message string) error {
+	// Convert string to int32 for adapter
+	jobIDInt, err := strconv.ParseInt(jobID, 10, 32)
+	if err != nil {
+		return fmt.Errorf("invalid job ID: %w", err)
+	}
+	req := &types.JobNotifyRequest{
+		JobID:   int32(jobIDInt),
+		Message: message,
+	}
+	return m.adapter.Notify(ctx, req)
+}
+
 func (m *adapterJobManager) Watch(ctx context.Context, opts *interfaces.WatchJobsOptions) (<-chan interfaces.JobEvent, error) {
 	// Convert WatchJobsOptions to types.JobWatchOptions
 	adapterOpts := &types.JobWatchOptions{}
@@ -650,6 +708,11 @@ func (m *adapterNodeManager) Watch(ctx context.Context, opts *interfaces.WatchNo
 	return interfaceEventChan, nil
 }
 
+// Delete deletes a node
+func (m *adapterNodeManager) Delete(ctx context.Context, nodeName string) error {
+	return m.adapter.Delete(ctx, nodeName)
+}
+
 // Helper function to convert types.Node to interfaces.Node
 func convertNodeToInterface(node types.Node) interfaces.Node {
 	// Copy features directly
@@ -737,6 +800,43 @@ func (m *adapterPartitionManager) Update(ctx context.Context, partitionName stri
 func (m *adapterPartitionManager) Watch(ctx context.Context, opts *interfaces.WatchPartitionsOptions) (<-chan interfaces.PartitionEvent, error) {
 	// Watch is not implemented in adapters
 	return nil, fmt.Errorf("watch not implemented in adapter")
+}
+
+// Create creates a new partition
+func (m *adapterPartitionManager) Create(ctx context.Context, partition *interfaces.PartitionCreate) (*interfaces.PartitionCreateResponse, error) {
+	// Convert to adapter type
+	adapterCreate := &types.PartitionCreate{
+		Name:             partition.Name,
+		Nodes:            strings.Join(partition.Nodes, ","), // Convert []string to comma-separated string
+		MaxTime:          int32(partition.MaxTime),
+		DefaultTime:      int32(partition.DefaultTime),
+		DefaultMemPerCPU: int64(partition.DefaultMemory), // Map DefaultMemory to DefaultMemPerCPU
+		State:            types.PartitionState(partition.State),
+		Priority:         int32(partition.Priority),
+	}
+	
+	// Handle allowed/denied users
+	if len(partition.AllowedUsers) > 0 {
+		adapterCreate.AllowAccounts = partition.AllowedUsers
+	}
+	if len(partition.DeniedUsers) > 0 {
+		adapterCreate.DenyAccounts = partition.DeniedUsers
+	}
+	
+	// Call adapter
+	resp, err := m.adapter.Create(ctx, adapterCreate)
+	if err != nil {
+		return nil, err
+	}
+	
+	return &interfaces.PartitionCreateResponse{
+		PartitionName: resp.PartitionName,
+	}, nil
+}
+
+// Delete deletes a partition
+func (m *adapterPartitionManager) Delete(ctx context.Context, partitionName string) error {
+	return m.adapter.Delete(ctx, partitionName)
 }
 
 // Helper function to convert types.Partition to interfaces.Partition
@@ -1131,6 +1231,12 @@ func (m *adapterAccountManager) GetFairShareHierarchy(ctx context.Context, rootA
 	return nil, fmt.Errorf("not implemented")
 }
 
+// CreateAssociation creates a user-account association
+func (m *adapterAccountManager) CreateAssociation(ctx context.Context, userName, accountName string, opts *interfaces.AssociationOptions) (*interfaces.AssociationCreateResponse, error) {
+	// For now, return not implemented as this requires cross-manager coordination
+	return nil, fmt.Errorf("CreateAssociation not implemented in adapter")
+}
+
 type adapterUserManager struct {
 	adapter common.UserAdapter
 }
@@ -1206,6 +1312,61 @@ func (m *adapterUserManager) GetBulkUserAccounts(ctx context.Context, userNames 
 
 func (m *adapterUserManager) GetBulkAccountUsers(ctx context.Context, accountNames []string) (map[string][]*interfaces.UserAccountAssociation, error) {
 	return nil, fmt.Errorf("not implemented")
+}
+
+// Create creates a new user
+func (m *adapterUserManager) Create(ctx context.Context, user *interfaces.UserCreate) (*interfaces.UserCreateResponse, error) {
+	// Convert to adapter type
+	adapterCreate := &types.UserCreate{
+		Name:           user.Name,
+		UID:            int32(user.UID),
+		DefaultAccount: user.DefaultAccount,
+		DefaultWCKey:   user.DefaultWCKey,
+		AdminLevel:     types.AdminLevel(user.AdminLevel),
+		// Add other fields as needed
+	}
+	
+	// Call adapter
+	resp, err := m.adapter.Create(ctx, adapterCreate)
+	if err != nil {
+		return nil, err
+	}
+	
+	return &interfaces.UserCreateResponse{
+		UserName: resp.UserName,
+	}, nil
+}
+
+// Update updates a user
+func (m *adapterUserManager) Update(ctx context.Context, userName string, update *interfaces.UserUpdate) error {
+	// Convert to adapter type
+	adapterUpdate := &types.UserUpdate{}
+	if update != nil {
+		if update.DefaultAccount != nil {
+			adapterUpdate.DefaultAccount = update.DefaultAccount
+		}
+		if update.DefaultWCKey != nil {
+			adapterUpdate.DefaultWCKey = update.DefaultWCKey
+		}
+		if update.AdminLevel != nil {
+			adminLevel := types.AdminLevel(*update.AdminLevel)
+			adapterUpdate.AdminLevel = &adminLevel
+		}
+		// Add other fields as needed
+	}
+	
+	return m.adapter.Update(ctx, userName, adapterUpdate)
+}
+
+// Delete deletes a user
+func (m *adapterUserManager) Delete(ctx context.Context, userName string) error {
+	return m.adapter.Delete(ctx, userName)
+}
+
+// CreateAssociation creates a user-account association
+func (m *adapterUserManager) CreateAssociation(ctx context.Context, accountName string, opts *interfaces.AssociationOptions) (*interfaces.AssociationCreateResponse, error) {
+	// For now, return not implemented as this requires cross-manager coordination
+	return nil, fmt.Errorf("CreateAssociation not implemented in adapter")
 }
 
 type adapterReservationManager struct {

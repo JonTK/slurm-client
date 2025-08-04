@@ -4146,3 +4146,23 @@ func (m *JobManagerImpl) AnalyzeBatchJobs(ctx context.Context, jobIDs []string, 
 
 	return analysis, nil
 }
+
+// Hold holds a job (prevents it from running)
+func (m *JobManagerImpl) Hold(ctx context.Context, jobID string) error {
+	return errors.NewNotImplementedError("Hold", "v0.0.43")
+}
+
+// Release releases a held job (allows it to run)
+func (m *JobManagerImpl) Release(ctx context.Context, jobID string) error {
+	return errors.NewNotImplementedError("Release", "v0.0.43")
+}
+
+// Signal sends a signal to a job
+func (m *JobManagerImpl) Signal(ctx context.Context, jobID string, signal string) error {
+	return errors.NewNotImplementedError("Signal", "v0.0.43")
+}
+
+// Notify sends a message to a job
+func (m *JobManagerImpl) Notify(ctx context.Context, jobID string, message string) error {
+	return errors.NewNotImplementedError("Notify", "v0.0.43")
+}

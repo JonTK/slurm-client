@@ -255,3 +255,8 @@ func (a *AccountManagerImpl) GetFairShareHierarchy(ctx context.Context, rootAcco
 	// v0.0.42 has limited fair-share hierarchy support
 	return nil, errors.NewNotImplementedError("fair-share hierarchy retrieval not fully supported", "v0.0.42")
 }
+
+// CreateAssociation creates a user-account association
+func (m *AccountManagerImpl) CreateAssociation(ctx context.Context, userName, accountName string, opts *interfaces.AssociationOptions) (*interfaces.AssociationCreateResponse, error) {
+	return nil, errors.NewNotImplementedError("CreateAssociation", "v0.0.42")
+}

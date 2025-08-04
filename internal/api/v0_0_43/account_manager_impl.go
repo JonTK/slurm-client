@@ -1321,3 +1321,8 @@ func (a *AccountManagerImpl) calculateTotalShares(node *interfaces.FairShareNode
 
 	return total
 }
+
+// CreateAssociation creates a user-account association
+func (m *AccountManagerImpl) CreateAssociation(ctx context.Context, userName, accountName string, opts *interfaces.AssociationOptions) (*interfaces.AssociationCreateResponse, error) {
+	return nil, errors.NewNotImplementedError("CreateAssociation", "v0.0.43")
+}

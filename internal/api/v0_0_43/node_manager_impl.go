@@ -503,3 +503,8 @@ func (m *NodeManagerImpl) Watch(ctx context.Context, opts *interfaces.WatchNodes
 	// Start watching
 	return poller.Watch(ctx, opts)
 }
+
+// Delete deletes a node
+func (m *NodeManagerImpl) Delete(ctx context.Context, nodeName string) error {
+	return errors.NewNotImplementedError("Delete", "v0.0.43")
+}

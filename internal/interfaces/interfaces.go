@@ -109,6 +109,18 @@ type JobManager interface {
 	// Watch provides real-time job updates (if supported by version)
 	Watch(ctx context.Context, opts *WatchJobsOptions) (<-chan JobEvent, error)
 
+	// Hold holds a job (prevents it from running)
+	Hold(ctx context.Context, jobID string) error
+
+	// Release releases a held job (allows it to run)
+	Release(ctx context.Context, jobID string) error
+
+	// Signal sends a signal to a job
+	Signal(ctx context.Context, jobID string, signal string) error
+
+	// Notify sends a message to a job
+	Notify(ctx context.Context, jobID string, message string) error
+
 	// Analytics methods for resource utilization and performance
 	// GetJobUtilization retrieves comprehensive resource utilization metrics for a job
 	GetJobUtilization(ctx context.Context, jobID string) (*JobUtilization, error)
@@ -193,6 +205,9 @@ type NodeManager interface {
 	// Update updates node properties (if supported by version)
 	Update(ctx context.Context, nodeName string, update *NodeUpdate) error
 
+	// Delete removes a node from the cluster (if supported by version)
+	Delete(ctx context.Context, nodeName string) error
+
 	// Watch provides real-time node updates (if supported by version)
 	Watch(ctx context.Context, opts *WatchNodesOptions) (<-chan NodeEvent, error)
 }
@@ -205,8 +220,14 @@ type PartitionManager interface {
 	// Get retrieves a specific partition by name
 	Get(ctx context.Context, partitionName string) (*Partition, error)
 
+	// Create creates a new partition (if supported by version)
+	Create(ctx context.Context, partition *PartitionCreate) (*PartitionCreateResponse, error)
+
 	// Update updates partition properties (if supported by version)
 	Update(ctx context.Context, partitionName string, update *PartitionUpdate) error
+
+	// Delete removes a partition (if supported by version)
+	Delete(ctx context.Context, partitionName string) error
 
 	// Watch provides real-time partition updates (if supported by version)
 	Watch(ctx context.Context, opts *WatchPartitionsOptions) (<-chan PartitionEvent, error)
@@ -716,6 +737,25 @@ type PartitionList struct {
 	Total      int         `json:"total"`
 }
 
+// PartitionCreate represents a partition creation request
+type PartitionCreate struct {
+	Name           string   `json:"name"`
+	State          string   `json:"state,omitempty"`
+	Nodes          []string `json:"nodes,omitempty"`
+	MaxTime        int      `json:"max_time,omitempty"`
+	DefaultTime    int      `json:"default_time,omitempty"`
+	MaxMemory      int      `json:"max_memory,omitempty"`
+	DefaultMemory  int      `json:"default_memory,omitempty"`
+	AllowedUsers   []string `json:"allowed_users,omitempty"`
+	DeniedUsers    []string `json:"denied_users,omitempty"`
+	Priority       int      `json:"priority,omitempty"`
+}
+
+// PartitionCreateResponse represents the response from partition creation
+type PartitionCreateResponse struct {
+	PartitionName string `json:"partition_name"`
+}
+
 // PartitionUpdate represents a partition update request
 type PartitionUpdate struct {
 	State         *string  `json:"state,omitempty"`
@@ -962,6 +1002,9 @@ type AccountManager interface {
 	Create(ctx context.Context, account *AccountCreate) (*AccountCreateResponse, error)
 	Update(ctx context.Context, accountName string, update *AccountUpdate) error
 	Delete(ctx context.Context, accountName string) error
+
+	// CreateAssociation creates a new user-account association
+	CreateAssociation(ctx context.Context, userName, accountName string, opts *AssociationOptions) (*AssociationCreateResponse, error)
 
 	// Enhanced account hierarchy methods
 	GetAccountHierarchy(ctx context.Context, rootAccount string) (*AccountHierarchy, error)
@@ -1947,6 +1990,12 @@ type UserManager interface {
 	// Core user operations
 	List(ctx context.Context, opts *ListUsersOptions) (*UserList, error)
 	Get(ctx context.Context, userName string) (*User, error)
+	Create(ctx context.Context, user *UserCreate) (*UserCreateResponse, error)
+	Update(ctx context.Context, userName string, update *UserUpdate) error
+	Delete(ctx context.Context, userName string) error
+
+	// CreateAssociation creates a new user-account association
+	CreateAssociation(ctx context.Context, accountName string, opts *AssociationOptions) (*AssociationCreateResponse, error)
 
 	// User-account association operations
 	GetUserAccounts(ctx context.Context, userName string) ([]*UserAccount, error)
@@ -2290,6 +2339,38 @@ type FairShareHierarchy struct {
 type UserList struct {
 	Users []User `json:"users"`
 	Total int    `json:"total"`
+}
+
+// UserCreate represents a user creation request
+type UserCreate struct {
+	Name           string   `json:"name"`
+	UID            int      `json:"uid,omitempty"`
+	DefaultAccount string   `json:"default_account"`
+	DefaultWCKey   string   `json:"default_wckey,omitempty"`
+	AdminLevel     string   `json:"admin_level,omitempty"`
+	Accounts       []string `json:"accounts,omitempty"`
+}
+
+// UserCreateResponse represents the response from user creation
+type UserCreateResponse struct {
+	UserName string `json:"user_name"`
+}
+
+// UserUpdate represents a user update request
+type UserUpdate struct {
+	DefaultAccount      *string  `json:"default_account,omitempty"`
+	DefaultWCKey        *string  `json:"default_wckey,omitempty"`
+	AdminLevel          *string  `json:"admin_level,omitempty"`
+	CoordinatorAccounts []string `json:"coordinator_accounts,omitempty"`
+}
+
+// AssociationOptions represents options for creating associations
+type AssociationOptions struct {
+	Cluster   string `json:"cluster,omitempty"`
+	Partition string `json:"partition,omitempty"`
+	QoS       string `json:"qos,omitempty"`
+	MaxJobs   *int   `json:"max_jobs,omitempty"`
+	Priority  *int   `json:"priority,omitempty"`
 }
 
 // ListUsersOptions provides filtering options for listing users
