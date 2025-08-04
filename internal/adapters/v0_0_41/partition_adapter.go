@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
+	api "github.com/jontk/slurm-client/internal/api/v0_0_41"
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/internal/managers/base"
-	api "github.com/jontk/slurm-client/internal/api/v0_0_41"
 )
 
 // PartitionAdapter implements the PartitionAdapter interface for v0.0.41
@@ -92,7 +92,7 @@ func (a *PartitionAdapter) List(ctx context.Context, opts *types.PartitionListOp
 		_ = resp.JSON200.Warnings
 	}
 	if resp.JSON200.Errors != nil {
-		// Log errors if needed  
+		// Log errors if needed
 		_ = resp.JSON200.Errors
 	}
 

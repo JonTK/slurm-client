@@ -7,10 +7,10 @@ import (
 	"context"
 	"strings"
 
+	api "github.com/jontk/slurm-client/internal/api/v0_0_43"
 	"github.com/jontk/slurm-client/internal/common"
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/internal/managers/base"
-	api "github.com/jontk/slurm-client/internal/api/v0_0_43"
 	"github.com/jontk/slurm-client/pkg/errors"
 )
 
@@ -251,12 +251,12 @@ func (a *PartitionAdapter) validatePartitionUpdate(update *types.PartitionUpdate
 	}
 	// At least one field should be provided for update
 	if update.State == nil && update.AllowAccounts == nil && update.DenyAccounts == nil &&
-	   update.AllowQoS == nil && update.DenyQoS == nil && update.MaxNodes == nil &&
-	   update.MinNodes == nil && update.DefaultTime == nil && update.MaxTime == nil &&
-	   update.Priority == nil && update.Hidden == nil && update.RootOnly == nil {
+		update.AllowQoS == nil && update.DenyQoS == nil && update.MaxNodes == nil &&
+		update.MinNodes == nil && update.DefaultTime == nil && update.MaxTime == nil &&
+		update.Priority == nil && update.Hidden == nil && update.RootOnly == nil {
 		return common.NewValidationError("at least one field must be provided for update", "update", update)
 	}
-	
+
 	// Validate numeric fields if provided
 	if update.MaxNodes != nil && *update.MaxNodes < 0 {
 		return common.NewValidationError("max nodes must be non-negative", "maxNodes", *update.MaxNodes)
@@ -336,7 +336,7 @@ func (a *PartitionAdapter) convertAPIPartitionToCommon(apiPartition api.V0043Par
 	if apiPartition.Name != nil {
 		partition.Name = *apiPartition.Name
 	}
-	
+
 	// State
 	if apiPartition.Partition != nil && apiPartition.Partition.State != nil {
 		// Convert from slice to string if needed
@@ -348,7 +348,7 @@ func (a *PartitionAdapter) convertAPIPartitionToCommon(apiPartition api.V0043Par
 	// Nodes
 	if apiPartition.Nodes != nil {
 		if apiPartition.Nodes.Configured != nil {
-			partition.Nodes = *apiPartition.Nodes.Configured  
+			partition.Nodes = *apiPartition.Nodes.Configured
 		}
 		if apiPartition.Nodes.Total != nil {
 			partition.TotalNodes = int32(*apiPartition.Nodes.Total)

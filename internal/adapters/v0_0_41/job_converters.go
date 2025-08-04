@@ -23,7 +23,7 @@ func (a *JobAdapter) convertAPIJobToCommon(apiJob interface{}) (*types.Job, erro
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal job data: %w", err)
 		}
-		
+
 		if err := json.Unmarshal(jsonBytes, &jobData); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal job data to map: %w", err)
 		}

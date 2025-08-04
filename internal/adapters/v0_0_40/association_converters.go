@@ -4,8 +4,8 @@
 package v0_0_40
 
 import (
-	"github.com/jontk/slurm-client/internal/common/types"
 	api "github.com/jontk/slurm-client/internal/api/v0_0_40"
+	"github.com/jontk/slurm-client/internal/common/types"
 )
 
 // convertAPIAssociationToCommon converts a v0.0.40 API Association to common Association type
@@ -42,7 +42,7 @@ func (a *AssociationAdapter) convertCommonAssociationCreateToAPI(association *ty
 	apiAssociation.Account = &association.AccountName
 	apiAssociation.User = association.UserName // User is string, not pointer in V0040AssocShort
 	apiAssociation.Cluster = &association.Cluster
-	
+
 	if association.Partition != "" {
 		apiAssociation.Partition = &association.Partition
 	}

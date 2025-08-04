@@ -7,11 +7,11 @@ import (
 	"context"
 	"fmt"
 
+	api "github.com/jontk/slurm-client/internal/api/v0_0_40"
 	"github.com/jontk/slurm-client/internal/common"
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/internal/managers/base"
 	"github.com/jontk/slurm-client/pkg/errors"
-	api "github.com/jontk/slurm-client/internal/api/v0_0_40"
 )
 
 // ReservationAdapter implements the ReservationAdapter interface for v0.0.40
@@ -87,7 +87,7 @@ func (a *ReservationAdapter) List(ctx context.Context, opts *types.ReservationLi
 		if err != nil {
 			return nil, a.HandleConversionError(err, apiReservation.Name)
 		}
-		
+
 		// Apply client-side filtering if needed
 		if opts != nil && len(opts.Names) > 0 {
 			found := false
@@ -101,7 +101,7 @@ func (a *ReservationAdapter) List(ctx context.Context, opts *types.ReservationLi
 				continue
 			}
 		}
-		
+
 		reservationList = append(reservationList, *reservation)
 	}
 

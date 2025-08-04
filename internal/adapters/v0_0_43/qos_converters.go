@@ -4,8 +4,8 @@
 package v0_0_43
 
 import (
-	"github.com/jontk/slurm-client/internal/common/types"
 	api "github.com/jontk/slurm-client/internal/api/v0_0_43"
+	"github.com/jontk/slurm-client/internal/common/types"
 )
 
 // convertAPIQoSToCommon converts a v0.0.43 API QoS to common QoS type
@@ -43,8 +43,8 @@ func (a *QoSAdapter) convertAPIQoSToCommon(apiQoS api.V0043Qos) (*types.QoS, err
 	}
 
 	// Preempt exempt time
-	if apiQoS.Preempt != nil && apiQoS.Preempt.ExemptTime != nil && 
-		apiQoS.Preempt.ExemptTime.Set != nil && *apiQoS.Preempt.ExemptTime.Set && 
+	if apiQoS.Preempt != nil && apiQoS.Preempt.ExemptTime != nil &&
+		apiQoS.Preempt.ExemptTime.Set != nil && *apiQoS.Preempt.ExemptTime.Set &&
 		apiQoS.Preempt.ExemptTime.Number != nil {
 		qos.PreemptExemptTime = int(*apiQoS.Preempt.ExemptTime.Number)
 	}
@@ -97,12 +97,12 @@ func (a *QoSAdapter) convertAPIQoSToCommon(apiQoS api.V0043Qos) (*types.QoS, err
 
 			// Handle TRES limits (CPU, Memory, Node) using TRES utilities
 			tresUtils := NewTRESUtils()
-			
+
 			// Handle max TRES per job
 			if apiQoS.Limits.Max.Tres != nil && apiQoS.Limits.Max.Tres.Per != nil && apiQoS.Limits.Max.Tres.Per.Job != nil {
 				tresList := tresUtils.ConvertAPITRESToCommon(*apiQoS.Limits.Max.Tres.Per.Job)
 				cpus, memory, nodes := tresUtils.ExtractResourceLimits(tresList)
-				
+
 				if cpus > 0 {
 					val := int(cpus)
 					limits.MaxCPUsPerJob = &val
@@ -119,12 +119,12 @@ func (a *QoSAdapter) convertAPIQoSToCommon(apiQoS api.V0043Qos) (*types.QoS, err
 					hasLimits = true
 				}
 			}
-			
+
 			// Handle max TRES per user
 			if apiQoS.Limits.Max.Tres != nil && apiQoS.Limits.Max.Tres.Per != nil && apiQoS.Limits.Max.Tres.Per.Account != nil {
 				tresList := tresUtils.ConvertAPITRESToCommon(*apiQoS.Limits.Max.Tres.Per.Account)
 				cpus, memory, nodes := tresUtils.ExtractResourceLimits(tresList)
-				
+
 				if cpus > 0 {
 					val := int(cpus)
 					limits.MaxCPUsPerUser = &val
@@ -150,7 +150,7 @@ func (a *QoSAdapter) convertAPIQoSToCommon(apiQoS api.V0043Qos) (*types.QoS, err
 			if apiQoS.Limits.Min.Tres != nil && apiQoS.Limits.Min.Tres.Per != nil && apiQoS.Limits.Min.Tres.Per.Job != nil {
 				tresList := tresUtils.ConvertAPITRESToCommon(*apiQoS.Limits.Min.Tres.Per.Job)
 				cpus, _, nodes := tresUtils.ExtractResourceLimits(tresList)
-				
+
 				if cpus > 0 {
 					val := int(cpus)
 					limits.MinCPUsPerJob = &val
@@ -445,12 +445,12 @@ func (a *QoSAdapter) convertCommonQoSCreateToAPI(create *types.QoSCreate) (*api.
 			// For complex TRES structures in QoS, we handle this through the MaxTRESPerJob string field
 			// rather than trying to construct the complex nested struct
 			tresUtils := NewTRESUtils()
-			
+
 			if create.Limits.MaxCPUsPerJob != nil || create.Limits.MaxMemoryPerNode != nil || create.Limits.MaxNodesPerJob != nil {
 				cpus := int64(0)
 				memory := int64(0)
 				nodes := int64(0)
-				
+
 				if create.Limits.MaxCPUsPerJob != nil {
 					cpus = int64(*create.Limits.MaxCPUsPerJob)
 				}
@@ -460,9 +460,9 @@ func (a *QoSAdapter) convertCommonQoSCreateToAPI(create *types.QoSCreate) (*api.
 				if create.Limits.MaxNodesPerJob != nil {
 					nodes = int64(*create.Limits.MaxNodesPerJob)
 				}
-				
+
 				tresList := tresUtils.BuildTRESFromLimits(cpus, memory, nodes)
-				
+
 				if len(tresList) > 0 {
 					// Convert to TRES string format for storage in QoS
 					tresString := tresUtils.FormatTRESString(tresList)

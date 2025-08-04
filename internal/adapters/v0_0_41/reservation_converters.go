@@ -92,7 +92,7 @@ func (a *ReservationAdapter) convertAPIReservationToCommon(apiRes interface{}) (
 		_ = v // Skip complex time parsing
 	}
 	if v, ok := resData["end_time"]; ok {
-		_ = v // Skip complex time parsing  
+		_ = v // Skip complex time parsing
 	}
 
 	// Numeric fields

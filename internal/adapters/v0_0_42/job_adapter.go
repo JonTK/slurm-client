@@ -7,11 +7,12 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
+	api "github.com/jontk/slurm-client/internal/api/v0_0_42"
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/internal/managers/base"
 	"github.com/jontk/slurm-client/pkg/errors"
-	api "github.com/jontk/slurm-client/internal/api/v0_0_42"
 )
 
 // JobAdapter implements the JobAdapter interface for v0.0.42
@@ -244,7 +245,7 @@ func (a *JobAdapter) Cancel(ctx context.Context, jobID int32, opts *types.JobCan
 
 	// Prepare parameters
 	params := &api.SlurmV0042DeleteJobParams{}
-	
+
 	// Set signal from options
 	signal := "SIGTERM" // Default signal
 	if opts != nil && opts.Signal != "" {
@@ -291,12 +292,12 @@ func (a *JobAdapter) Submit(ctx context.Context, job *types.JobCreate) (*types.J
 	if job.Script != "" {
 		apiJobSubmission.Script = &job.Script
 	}
-	
+
 	// Handle working directory
 	if job.WorkingDirectory != "" {
 		apiJobSubmission.CurrentWorkingDirectory = &job.WorkingDirectory
 	}
-	
+
 	// Handle standard output/error/input
 	if job.StandardOutput != "" {
 		apiJobSubmission.StandardOutput = &job.StandardOutput
@@ -307,7 +308,7 @@ func (a *JobAdapter) Submit(ctx context.Context, job *types.JobCreate) (*types.J
 	if job.StandardInput != "" {
 		apiJobSubmission.StandardInput = &job.StandardInput
 	}
-	
+
 	// Handle time limit
 	if job.TimeLimit > 0 {
 		timeLimitNumber := int32(job.TimeLimit)
@@ -316,7 +317,7 @@ func (a *JobAdapter) Submit(ctx context.Context, job *types.JobCreate) (*types.J
 			Set:    &[]bool{true}[0],
 		}
 	}
-	
+
 	// Handle node count
 	if job.Nodes > 0 {
 		nodesStr := fmt.Sprintf("%d", job.Nodes)
@@ -325,7 +326,7 @@ func (a *JobAdapter) Submit(ctx context.Context, job *types.JobCreate) (*types.J
 
 	// Handle environment variables - CRITICAL for avoiding SLURM errors
 	envVars := make([]string, 0)
-	
+
 	// Always provide at least minimal environment to avoid SLURM write errors
 	hasPath := false
 	for key := range job.Environment {
@@ -334,16 +335,16 @@ func (a *JobAdapter) Submit(ctx context.Context, job *types.JobCreate) (*types.J
 			break
 		}
 	}
-	
+
 	if !hasPath {
 		envVars = append(envVars, "PATH=/usr/bin:/bin")
 	}
-	
+
 	// Add all user-provided environment variables
 	for key, value := range job.Environment {
 		envVars = append(envVars, fmt.Sprintf("%s=%s", key, value))
 	}
-	
+
 	// Set environment in job submission
 	apiJobSubmission.Environment = &envVars
 
@@ -557,4 +558,97 @@ func (a *JobAdapter) convertAPIJobAllocateResponseToCommon(apiResp *api.V0042Ope
 	}
 
 	return resp
+}
+
+// convertAPIJobToCommon converts API job to common type
+func (a *JobAdapter) convertAPIJobToCommon(apiJob api.V0042JobInfo) (*types.Job, error) {
+	job := &types.Job{}
+
+	// Set basic fields
+	if apiJob.JobId != nil {
+		job.JobID = int32(*apiJob.JobId)
+	}
+
+	if apiJob.Name != nil {
+		job.Name = *apiJob.Name
+	}
+
+	if apiJob.Account != nil {
+		job.Account = *apiJob.Account
+	}
+
+	if apiJob.Partition != nil {
+		job.Partition = *apiJob.Partition
+	}
+
+	if apiJob.UserId != nil {
+		job.UserID = int32(*apiJob.UserId)
+	}
+
+	if apiJob.GroupId != nil {
+		job.GroupID = int32(*apiJob.GroupId)
+	}
+
+	if apiJob.UserName != nil {
+		job.UserName = *apiJob.UserName
+	}
+
+	// Job state conversion
+	if apiJob.JobState != nil && len(*apiJob.JobState) > 0 {
+		job.State = types.JobState((*apiJob.JobState)[0]) // Take the first state and convert to JobState type
+	}
+
+	// Resource information - CPU count is directly available in JobResources
+	if apiJob.JobResources != nil {
+		job.CPUs = apiJob.JobResources.Cpus
+	}
+
+	if apiJob.Nodes != nil {
+		job.NodeList = *apiJob.Nodes
+	}
+
+	// Time fields - convert from Unix timestamp to time.Time
+	if apiJob.SubmitTime != nil && apiJob.SubmitTime.Set != nil && *apiJob.SubmitTime.Set && apiJob.SubmitTime.Number != nil {
+		job.SubmitTime = time.Unix(*apiJob.SubmitTime.Number, 0)
+	}
+
+	if apiJob.StartTime != nil && apiJob.StartTime.Set != nil && *apiJob.StartTime.Set && apiJob.StartTime.Number != nil {
+		startTime := time.Unix(*apiJob.StartTime.Number, 0)
+		job.StartTime = &startTime
+	}
+
+	if apiJob.EndTime != nil && apiJob.EndTime.Set != nil && *apiJob.EndTime.Set && apiJob.EndTime.Number != nil {
+		endTime := time.Unix(*apiJob.EndTime.Number, 0)
+		job.EndTime = &endTime
+	}
+
+	if apiJob.TimeLimit != nil && apiJob.TimeLimit.Set != nil && *apiJob.TimeLimit.Set && apiJob.TimeLimit.Number != nil {
+		job.TimeLimit = *apiJob.TimeLimit.Number
+	}
+
+	// Working directory is not available in v0.0.42 JobInfo structure
+
+	// Command
+	if apiJob.Command != nil {
+		job.Command = *apiJob.Command
+	}
+
+	return job, nil
+}
+
+// convertAPIJobSubmitResponseToCommon converts API job submit response to common type
+func (a *JobAdapter) convertAPIJobSubmitResponseToCommon(apiResp *api.V0042OpenapiJobSubmitResponse) (*types.JobSubmitResponse, error) {
+	resp := &types.JobSubmitResponse{}
+
+	// Extract job ID from the first job result if available
+	if apiResp.JobId != nil {
+		resp.JobID = *apiResp.JobId
+	}
+
+	// Extract user message if available
+	if apiResp.JobSubmitUserMsg != nil {
+		resp.JobSubmitUserMsg = *apiResp.JobSubmitUserMsg
+	}
+
+	return resp, nil
 }

@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"strings"
 
+	api "github.com/jontk/slurm-client/internal/api/v0_0_40"
 	"github.com/jontk/slurm-client/internal/common"
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/internal/managers/base"
 	"github.com/jontk/slurm-client/pkg/errors"
-	api "github.com/jontk/slurm-client/internal/api/v0_0_40"
 )
 
 // PartitionAdapter implements the PartitionAdapter interface for v0.0.40
@@ -251,7 +251,7 @@ func (a *PartitionAdapter) matchesPartitionFilters(partition types.Partition, op
 		}
 	}
 
-	// Filter by states  
+	// Filter by states
 	if len(opts.States) > 0 {
 		found := false
 		for _, state := range opts.States {

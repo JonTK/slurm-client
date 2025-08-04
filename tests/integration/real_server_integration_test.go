@@ -5,6 +5,7 @@ package integration
 
 import (
 	"context"
+	stderrors "errors"
 	"fmt"
 	"os"
 	"testing"
@@ -28,7 +29,7 @@ type RealServerIntegrationTestSuite struct {
 	serverURL string
 	token     string
 	version   string
-	
+
 	// Test data tracking
 	submittedJobs []string
 	testStartTime time.Time
@@ -101,7 +102,7 @@ func (suite *RealServerIntegrationTestSuite) TearDownSuite() {
 	}
 
 	suite.client.Close()
-	
+
 	duration := time.Since(suite.testStartTime)
 	suite.T().Logf("Real server integration tests completed in %v", duration)
 }
@@ -120,10 +121,10 @@ func (suite *RealServerIntegrationTestSuite) TestCompleteClusterDiscovery() {
 	info, err := suite.client.Info().Get(ctx)
 	suite.Require().NoError(err)
 	suite.NotEmpty(info.ClusterName, "Cluster name should not be empty")
-	
+
 	suite.T().Logf("Cluster: %s", info.ClusterName)
-	if info.SlurmVersion != "" {
-		suite.T().Logf("SLURM Version: %s", info.SlurmVersion)
+	if info.ClusterName != "" {
+		suite.T().Logf("Cluster Name: %s", info.ClusterName)
 	}
 
 	// Step 3: Get version information
@@ -137,19 +138,19 @@ func (suite *RealServerIntegrationTestSuite) TestCompleteClusterDiscovery() {
 	suite.T().Log("=== Step 4: Getting cluster statistics ===")
 	stats, err := suite.client.Info().Stats(ctx)
 	suite.Require().NoError(err)
-	
+
 	suite.T().Logf("Cluster Statistics:")
-	suite.T().Logf("  Total Nodes: %d (Idle: %d, Allocated: %d)", 
+	suite.T().Logf("  Total Nodes: %d (Idle: %d, Allocated: %d)",
 		stats.TotalNodes, stats.IdleNodes, stats.AllocatedNodes)
-	suite.T().Logf("  Total CPUs: %d (Idle: %d, Allocated: %d)", 
+	suite.T().Logf("  Total CPUs: %d (Idle: %d, Allocated: %d)",
 		stats.TotalCPUs, stats.IdleCPUs, stats.AllocatedCPUs)
-	suite.T().Logf("  Total Jobs: %d (Running: %d, Pending: %d, Completed: %d)", 
+	suite.T().Logf("  Total Jobs: %d (Running: %d, Pending: %d, Completed: %d)",
 		stats.TotalJobs, stats.RunningJobs, stats.PendingJobs, stats.CompletedJobs)
 
 	// Validate statistics consistency
-	suite.GreaterOrEqual(stats.TotalNodes, stats.IdleNodes+stats.AllocatedNodes, 
+	suite.GreaterOrEqual(stats.TotalNodes, stats.IdleNodes+stats.AllocatedNodes,
 		"Total nodes should be >= idle + allocated")
-	suite.GreaterOrEqual(stats.TotalCPUs, stats.IdleCPUs+stats.AllocatedCPUs, 
+	suite.GreaterOrEqual(stats.TotalCPUs, stats.IdleCPUs+stats.AllocatedCPUs,
 		"Total CPUs should be >= idle + allocated")
 }
 
@@ -174,7 +175,7 @@ func (suite *RealServerIntegrationTestSuite) TestComprehensiveResourceListing() 
 		suite.Require().NoError(err, "Node listing should succeed for %s", test.name)
 		suite.NotNil(nodes.Nodes, "Nodes should not be nil")
 		suite.T().Logf("  Found %d nodes", len(nodes.Nodes))
-		
+
 		// Validate node data
 		for i, node := range nodes.Nodes {
 			if i >= 3 { // Log first 3 nodes
@@ -212,7 +213,7 @@ func (suite *RealServerIntegrationTestSuite) TestComprehensiveResourceListing() 
 			suite.NotEmpty(partition.Name, "Partition name should not be empty")
 			suite.NotEmpty(partition.State, "Partition state should not be empty")
 			suite.GreaterOrEqual(partition.TotalNodes, int32(0), "Total nodes should be non-negative")
-			suite.T().Logf("    Partition: %s, State: %s, Nodes: %d", 
+			suite.T().Logf("    Partition: %s, State: %s, Nodes: %d",
 				partition.Name, partition.State, partition.TotalNodes)
 		}
 	}
@@ -241,7 +242,7 @@ func (suite *RealServerIntegrationTestSuite) TestComprehensiveResourceListing() 
 			}
 			suite.NotEmpty(qos.Name, "QoS name should not be empty")
 			suite.GreaterOrEqual(qos.Priority, int32(0), "QoS priority should be non-negative")
-			suite.T().Logf("    QoS: %s, Priority: %d, UsageFactor: %.2f", 
+			suite.T().Logf("    QoS: %s, Priority: %d, UsageFactor: %.2f",
 				qos.Name, qos.Priority, qos.UsageFactor)
 		}
 	}
@@ -320,7 +321,6 @@ func (suite *RealServerIntegrationTestSuite) TestAdvancedJobOperations() {
 		Nodes:       1,
 		CPUs:        1,
 		TimeLimit:   5,
-		WorkingDirectory: "/tmp",
 	}
 
 	wdResponse, err := suite.client.Jobs().Submit(ctx, wdSubmission)
@@ -369,14 +369,14 @@ func (suite *RealServerIntegrationTestSuite) TestErrorHandlingScenarios() {
 
 	// Test 1: Invalid resource access
 	suite.T().Log("=== Test 1: Invalid resource access ===")
-	
+
 	// Try to get non-existent job
 	_, err := suite.client.Jobs().Get(ctx, "999999999")
 	suite.Error(err, "Should fail for non-existent job")
-	
+
 	var slurmErr *errors.SlurmError
-	if errors.As(err, &slurmErr) {
-		suite.T().Logf("SLURM Error details: Code=%s, Category=%s, Status=%d", 
+	if stderrors.As(err, &slurmErr) {
+		suite.T().Logf("SLURM Error details: Code=%s, Category=%s, Status=%d",
 			slurmErr.Code, slurmErr.Category, slurmErr.StatusCode)
 	}
 
@@ -386,7 +386,7 @@ func (suite *RealServerIntegrationTestSuite) TestErrorHandlingScenarios() {
 
 	// Test 2: Invalid job submission
 	suite.T().Log("=== Test 2: Invalid job submission ===")
-	
+
 	// Submit job with invalid partition
 	invalidSubmission := &interfaces.JobSubmission{
 		Name:      "integration-invalid",
@@ -403,7 +403,7 @@ func (suite *RealServerIntegrationTestSuite) TestErrorHandlingScenarios() {
 
 	// Test 3: Malformed requests
 	suite.T().Log("=== Test 3: Testing malformed requests ===")
-	
+
 	// Try to submit job with zero time limit
 	zeroTimeSubmission := &interfaces.JobSubmission{
 		Name:      "integration-zero-time",
@@ -428,7 +428,7 @@ func (suite *RealServerIntegrationTestSuite) TestPerformanceAndReliability() {
 
 	// Test 1: Rapid successive requests
 	suite.T().Log("=== Test 1: Rapid successive requests ===")
-	
+
 	start := time.Now()
 	successCount := 0
 	requestCount := 10
@@ -444,20 +444,20 @@ func (suite *RealServerIntegrationTestSuite) TestPerformanceAndReliability() {
 
 	duration := time.Since(start)
 	avgLatency := duration / time.Duration(requestCount)
-	
-	suite.T().Logf("Rapid requests: %d/%d succeeded, avg latency: %v", 
+
+	suite.T().Logf("Rapid requests: %d/%d succeeded, avg latency: %v",
 		successCount, requestCount, avgLatency)
 	suite.Greater(successCount, requestCount/2, "At least half of rapid requests should succeed")
 
 	// Test 2: Large data retrieval
 	suite.T().Log("=== Test 2: Large data retrieval ===")
-	
+
 	start = time.Now()
 	jobs, err := suite.client.Jobs().List(ctx, &interfaces.ListJobsOptions{
 		Limit: 100, // Request many jobs
 	})
 	duration = time.Since(start)
-	
+
 	if err == nil {
 		suite.T().Logf("Retrieved %d jobs in %v", len(jobs.Jobs), duration)
 		suite.LessOrEqual(duration, 30*time.Second, "Large data retrieval should complete within 30 seconds")
@@ -467,7 +467,7 @@ func (suite *RealServerIntegrationTestSuite) TestPerformanceAndReliability() {
 
 	// Test 3: Concurrent operations
 	suite.T().Log("=== Test 3: Concurrent operations ===")
-	
+
 	type concurrentResult struct {
 		operation string
 		duration  time.Duration
@@ -475,7 +475,7 @@ func (suite *RealServerIntegrationTestSuite) TestPerformanceAndReliability() {
 	}
 
 	results := make(chan concurrentResult, 4)
-	
+
 	// Start concurrent operations
 	go func() {
 		start := time.Now()

@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
+	api "github.com/jontk/slurm-client/internal/api/v0_0_42"
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/internal/managers/base"
-	api "github.com/jontk/slurm-client/internal/api/v0_0_42"
 )
 
 // AssociationAdapter implements the AssociationAdapter interface for v0.0.42
@@ -261,4 +261,176 @@ func (a *AssociationAdapter) Delete(ctx context.Context, associationID string) e
 	}
 
 	return nil
+}
+
+// convertAPIAssociationToCommon converts API association to common type
+func (a *AssociationAdapter) convertAPIAssociationToCommon(apiAssoc api.V0042Assoc) (*types.Association, error) {
+	assoc := &types.Association{}
+
+	// Set basic fields
+	if apiAssoc.Account != nil {
+		assoc.AccountName = *apiAssoc.Account
+	}
+
+	// User is a string in V0042Assoc, not a pointer
+	assoc.UserName = apiAssoc.User
+
+	if apiAssoc.Cluster != nil {
+		assoc.Cluster = *apiAssoc.Cluster
+	}
+
+	if apiAssoc.Partition != nil {
+		assoc.Partition = *apiAssoc.Partition
+	}
+
+	if apiAssoc.ParentAccount != nil {
+		assoc.ParentAccount = *apiAssoc.ParentAccount
+	}
+
+	// Default QoS is nested in Default.Qos
+	if apiAssoc.Default != nil && apiAssoc.Default.Qos != nil {
+		assoc.DefaultQoS = *apiAssoc.Default.Qos
+	}
+
+	// Shares are in SharesRaw field
+	if apiAssoc.SharesRaw != nil {
+		assoc.SharesRaw = *apiAssoc.SharesRaw
+	}
+
+	// Priority is nested
+	if apiAssoc.Priority != nil && apiAssoc.Priority.Set != nil && *apiAssoc.Priority.Set && apiAssoc.Priority.Number != nil {
+		assoc.Priority = int32(*apiAssoc.Priority.Number)
+	}
+
+	// Max jobs are nested in Max.Jobs structure
+	if apiAssoc.Max != nil && apiAssoc.Max.Jobs != nil {
+		if apiAssoc.Max.Jobs.Active != nil && apiAssoc.Max.Jobs.Active.Set != nil && *apiAssoc.Max.Jobs.Active.Set && apiAssoc.Max.Jobs.Active.Number != nil {
+			assoc.MaxJobs = int32(*apiAssoc.Max.Jobs.Active.Number)
+		}
+		if apiAssoc.Max.Jobs.Total != nil && apiAssoc.Max.Jobs.Total.Set != nil && *apiAssoc.Max.Jobs.Total.Set && apiAssoc.Max.Jobs.Total.Number != nil {
+			assoc.MaxSubmitJobs = int32(*apiAssoc.Max.Jobs.Total.Number)
+		}
+	}
+
+	// TRES limits are nested in Max.Tres structure
+	if apiAssoc.Max != nil && apiAssoc.Max.Tres != nil {
+		assoc.MaxTRES = make(map[string]int64)
+		if apiAssoc.Max.Tres.Total != nil {
+			for _, tres := range *apiAssoc.Max.Tres.Total {
+				if tres.Count != nil {
+					// V0042Tres has Type as string, not pointer
+					assoc.MaxTRES[tres.Type] = int64(*tres.Count)
+				}
+			}
+		}
+	}
+
+	// Set ID as a combination of account and user
+	if assoc.AccountName != "" && assoc.UserName != "" {
+		assoc.ID = fmt.Sprintf("%s_%s", assoc.AccountName, assoc.UserName)
+	} else if assoc.AccountName != "" {
+		assoc.ID = assoc.AccountName
+	}
+
+	// Set other fields if available
+	if apiAssoc.Id != nil {
+		assoc.ID = fmt.Sprintf("%d", *apiAssoc.Id)
+	}
+
+	if apiAssoc.Comment != nil {
+		assoc.Comment = *apiAssoc.Comment
+	}
+
+	if apiAssoc.IsDefault != nil {
+		assoc.IsDefault = *apiAssoc.IsDefault
+	}
+
+	return assoc, nil
+}
+
+// convertCommonAssociationCreateToAPI converts common association create to API format
+func (a *AssociationAdapter) convertCommonAssociationCreateToAPI(assocCreate *types.AssociationCreate) (*api.V0042OpenapiAssocsResp, error) {
+	if assocCreate == nil {
+		return nil, fmt.Errorf("association create request cannot be nil")
+	}
+
+	apiAssoc := api.V0042Assoc{}
+
+	if assocCreate.AccountName != "" {
+		apiAssoc.Account = &assocCreate.AccountName
+	}
+
+	// User is a string in V0042Assoc, not a pointer
+	apiAssoc.User = assocCreate.UserName
+
+	if assocCreate.Cluster != "" {
+		apiAssoc.Cluster = &assocCreate.Cluster
+	}
+
+	if assocCreate.Partition != "" {
+		apiAssoc.Partition = &assocCreate.Partition
+	}
+
+	if assocCreate.ParentAccount != "" {
+		apiAssoc.ParentAccount = &assocCreate.ParentAccount
+	}
+
+	// Default QoS is nested in Default.Qos
+	if assocCreate.DefaultQoS != "" {
+		apiAssoc.Default = &struct {
+			Qos *string `json:"qos,omitempty"`
+		}{
+			Qos: &assocCreate.DefaultQoS,
+		}
+	}
+
+	// Shares are in SharesRaw field
+	if assocCreate.SharesRaw != 0 {
+		apiAssoc.SharesRaw = &assocCreate.SharesRaw
+	}
+
+	if assocCreate.Comment != "" {
+		apiAssoc.Comment = &assocCreate.Comment
+	}
+
+	apiAssoc.IsDefault = &assocCreate.IsDefault
+
+	return &api.V0042OpenapiAssocsResp{
+		Associations: []api.V0042Assoc{apiAssoc},
+	}, nil
+}
+
+// convertCommonAssociationUpdateToAPI converts common association update to API format
+func (a *AssociationAdapter) convertCommonAssociationUpdateToAPI(assocUpdate *types.AssociationUpdate) (*api.V0042OpenapiAssocsResp, error) {
+	if assocUpdate == nil {
+		return nil, fmt.Errorf("association update request cannot be nil")
+	}
+
+	apiAssoc := api.V0042Assoc{}
+
+	// Default QoS is nested in Default.Qos
+	if assocUpdate.DefaultQoS != nil {
+		apiAssoc.Default = &struct {
+			Qos *string `json:"qos,omitempty"`
+		}{
+			Qos: assocUpdate.DefaultQoS,
+		}
+	}
+
+	// Shares are in SharesRaw field
+	if assocUpdate.SharesRaw != nil {
+		apiAssoc.SharesRaw = assocUpdate.SharesRaw
+	}
+
+	if assocUpdate.Comment != nil {
+		apiAssoc.Comment = assocUpdate.Comment
+	}
+
+	if assocUpdate.IsDefault != nil {
+		apiAssoc.IsDefault = assocUpdate.IsDefault
+	}
+
+	return &api.V0042OpenapiAssocsResp{
+		Associations: []api.V0042Assoc{apiAssoc},
+	}, nil
 }

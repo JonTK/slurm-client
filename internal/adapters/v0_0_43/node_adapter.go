@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
+	api "github.com/jontk/slurm-client/internal/api/v0_0_43"
 	"github.com/jontk/slurm-client/internal/common"
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/internal/managers/base"
-	api "github.com/jontk/slurm-client/internal/api/v0_0_43"
 )
 
 // NodeAdapter implements the NodeAdapter interface for v0.0.43
@@ -321,7 +321,7 @@ func (a *NodeAdapter) Watch(ctx context.Context, opts *types.NodeWatchOptions) (
 func (a *NodeAdapter) pollNodes(ctx context.Context, opts *types.NodeWatchOptions, nodeStates map[string]types.NodeState, eventCh chan<- types.NodeWatchEvent, isInitial bool) {
 	// Create list options based on watch options
 	listOpts := &types.NodeListOptions{}
-	
+
 	// If watching specific nodes, filter by node names
 	if opts != nil && len(opts.NodeNames) > 0 {
 		listOpts.Names = opts.NodeNames
@@ -369,7 +369,7 @@ func (a *NodeAdapter) pollNodes(ctx context.Context, opts *types.NodeWatchOption
 		// Send event if state changed
 		if exists && previousState != currentState {
 			eventType := a.getEventTypeFromNodeStateChange(previousState, currentState)
-			
+
 			event := types.NodeWatchEvent{
 				EventTime:     time.Now(),
 				EventType:     eventType,
@@ -507,12 +507,12 @@ func (a *NodeAdapter) validateNodeUpdate(update *types.NodeUpdate) error {
 	}
 	// At least one field should be provided for update
 	if update.Comment == nil && update.CPUBinding == nil && len(update.Features) == 0 &&
-	   len(update.ActiveFeatures) == 0 && update.Gres == nil && update.NextStateAfterReboot == nil &&
-	   update.Reason == nil && update.ResumeAfter == nil && update.State == nil && 
-	   update.Weight == nil && len(update.Extra) == 0 {
+		len(update.ActiveFeatures) == 0 && update.Gres == nil && update.NextStateAfterReboot == nil &&
+		update.Reason == nil && update.ResumeAfter == nil && update.State == nil &&
+		update.Weight == nil && len(update.Extra) == 0 {
 		return common.NewValidationError("at least one field must be provided for update", "update", update)
 	}
-	
+
 	// Validate numeric fields if provided
 	if update.CPUBinding != nil && *update.CPUBinding < 0 {
 		return common.NewValidationError("CPU binding must be non-negative", "cpuBinding", *update.CPUBinding)
@@ -555,7 +555,7 @@ func (a *NodeAdapter) matchesNodeFilters(node types.Node, opts *types.NodeListOp
 		}
 	}
 
-	// Filter by states (already handled by API, but included for completeness) 
+	// Filter by states (already handled by API, but included for completeness)
 	if len(opts.States) > 0 {
 		found := false
 		for _, state := range opts.States {

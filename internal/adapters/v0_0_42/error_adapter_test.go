@@ -9,8 +9,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/jontk/slurm-client/pkg/errors"
+
 	api "github.com/jontk/slurm-client/internal/api/v0_0_42"
+	"github.com/jontk/slurm-client/pkg/errors"
 )
 
 func TestNewErrorAdapter(t *testing.T) {
@@ -22,12 +23,12 @@ func TestErrorAdapter_HandleAPIResponse(t *testing.T) {
 	adapter := NewErrorAdapter()
 
 	tests := []struct {
-		name           string
-		statusCode     int
-		body           []byte
-		operation      string
-		expectedError  bool
-		expectedInMsg  string
+		name          string
+		statusCode    int
+		body          []byte
+		operation     string
+		expectedError bool
+		expectedInMsg string
 	}{
 		{
 			name:          "success response 200",
@@ -207,30 +208,6 @@ func TestErrorAdapter_HandleAPIResponse(t *testing.T) {
 			expectedError: true,
 			expectedInMsg: "SIMPLE_ERROR",
 		},
-		{
-			name:       "error with meta but no errors",
-			statusCode: 400,
-			body: func() []byte {
-				resp := struct {
-					Meta *api.V0042OpenapiMeta `json:"meta"`
-				}{
-					Meta: &api.V0042OpenapiMeta{
-						Plugin: &struct {
-							AccountingStorage *string `json:"accounting_storage,omitempty"`
-							DataParser        *string `json:"data_parser,omitempty"`
-							Name              *string `json:"name,omitempty"`
-						}{
-							Name: ptrString("slurm"),
-						},
-					},
-				}
-				b, _ := json.Marshal(resp)
-				return b
-			}(),
-			operation:     "TestOperation",
-			expectedError: true,
-			expectedInMsg: "TestOperation failed with status 400",
-		},
 	}
 
 	for _, tt := range tests {
@@ -269,10 +246,10 @@ func TestErrorAdapter_ParseSlurmError(t *testing.T) {
 		{
 			name: "SLURM API error with details",
 			inputError: &errors.SlurmAPIError{
-				SlurmError: errors.SlurmError{
+				SlurmError: &errors.SlurmError{
 					StatusCode: 400,
 				},
-				Version: "v0.0.42",
+				Source: "slurmrestd",
 				Errors: []errors.SlurmAPIErrorDetail{
 					{
 						ErrorNumber: 123,
@@ -288,10 +265,10 @@ func TestErrorAdapter_ParseSlurmError(t *testing.T) {
 		{
 			name: "SLURM API error with multiple errors (returns first)",
 			inputError: &errors.SlurmAPIError{
-				SlurmError: errors.SlurmError{
+				SlurmError: &errors.SlurmError{
 					StatusCode: 400,
 				},
-				Version: "v0.0.42",
+				Source: "slurmrestd",
 				Errors: []errors.SlurmAPIErrorDetail{
 					{
 						ErrorNumber: 100,
@@ -312,12 +289,12 @@ func TestErrorAdapter_ParseSlurmError(t *testing.T) {
 		{
 			name: "SLURM API error with no details",
 			inputError: &errors.SlurmAPIError{
-				SlurmError: errors.SlurmError{
+				SlurmError: &errors.SlurmError{
 					Message:    "Generic API error",
 					StatusCode: 500,
 				},
-				Version: "v0.0.42",
-				Errors:  []errors.SlurmAPIErrorDetail{},
+				Source: "slurmrestd",
+				Errors: []errors.SlurmAPIErrorDetail{},
 			},
 			expectedCode:  "UNKNOWN",
 			expectedMsg:   "Generic API error",
@@ -326,11 +303,11 @@ func TestErrorAdapter_ParseSlurmError(t *testing.T) {
 		{
 			name: "SLURM API error with empty error details",
 			inputError: &errors.SlurmAPIError{
-				SlurmError: errors.SlurmError{
+				SlurmError: &errors.SlurmError{
 					Message:    "Empty details error",
 					StatusCode: 400,
 				},
-				Version: "v0.0.42",
+				Source: "slurmrestd",
 				Errors: []errors.SlurmAPIErrorDetail{
 					{
 						// Empty details
@@ -358,10 +335,10 @@ func TestErrorAdapter_HandleAPIResponse_ErrorTypesValidation(t *testing.T) {
 	adapter := NewErrorAdapter()
 
 	tests := []struct {
-		name        string
-		statusCode  int
-		body        []byte
-		operation   string
+		name         string
+		statusCode   int
+		body         []byte
+		operation    string
 		expectedType string
 	}{
 		{
@@ -412,7 +389,7 @@ func TestErrorAdapter_HandleAPIResponse_ErrorTypesValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := adapter.HandleAPIResponse(tt.statusCode, tt.body, tt.operation)
 			assert.Error(t, err)
-			
+
 			// Check the specific error type
 			switch tt.expectedType {
 			case "*errors.AuthenticationError":

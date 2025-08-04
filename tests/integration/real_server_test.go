@@ -93,37 +93,37 @@ func (suite *RealServerTestSuite) TestPing() {
 // TestGetClusterInfo tests retrieving cluster information
 func (suite *RealServerTestSuite) TestGetClusterInfo() {
 	ctx := context.Background()
-	
+
 	// Get cluster info
 	info, err := suite.client.Info().Get(ctx)
 	suite.Require().NoError(err)
 	suite.NotEmpty(info.ClusterName, "Cluster name should not be empty")
-	
+
 	suite.T().Logf("Connected to cluster: %s", info.ClusterName)
 }
 
 // TestGetVersion tests version endpoint
 func (suite *RealServerTestSuite) TestGetVersion() {
 	ctx := context.Background()
-	
+
 	versionInfo, err := suite.client.Info().Version(ctx)
 	suite.Require().NoError(err)
 	suite.NotEmpty(versionInfo.Version, "Version should not be empty")
-	
+
 	suite.T().Logf("Server API version: %s", versionInfo.Version)
 }
 
 // TestListJobs tests job listing
 func (suite *RealServerTestSuite) TestListJobs() {
 	ctx := context.Background()
-	
+
 	// List jobs with limit
 	jobs, err := suite.client.Jobs().List(ctx, &interfaces.ListJobsOptions{
 		Limit: 10,
 	})
 	suite.Require().NoError(err)
 	suite.NotNil(jobs)
-	
+
 	suite.T().Logf("Found %d jobs", len(jobs.Jobs))
 	for i, job := range jobs.Jobs {
 		if i < 5 { // Log first 5 jobs
@@ -135,14 +135,14 @@ func (suite *RealServerTestSuite) TestListJobs() {
 // TestListNodes tests node listing
 func (suite *RealServerTestSuite) TestListNodes() {
 	ctx := context.Background()
-	
+
 	// List nodes
 	nodes, err := suite.client.Nodes().List(ctx, &interfaces.ListNodesOptions{
 		Limit: 10,
 	})
 	suite.Require().NoError(err)
 	suite.NotNil(nodes)
-	
+
 	suite.T().Logf("Found %d nodes", len(nodes.Nodes))
 	for i, node := range nodes.Nodes {
 		if i < 5 { // Log first 5 nodes
@@ -154,18 +154,18 @@ func (suite *RealServerTestSuite) TestListNodes() {
 // TestListPartitions tests partition listing
 func (suite *RealServerTestSuite) TestListPartitions() {
 	ctx := context.Background()
-	
+
 	// List partitions
 	partitions, err := suite.client.Partitions().List(ctx, &interfaces.ListPartitionsOptions{
 		Limit: 10,
 	})
 	suite.Require().NoError(err)
 	suite.NotNil(partitions)
-	
+
 	suite.T().Logf("Found %d partitions", len(partitions.Partitions))
 	for i, partition := range partitions.Partitions {
 		if i < 5 { // Log first 5 partitions
-			suite.T().Logf("  Partition %d: Name=%s, State=%s, Nodes=%d", 
+			suite.T().Logf("  Partition %d: Name=%s, State=%s, Nodes=%d",
 				i+1, partition.Name, partition.State, partition.TotalNodes)
 		}
 	}
@@ -174,27 +174,25 @@ func (suite *RealServerTestSuite) TestListPartitions() {
 // TestListQoS tests QoS listing with our new adapter pattern
 func (suite *RealServerTestSuite) TestListQoS() {
 	ctx := context.Background()
-	
+
 	// List QoS entries
 	qosList, err := suite.client.QoS().List(ctx, &interfaces.ListQoSOptions{
 		Limit: 10,
 	})
 	suite.Require().NoError(err)
 	suite.NotNil(qosList)
-	
+
 	suite.T().Logf("Found %d QoS entries", len(qosList.QoS))
 	for i, qos := range qosList.QoS {
 		if i < 5 { // Log first 5 QoS entries
-			suite.T().Logf("  QoS %d: Name=%s, Priority=%d, UsageFactor=%.2f", 
+			suite.T().Logf("  QoS %d: Name=%s, Priority=%d, UsageFactor=%.2f",
 				i+1, qos.Name, qos.Priority, qos.UsageFactor)
-			if qos.Limits != nil {
-				suite.T().Logf("    Grace Time: %d seconds", qos.GraceTime)
-				if qos.Limits.MaxJobsPerUser != nil {
-					suite.T().Logf("    Max Jobs Per User: %d", *qos.Limits.MaxJobsPerUser)
-				}
-				if qos.Limits.MaxJobsPerAccount != nil {
-					suite.T().Logf("    Max Jobs Per Account: %d", *qos.Limits.MaxJobsPerAccount)
-				}
+			suite.T().Logf("    Grace Time: %d seconds", qos.GraceTime)
+			if qos.MaxJobsPerUser > 0 {
+				suite.T().Logf("    Max Jobs Per User: %d", qos.MaxJobsPerUser)
+			}
+			if qos.MaxJobsPerAccount > 0 {
+				suite.T().Logf("    Max Jobs Per Account: %d", qos.MaxJobsPerAccount)
 			}
 		}
 	}
@@ -203,27 +201,27 @@ func (suite *RealServerTestSuite) TestListQoS() {
 // TestGetQoS tests retrieving a specific QoS
 func (suite *RealServerTestSuite) TestGetQoS() {
 	ctx := context.Background()
-	
+
 	// First list QoS to get a valid name
 	qosList, err := suite.client.QoS().List(ctx, &interfaces.ListQoSOptions{
 		Limit: 1,
 	})
 	suite.Require().NoError(err)
-	
+
 	if len(qosList.QoS) == 0 {
 		suite.T().Skip("No QoS entries found to test")
 		return
 	}
-	
+
 	qosName := qosList.QoS[0].Name
 	suite.T().Logf("Testing Get with QoS: %s", qosName)
-	
+
 	// Get specific QoS
 	qos, err := suite.client.QoS().Get(ctx, qosName)
 	suite.Require().NoError(err)
 	suite.NotNil(qos)
 	suite.Equal(qosName, qos.Name)
-	
+
 	suite.T().Logf("Retrieved QoS: %s", qos.Name)
 	suite.T().Logf("  Description: %s", qos.Description)
 	suite.T().Logf("  Priority: %d", qos.Priority)
@@ -234,7 +232,7 @@ func (suite *RealServerTestSuite) TestGetQoS() {
 // TestJobSubmission tests submitting and canceling a job
 func (suite *RealServerTestSuite) TestJobSubmission() {
 	ctx := context.Background()
-	
+
 	// Submit a test job
 	submission := &interfaces.JobSubmission{
 		Name:      "go-client-test-" + time.Now().Format("20060102-150405"),
@@ -244,7 +242,7 @@ func (suite *RealServerTestSuite) TestJobSubmission() {
 		CPUs:      1,
 		TimeLimit: 5, // 5 minutes
 	}
-	
+
 	suite.T().Logf("Submitting job: %s", submission.Name)
 	response, err := suite.client.Jobs().Submit(ctx, submission)
 	if err != nil {
@@ -258,7 +256,7 @@ func (suite *RealServerTestSuite) TestJobSubmission() {
 			suite.T().Logf("Error Details: %s", slurmErr.Details)
 			suite.T().Logf("Status Code: %d", slurmErr.StatusCode)
 		}
-		
+
 		// Check if it's a SlurmAPIError with more details
 		var apiErr *errors.SlurmAPIError
 		if goerrors.As(err, &apiErr) {
@@ -267,7 +265,7 @@ func (suite *RealServerTestSuite) TestJobSubmission() {
 			suite.T().Logf("API Error Source: %s", apiErr.Source)
 			if len(apiErr.Errors) > 0 {
 				for i, detail := range apiErr.Errors {
-					suite.T().Logf("API Error Detail %d: [%d] %s - %s (source: %s)", 
+					suite.T().Logf("API Error Detail %d: [%d] %s - %s (source: %s)",
 						i+1, detail.ErrorNumber, detail.ErrorCode, detail.Description, detail.Source)
 				}
 			}
@@ -275,15 +273,15 @@ func (suite *RealServerTestSuite) TestJobSubmission() {
 	}
 	suite.Require().NoError(err)
 	suite.NotEmpty(response.JobID)
-	
+
 	suite.T().Logf("Job submitted successfully: ID=%s", response.JobID)
-	
+
 	// Get job details
 	job, err := suite.client.Jobs().Get(ctx, response.JobID)
 	suite.Require().NoError(err)
 	suite.Equal(response.JobID, job.ID)
 	suite.T().Logf("Job state: %s", job.State)
-	
+
 	// Cancel the job
 	err = suite.client.Jobs().Cancel(ctx, response.JobID)
 	suite.NoError(err)
@@ -293,10 +291,10 @@ func (suite *RealServerTestSuite) TestJobSubmission() {
 // TestGetStats tests retrieving cluster statistics
 func (suite *RealServerTestSuite) TestGetStats() {
 	ctx := context.Background()
-	
+
 	stats, err := suite.client.Info().Stats(ctx)
 	suite.Require().NoError(err)
-	
+
 	suite.T().Logf("Cluster Statistics:")
 	suite.T().Logf("  Node Statistics:")
 	suite.T().Logf("    Total Nodes: %d", stats.TotalNodes)

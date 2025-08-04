@@ -90,7 +90,7 @@ func testAccountManagement(t *testing.T, ctx context.Context, client interfaces.
 
 		// Test basic account listing
 		accountList, err := accountManager.List(ctx, opts)
-		
+
 		// Expected behavior based on version
 		switch apiVersion {
 		case "v0.0.43":
@@ -111,7 +111,7 @@ func testAccountManagement(t *testing.T, ctx context.Context, client interfaces.
 
 	t.Run("get_account_hierarchy", func(t *testing.T) {
 		hierarchy, err := accountManager.GetAccountHierarchy(ctx, "root")
-		
+
 		// All versions should handle this consistently
 		assert.Error(t, err)
 		assert.Nil(t, hierarchy)
@@ -119,7 +119,7 @@ func testAccountManagement(t *testing.T, ctx context.Context, client interfaces.
 
 	t.Run("get_account_quotas", func(t *testing.T) {
 		quotas, err := accountManager.GetAccountQuotas(ctx, "testaccount")
-		
+
 		// All versions should handle this consistently
 		assert.Error(t, err)
 		assert.Nil(t, quotas)
@@ -127,7 +127,7 @@ func testAccountManagement(t *testing.T, ctx context.Context, client interfaces.
 
 	t.Run("get_account_fair_share", func(t *testing.T) {
 		fairShare, err := accountManager.GetAccountFairShare(ctx, "testaccount")
-		
+
 		// Test version-specific behavior
 		switch apiVersion {
 		case "v0.0.43":
@@ -144,7 +144,7 @@ func testAccountManagement(t *testing.T, ctx context.Context, client interfaces.
 
 	t.Run("get_fair_share_hierarchy", func(t *testing.T) {
 		hierarchy, err := accountManager.GetFairShareHierarchy(ctx, "root")
-		
+
 		// Test version-specific behavior
 		switch apiVersion {
 		case "v0.0.43":
@@ -173,7 +173,7 @@ func testUserManagement(t *testing.T, ctx context.Context, client interfaces.Slu
 		}
 
 		userList, err := userManager.List(ctx, opts)
-		
+
 		// Expected behavior based on version
 		switch apiVersion {
 		case "v0.0.43":
@@ -190,7 +190,7 @@ func testUserManagement(t *testing.T, ctx context.Context, client interfaces.Slu
 
 	t.Run("get_user", func(t *testing.T) {
 		user, err := userManager.Get(ctx, "testuser")
-		
+
 		// All versions should handle this consistently
 		assert.Error(t, err)
 		assert.Nil(t, user)
@@ -198,7 +198,7 @@ func testUserManagement(t *testing.T, ctx context.Context, client interfaces.Slu
 
 	t.Run("get_user_accounts", func(t *testing.T) {
 		accounts, err := userManager.GetUserAccounts(ctx, "testuser")
-		
+
 		// All versions should handle this consistently
 		assert.Error(t, err)
 		assert.Nil(t, accounts)
@@ -206,7 +206,7 @@ func testUserManagement(t *testing.T, ctx context.Context, client interfaces.Slu
 
 	t.Run("get_user_quotas", func(t *testing.T) {
 		quotas, err := userManager.GetUserQuotas(ctx, "testuser")
-		
+
 		// All versions should handle this consistently
 		assert.Error(t, err)
 		assert.Nil(t, quotas)
@@ -214,7 +214,7 @@ func testUserManagement(t *testing.T, ctx context.Context, client interfaces.Slu
 
 	t.Run("get_user_fair_share", func(t *testing.T) {
 		fairShare, err := userManager.GetUserFairShare(ctx, "testuser")
-		
+
 		// All versions should handle this consistently
 		assert.Error(t, err)
 		assert.Nil(t, fairShare)
@@ -229,7 +229,7 @@ func testUserManagement(t *testing.T, ctx context.Context, client interfaces.Slu
 		}
 
 		priority, err := userManager.CalculateJobPriority(ctx, "testuser", jobSubmission)
-		
+
 		// All versions should handle this consistently
 		assert.Error(t, err)
 		assert.Nil(t, priority)
@@ -305,7 +305,7 @@ func testFairShareOperations(t *testing.T, ctx context.Context, client interface
 
 	t.Run("user_fair_share", func(t *testing.T) {
 		fairShare, err := userManager.GetUserFairShare(ctx, "testuser")
-		
+
 		// All versions should handle this consistently with NotImplementedError
 		assert.Error(t, err)
 		assert.Nil(t, fairShare)
@@ -313,7 +313,7 @@ func testFairShareOperations(t *testing.T, ctx context.Context, client interface
 
 	t.Run("account_fair_share", func(t *testing.T) {
 		fairShare, err := accountManager.GetAccountFairShare(ctx, "testaccount")
-		
+
 		// Version-specific behavior
 		switch apiVersion {
 		case "v0.0.43":
@@ -328,7 +328,7 @@ func testFairShareOperations(t *testing.T, ctx context.Context, client interface
 
 	t.Run("fair_share_hierarchy", func(t *testing.T) {
 		hierarchy, err := accountManager.GetFairShareHierarchy(ctx, "root")
-		
+
 		// Version-specific behavior
 		switch apiVersion {
 		case "v0.0.43":
@@ -348,11 +348,11 @@ func testFairShareOperations(t *testing.T, ctx context.Context, client interface
 			Partition:  "compute",
 			CPUs:       4,
 			Memory:     8192,
-			TimeLimit:  "01:00:00",
+			TimeLimit:  60,
 		}
 
 		priority, err := userManager.CalculateJobPriority(ctx, "testuser", jobSubmission)
-		
+
 		// All versions should handle this consistently
 		assert.Error(t, err)
 		assert.Nil(t, priority)
@@ -438,7 +438,7 @@ func testQuotaMonitoring(t *testing.T, ctx context.Context, client interfaces.Sl
 	t.Run("cross_version_quota_behavior", func(t *testing.T) {
 		// Test that quota operations behave consistently across versions
 		quotas, err := accountManager.GetAccountQuotas(ctx, "testaccount")
-		
+
 		switch apiVersion {
 		case "v0.0.43":
 			assert.Error(t, err) // NotImplementedError expected

@@ -7,11 +7,11 @@ import (
 	"context"
 	"strings"
 
+	api "github.com/jontk/slurm-client/internal/api/v0_0_40"
 	"github.com/jontk/slurm-client/internal/common"
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/internal/managers/base"
 	"github.com/jontk/slurm-client/pkg/errors"
-	api "github.com/jontk/slurm-client/internal/api/v0_0_40"
 )
 
 // AssociationAdapter implements the AssociationAdapter interface for v0.0.40
@@ -192,12 +192,12 @@ func (a *AssociationAdapter) Create(ctx context.Context, association *types.Asso
 	// Create request body
 	// Convert V0040AssocShort to V0040Assoc for the associations list
 	assoc := api.V0040Assoc{
-		Account: apiAssociation.Account,
-		Cluster: apiAssociation.Cluster,
+		Account:   apiAssociation.Account,
+		Cluster:   apiAssociation.Cluster,
 		Partition: apiAssociation.Partition,
-		Id: apiAssociation,  // V0040AssocShort is used as the Id field in V0040Assoc
+		Id:        apiAssociation, // V0040AssocShort is used as the Id field in V0040Assoc
 	}
-	
+
 	reqBody := api.SlurmdbV0040PostAssociationsJSONRequestBody{
 		Associations: api.V0040AssocList{assoc},
 	}

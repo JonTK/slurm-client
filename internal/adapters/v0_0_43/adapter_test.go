@@ -6,9 +6,9 @@ package v0_0_43
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/jontk/slurm-client/internal/adapters/common"
 	api "github.com/jontk/slurm-client/internal/api/v0_0_43"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewAdapter(t *testing.T) {
@@ -317,10 +317,10 @@ func TestAdapter_AllManagersWithClient(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Manager should not be nil
 			assert.NotNil(t, tt.manager)
-			
+
 			// Getter should return the manager
 			assert.NotNil(t, tt.getter())
-			
+
 			// Should be the same instance
 			assert.Same(t, tt.manager, tt.getter())
 		})

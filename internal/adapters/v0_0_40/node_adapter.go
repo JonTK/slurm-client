@@ -7,10 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	api "github.com/jontk/slurm-client/internal/api/v0_0_40"
 	"github.com/jontk/slurm-client/internal/common"
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/internal/managers/base"
-	api "github.com/jontk/slurm-client/internal/api/v0_0_40"
 )
 
 // NodeAdapter implements the NodeAdapter interface for v0.0.40
@@ -204,7 +204,7 @@ func (a *NodeAdapter) Update(ctx context.Context, nodeName string, update *types
 		return err
 	}
 
-	// Create request body - v0.0.40 uses V0040UpdateNodeMsg directly  
+	// Create request body - v0.0.40 uses V0040UpdateNodeMsg directly
 	reqBody := *apiNode
 
 	// Call the generated OpenAPI client
@@ -262,7 +262,7 @@ func (a *NodeAdapter) Delete(ctx context.Context, nodeName string) error {
 // filterNodeList applies client-side filtering to the node list
 func (a *NodeAdapter) filterNodeList(nodes []types.Node, opts *types.NodeListOptions) []types.Node {
 	filtered := make([]types.Node, 0, len(nodes))
-	
+
 	for _, node := range nodes {
 		// Apply Partition filter
 		if len(opts.Partitions) > 0 {
@@ -299,8 +299,8 @@ func (a *NodeAdapter) validateNodeUpdate(update *types.NodeUpdate) error {
 		return common.NewValidationError("node update data is required", "update", nil)
 	}
 	// At least one field should be provided for update
-	if update.State == nil && update.Reason == nil && update.Comment == nil && 
-	   len(update.Features) == 0 && update.Gres == nil && update.Weight == nil {
+	if update.State == nil && update.Reason == nil && update.Comment == nil &&
+		len(update.Features) == 0 && update.Gres == nil && update.Weight == nil {
 		return common.NewValidationError("at least one field must be provided for update", "update", update)
 	}
 	return nil

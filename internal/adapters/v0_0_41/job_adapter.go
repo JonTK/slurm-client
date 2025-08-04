@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"strconv"
 
+	api "github.com/jontk/slurm-client/internal/api/v0_0_41"
 	"github.com/jontk/slurm-client/internal/common"
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/internal/managers/base"
-	api "github.com/jontk/slurm-client/internal/api/v0_0_41"
 )
 
 // JobAdapter implements the JobAdapter interface for v0.0.41
@@ -95,7 +95,7 @@ func (a *JobAdapter) List(ctx context.Context, opts *types.JobListOptions) (*typ
 					continue
 				}
 			}
-			
+
 			// Filter by partition
 			if len(opts.Partitions) > 0 {
 				match := false
@@ -109,7 +109,7 @@ func (a *JobAdapter) List(ctx context.Context, opts *types.JobListOptions) (*typ
 					continue
 				}
 			}
-			
+
 			// Filter by state
 			if len(opts.States) > 0 {
 				match := false
@@ -124,7 +124,7 @@ func (a *JobAdapter) List(ctx context.Context, opts *types.JobListOptions) (*typ
 				}
 			}
 		}
-		
+
 		jobList.Jobs = append(jobList.Jobs, *job)
 	}
 
@@ -278,7 +278,7 @@ func (a *JobAdapter) Submit(ctx context.Context, job *types.JobCreate) (*types.J
 
 	// Handle environment variables - CRITICAL for avoiding SLURM errors
 	envList := make([]string, 0)
-	
+
 	// Always provide at least minimal environment to avoid SLURM write errors
 	hasPath := false
 	for key := range job.Environment {
@@ -287,16 +287,16 @@ func (a *JobAdapter) Submit(ctx context.Context, job *types.JobCreate) (*types.J
 			break
 		}
 	}
-	
+
 	if !hasPath {
 		envList = append(envList, "PATH=/usr/bin:/bin")
 	}
-	
+
 	// Add all user-provided environment variables
 	for key, value := range job.Environment {
 		envList = append(envList, fmt.Sprintf("%s=%s", key, value))
 	}
-	
+
 	// Set environment in job description
 	jobDesc.Environment = &envList
 
@@ -418,7 +418,7 @@ func (a *JobAdapter) Update(ctx context.Context, jobID int32, update *types.JobU
 			},
 		},
 	}
-	
+
 	// Add fields from update if provided
 	if update.TimeLimit != nil {
 		updateReq["jobs"].([]map[string]interface{})[0]["time_limit"] = *update.TimeLimit

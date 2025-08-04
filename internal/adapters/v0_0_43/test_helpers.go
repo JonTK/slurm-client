@@ -20,6 +20,10 @@ func ptrInt64(i int64) *int64 {
 	return &i
 }
 
+func ptrUint16(u uint16) *uint16 {
+	return &u
+}
+
 func ptrUint32(u uint32) *uint32 {
 	return &u
 }

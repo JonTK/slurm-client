@@ -364,10 +364,10 @@ func (a *ReservationAdapter) convertAPIReservationToCommon(apiReservation api.V0
 
 func (a *ReservationAdapter) convertCommonReservationCreateToAPI(create *types.ReservationCreate) (*api.V0043ReservationInfo, error) {
 	apiReservation := &api.V0043ReservationInfo{}
-	
+
 	// Required: Set reservation name
 	apiReservation.Name = &create.Name
-	
+
 	// Convert start time to Unix timestamp
 	if !create.StartTime.IsZero() {
 		startTime := create.StartTime.Unix()
@@ -376,7 +376,7 @@ func (a *ReservationAdapter) convertCommonReservationCreateToAPI(create *types.R
 			Number: &startTime,
 		}
 	}
-	
+
 	// Convert end time to Unix timestamp
 	if create.EndTime != nil && !create.EndTime.IsZero() {
 		endTime := create.EndTime.Unix()
@@ -385,38 +385,38 @@ func (a *ReservationAdapter) convertCommonReservationCreateToAPI(create *types.R
 			Number: &endTime,
 		}
 	}
-	
+
 	// Set node count if specified
 	if create.NodeCount > 0 {
 		apiReservation.NodeCount = &create.NodeCount
 	}
-	
+
 	// Set node list if specified
 	if create.NodeList != "" {
 		apiReservation.NodeList = &create.NodeList
 	}
-	
+
 	// Set users list
 	if len(create.Users) > 0 {
 		usersList := strings.Join(create.Users, ",")
 		apiReservation.Users = &usersList
 	}
-	
+
 	// Set accounts if specified
 	if len(create.Accounts) > 0 {
 		accountsList := strings.Join(create.Accounts, ",")
 		apiReservation.Accounts = &accountsList
 	}
-	
+
 	// Note: Partition field might not exist in ReservationCreate
 	// This would typically be set via node list or other mechanisms
-	
+
 	// Set features if specified
 	if len(create.Features) > 0 {
 		featuresStr := strings.Join(create.Features, "&")
 		apiReservation.Features = &featuresStr
 	}
-	
+
 	// Set licenses if specified
 	if len(create.Licenses) > 0 {
 		// Convert map[string]int32 to comma-separated string
@@ -427,7 +427,7 @@ func (a *ReservationAdapter) convertCommonReservationCreateToAPI(create *types.R
 		licensesStr := strings.Join(licensesList, ",")
 		apiReservation.Licenses = &licensesStr
 	}
-	
+
 	// Set flags if specified
 	if len(create.Flags) > 0 {
 		flags := make([]api.V0043ReservationInfoFlags, len(create.Flags))
@@ -436,7 +436,7 @@ func (a *ReservationAdapter) convertCommonReservationCreateToAPI(create *types.R
 		}
 		apiReservation.Flags = &flags
 	}
-	
+
 	return apiReservation, nil
 }
 
@@ -474,24 +474,24 @@ func (a *ReservationAdapter) filterReservationList(reservations []types.Reservat
 func (a *ReservationAdapter) convertAPIReservationInfoToDescMsg(info *api.V0043ReservationInfo) (*api.V0043ReservationDescMsg, error) {
 	// Create a new V0043ReservationDescMsg
 	descMsg := &api.V0043ReservationDescMsg{}
-	
+
 	// Convert fields from ReservationInfo to ReservationDescMsg
 	if info.Name != nil {
 		descMsg.Name = info.Name
 	}
-	
+
 	// Convert time fields
 	if info.StartTime != nil {
 		descMsg.StartTime = info.StartTime
 	}
-	
+
 	if info.EndTime != nil {
 		descMsg.EndTime = info.EndTime
 	}
-	
+
 	// Note: Duration field might not exist in ReservationInfo
 	// Duration is typically calculated from start/end times
-	
+
 	// Convert node count
 	if info.NodeCount != nil {
 		nodeCount := int32(*info.NodeCount)
@@ -501,7 +501,7 @@ func (a *ReservationAdapter) convertAPIReservationInfoToDescMsg(info *api.V0043R
 			Number: &nodeCount,
 		}
 	}
-	
+
 	// Convert node list
 	if info.NodeList != nil {
 		// V0043HostlistString is []string
@@ -510,7 +510,7 @@ func (a *ReservationAdapter) convertAPIReservationInfoToDescMsg(info *api.V0043R
 		hostList := api.V0043HostlistString(nodeList)
 		descMsg.NodeList = &hostList
 	}
-	
+
 	// Convert users list
 	if info.Users != nil {
 		// V0043CsvString is []string
@@ -519,7 +519,7 @@ func (a *ReservationAdapter) convertAPIReservationInfoToDescMsg(info *api.V0043R
 		csvUsers := api.V0043CsvString(usersList)
 		descMsg.Users = &csvUsers
 	}
-	
+
 	// Convert accounts list
 	if info.Accounts != nil {
 		// V0043CsvString is []string
@@ -528,17 +528,17 @@ func (a *ReservationAdapter) convertAPIReservationInfoToDescMsg(info *api.V0043R
 		csvAccounts := api.V0043CsvString(accountsList)
 		descMsg.Accounts = &csvAccounts
 	}
-	
+
 	// Convert partition
 	if info.Partition != nil {
 		descMsg.Partition = info.Partition
 	}
-	
+
 	// Convert features
 	if info.Features != nil {
 		descMsg.Features = info.Features
 	}
-	
+
 	// Convert licenses
 	if info.Licenses != nil {
 		// V0043CsvString is []string
@@ -547,7 +547,7 @@ func (a *ReservationAdapter) convertAPIReservationInfoToDescMsg(info *api.V0043R
 		csvLicenses := api.V0043CsvString(licensesList)
 		descMsg.Licenses = &csvLicenses
 	}
-	
+
 	// Convert flags
 	if info.Flags != nil {
 		flags := make([]api.V0043ReservationDescMsgFlags, len(*info.Flags))
@@ -557,15 +557,15 @@ func (a *ReservationAdapter) convertAPIReservationInfoToDescMsg(info *api.V0043R
 		}
 		descMsg.Flags = &flags
 	}
-	
+
 	// Convert burst buffer
 	if info.BurstBuffer != nil {
 		descMsg.BurstBuffer = info.BurstBuffer
 	}
-	
+
 	// Note: Comment field might not exist in ReservationInfo
 	// Comment would be set directly in the create request
-	
+
 	// Convert core count
 	if info.CoreCount != nil {
 		coreCount := int32(*info.CoreCount)
@@ -575,7 +575,7 @@ func (a *ReservationAdapter) convertAPIReservationInfoToDescMsg(info *api.V0043R
 			Number: &coreCount,
 		}
 	}
-	
+
 	// Convert groups
 	if info.Groups != nil {
 		// V0043CsvString is []string
@@ -584,7 +584,7 @@ func (a *ReservationAdapter) convertAPIReservationInfoToDescMsg(info *api.V0043R
 		csvGroups := api.V0043CsvString(groupsList)
 		descMsg.Groups = &csvGroups
 	}
-	
+
 	// Convert max start delay
 	if info.MaxStartDelay != nil {
 		maxDelay := int32(*info.MaxStartDelay)
@@ -594,7 +594,7 @@ func (a *ReservationAdapter) convertAPIReservationInfoToDescMsg(info *api.V0043R
 			Number: &maxDelay,
 		}
 	}
-	
+
 	// Convert TRES
 	if info.Tres != nil {
 		tresList := make(api.V0043TresList, 0)
@@ -602,6 +602,6 @@ func (a *ReservationAdapter) convertAPIReservationInfoToDescMsg(info *api.V0043R
 		// For now, just create empty list
 		descMsg.Tres = &tresList
 	}
-	
+
 	return descMsg, nil
 }

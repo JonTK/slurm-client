@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/jontk/slurm-client/internal/common/types"
 	api "github.com/jontk/slurm-client/internal/api/v0_0_41"
+	"github.com/jontk/slurm-client/internal/common/types"
 )
 
 // convertAPIAssociationToCommon converts a v0.0.41 API association to common association
@@ -22,20 +22,20 @@ func (a *AssociationAdapter) convertAPIAssociationToCommon(apiAssoc interface{})
 	if !ok {
 		// Try direct struct access
 		if v, ok := apiAssoc.(struct {
-			Account      *string `json:"account,omitempty"`
-			Cluster      *string `json:"cluster,omitempty"`
-			User         *string `json:"user,omitempty"`
-			Partition    *string `json:"partition,omitempty"`
-			Id           *int32  `json:"id,omitempty"`
-			IsDefault    *bool   `json:"is_default,omitempty"`
-			Comment      *string `json:"comment,omitempty"`
-			Default      *struct {
+			Account   *string `json:"account,omitempty"`
+			Cluster   *string `json:"cluster,omitempty"`
+			User      *string `json:"user,omitempty"`
+			Partition *string `json:"partition,omitempty"`
+			Id        *int32  `json:"id,omitempty"`
+			IsDefault *bool   `json:"is_default,omitempty"`
+			Comment   *string `json:"comment,omitempty"`
+			Default   *struct {
 				Qos *string `json:"qos,omitempty"`
 			} `json:"default,omitempty"`
-			Priority     *struct {
+			Priority *struct {
 				Number *int32 `json:"number,omitempty"`
 			} `json:"priority,omitempty"`
-			SharesRaw    *int32  `json:"shares_raw,omitempty"`
+			SharesRaw *int32 `json:"shares_raw,omitempty"`
 		}); ok {
 			// Extract fields from struct
 			if v.Account != nil {
@@ -126,15 +126,15 @@ func (a *AssociationAdapter) convertCommonToAPIAssociation(assoc *types.Associat
 	_ = assoc
 
 	req := &api.V0041OpenapiAssocsResp{}
-	
+
 	// We need to build the associations array with the exact structure expected
 	// Since we can't directly create the anonymous struct, we'll need to use reflection
 	// or work around this limitation
-	
+
 	// For now, return an empty response as a placeholder
 	// The actual implementation would need to properly construct the anonymous struct
 	// This is a limitation of the generated API client
-	
+
 	return req
 }
 

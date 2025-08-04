@@ -5,6 +5,7 @@ package integration
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -32,18 +33,18 @@ func (suite *V0040IntegrationTestSuite) TearDownSuite() {
 // Test basic connectivity and version compatibility
 func (suite *V0040IntegrationTestSuite) TestBasicConnectivity() {
 	suite.T().Log("Testing basic connectivity for v0.0.40")
-	
+
 	// Test ping
 	ctx := context.Background()
 	err := suite.client.Info().Ping(ctx)
 	suite.NoError(err, "Ping should succeed for v0.0.40")
-	
+
 	// Test version info
 	versionInfo, err := suite.client.Info().Version(ctx)
 	suite.NoError(err, "Version info should be available")
 	suite.NotEmpty(versionInfo.Version, "Version should not be empty")
 	suite.T().Logf("Server API version: %s", versionInfo.Version)
-	
+
 	// Test cluster info
 	clusterInfo, err := suite.client.Info().Get(ctx)
 	suite.NoError(err, "Cluster info should be available")
@@ -55,39 +56,39 @@ func (suite *V0040IntegrationTestSuite) TestBasicConnectivity() {
 func (suite *V0040IntegrationTestSuite) TestJobOperations() {
 	suite.TestCRUDWorkflow("Jobs", func() {
 		ctx := context.Background()
-		
+
 		// List existing jobs
 		jobs, err := suite.client.Jobs().List(ctx, &interfaces.ListJobsOptions{Limit: 10})
 		suite.NoError(err, "Should be able to list jobs")
 		suite.NotNil(jobs, "Jobs list should not be nil")
 		suite.T().Logf("Found %d existing jobs", len(jobs.Jobs))
-		
+
 		// Submit a test job
 		response, err := suite.CreateTestJob("v0040-crud")
 		if err != nil {
 			suite.T().Logf("Job submission failed (may be expected in test environment): %v", err)
 			return // Skip rest of test if job submission is not available
 		}
-		
+
 		suite.NotEmpty(response.JobID, "Job ID should not be empty")
 		suite.T().Logf("Created test job: %s", response.JobID)
 		suite.AddJobForCleanup(response.JobID)
-		
+
 		// Get the created job
 		job, err := suite.client.Jobs().Get(ctx, response.JobID)
 		suite.NoError(err, "Should be able to get the created job")
 		suite.Equal(response.JobID, job.ID, "Job IDs should match")
 		suite.T().Logf("Retrieved job: %s, State: %s", job.ID, job.State)
-		
+
 		// Test job state transitions
 		suite.T().Logf("Waiting for job %s to start or complete...", response.JobID)
 		time.Sleep(3 * time.Second) // Give job time to process
-		
+
 		// Get updated job state
 		updatedJob, err := suite.client.Jobs().Get(ctx, response.JobID)
 		suite.NoError(err, "Should be able to get updated job")
 		suite.T().Logf("Job %s updated state: %s", updatedJob.ID, updatedJob.State)
-		
+
 		// Cancel the job (cleanup)
 		err = suite.client.Jobs().Cancel(ctx, response.JobID)
 		suite.NoError(err, "Should be able to cancel the job")
@@ -99,20 +100,20 @@ func (suite *V0040IntegrationTestSuite) TestJobOperations() {
 func (suite *V0040IntegrationTestSuite) TestNodeOperations() {
 	suite.TestCRUDWorkflow("Nodes", func() {
 		ctx := context.Background()
-		
+
 		// List nodes
 		nodes, err := suite.client.Nodes().List(ctx, &interfaces.ListNodesOptions{Limit: 10})
 		suite.NoError(err, "Should be able to list nodes")
 		suite.NotNil(nodes, "Nodes list should not be nil")
 		suite.T().Logf("Found %d nodes", len(nodes.Nodes))
-		
+
 		if len(nodes.Nodes) > 0 {
 			// Get specific node
 			firstNode := nodes.Nodes[0]
 			node, err := suite.client.Nodes().Get(ctx, firstNode.Name)
 			suite.NoError(err, "Should be able to get specific node")
 			suite.Equal(firstNode.Name, node.Name, "Node names should match")
-			suite.T().Logf("Retrieved node: %s, State: %s, CPUs: %d", 
+			suite.T().Logf("Retrieved node: %s, State: %s, CPUs: %d",
 				node.Name, node.State, node.CPUs)
 		}
 	})
@@ -122,17 +123,17 @@ func (suite *V0040IntegrationTestSuite) TestNodeOperations() {
 func (suite *V0040IntegrationTestSuite) TestPartitionOperations() {
 	suite.TestCRUDWorkflow("Partitions", func() {
 		ctx := context.Background()
-		
+
 		// List partitions
 		partitions, err := suite.client.Partitions().List(ctx, &interfaces.ListPartitionsOptions{Limit: 10})
 		if err != nil {
 			suite.SkipIfNoDatabaseConnection(err)
 			suite.NoError(err, "Should be able to list partitions")
 		}
-		
+
 		suite.NotNil(partitions, "Partitions list should not be nil")
 		suite.T().Logf("Found %d partitions", len(partitions.Partitions))
-		
+
 		if len(partitions.Partitions) > 0 {
 			// Get specific partition
 			firstPartition := partitions.Partitions[0]
@@ -142,7 +143,7 @@ func (suite *V0040IntegrationTestSuite) TestPartitionOperations() {
 			}
 			suite.NoError(err, "Should be able to get specific partition")
 			suite.Equal(firstPartition.Name, partition.Name, "Partition names should match")
-			suite.T().Logf("Retrieved partition: %s, State: %s, Nodes: %d", 
+			suite.T().Logf("Retrieved partition: %s, State: %s, Nodes: %d",
 				partition.Name, partition.State, partition.TotalNodes)
 		}
 	})
@@ -154,17 +155,17 @@ func (suite *V0040IntegrationTestSuite) TestQoSOperations() {
 		suite.T().Skip("Database not available, skipping QoS tests")
 		return
 	}
-	
+
 	suite.TestCRUDWorkflow("QoS", func() {
 		ctx := context.Background()
-		
+
 		// List QoS
 		qosList, err := suite.client.QoS().List(ctx, &interfaces.ListQoSOptions{Limit: 10})
 		suite.SkipIfNoDatabaseConnection(err)
 		suite.NoError(err, "Should be able to list QoS")
 		suite.NotNil(qosList, "QoS list should not be nil")
 		suite.T().Logf("Found %d QoS entries", len(qosList.QoS))
-		
+
 		if len(qosList.QoS) > 0 {
 			// Get specific QoS
 			firstQoS := qosList.QoS[0]
@@ -179,92 +180,97 @@ func (suite *V0040IntegrationTestSuite) TestQoSOperations() {
 // Test error handling scenarios
 func (suite *V0040IntegrationTestSuite) TestErrorHandling() {
 	ctx := context.Background()
-	
+
 	// Test invalid job ID
-	suite.TestErrorHandling("Invalid Job ID", func() error {
-		_, err := suite.client.Jobs().Get(ctx, "invalid-job-id-999999")
-		return err
-	}, true)
-	
+	_, err := suite.client.Jobs().Get(ctx, "invalid-job-id-999999")
+	suite.Error(err, "Should fail for invalid job ID")
+
 	// Test invalid node name
-	suite.TestErrorHandling("Invalid Node Name", func() error {
-		_, err := suite.client.Nodes().Get(ctx, "invalid-node-name")
-		return err
-	}, true)
-	
+	_, err = suite.client.Nodes().Get(ctx, "invalid-node-name")
+	suite.Error(err, "Should fail for invalid node name")
+
 	// Test invalid partition name
-	suite.TestErrorHandling("Invalid Partition Name", func() error {
-		_, err := suite.client.Partitions().Get(ctx, "invalid-partition-name")
-		return err
-	}, true)
-	
+	_, err = suite.client.Partitions().Get(ctx, "invalid-partition-name")
+	suite.Error(err, "Should fail for invalid partition name")
+
 	// Test malformed job submission
-	suite.TestErrorHandling("Malformed Job Submission", func() error {
-		submission := &interfaces.JobSubmission{
-			Name: "", // Empty name should cause error
-			CPUs: -1, // Invalid CPU count
-		}
-		_, err := suite.client.Jobs().Submit(ctx, submission)
-		return err
-	}, true)
+	submission := &interfaces.JobSubmission{
+		Name: "", // Empty name should cause error
+		CPUs: -1, // Invalid CPU count
+	}
+	_, err = suite.client.Jobs().Submit(ctx, submission)
+	suite.Error(err, "Should fail for malformed submission")
 }
 
 // Test performance characteristics
 func (suite *V0040IntegrationTestSuite) TestPerformance() {
 	ctx := context.Background()
-	
+
 	// Test job listing performance
-	suite.TestPerformance("List Jobs", func() error {
-		_, err := suite.client.Jobs().List(ctx, &interfaces.ListJobsOptions{Limit: 100})
-		return err
-	}, 5*time.Second)
-	
+	start := time.Now()
+	_, err := suite.client.Jobs().List(ctx, &interfaces.ListJobsOptions{Limit: 100})
+	duration := time.Since(start)
+	suite.NoError(err, "Job listing should succeed")
+	suite.Less(duration, 5*time.Second, "Job listing should complete within 5 seconds")
+
 	// Test node listing performance
-	suite.TestPerformance("List Nodes", func() error {
-		_, err := suite.client.Nodes().List(ctx, &interfaces.ListNodesOptions{Limit: 100})
-		return err
-	}, 5*time.Second)
-	
+	start = time.Now()
+	_, err = suite.client.Nodes().List(ctx, &interfaces.ListNodesOptions{Limit: 100})
+	duration = time.Since(start)
+	suite.NoError(err, "Node listing should succeed")
+	suite.Less(duration, 5*time.Second, "Node listing should complete within 5 seconds")
+
 	// Test ping performance
-	suite.TestPerformance("Ping", func() error {
-		return suite.client.Info().Ping(ctx)
-	}, 2*time.Second)
+	start = time.Now()
+	err = suite.client.Info().Ping(ctx)
+	duration = time.Since(start)
+	suite.NoError(err, "Ping should succeed")
+	suite.Less(duration, 2*time.Second, "Ping should complete within 2 seconds")
 }
 
 // Test concurrent operations
 func (suite *V0040IntegrationTestSuite) TestConcurrentOperations() {
+	ctx := context.Background()
+
 	// Test concurrent job listings
-	suite.TestConcurrentOperations("Concurrent Job Listings", func(id int) error {
-		ctx := context.Background()
-		_, err := suite.client.Jobs().List(ctx, &interfaces.ListJobsOptions{Limit: 10})
-		return err
-	}, 5)
-	
-	// Test concurrent node listings
-	suite.TestConcurrentOperations("Concurrent Node Listings", func(id int) error {
-		ctx := context.Background()
-		_, err := suite.client.Nodes().List(ctx, &interfaces.ListNodesOptions{Limit: 10})
-		return err
-	}, 5)
-	
-	// Test concurrent pings
-	suite.TestConcurrentOperations("Concurrent Pings", func(id int) error {
-		ctx := context.Background()
-		return suite.client.Info().Ping(ctx)
-	}, 10)
+	var wg sync.WaitGroup
+	errors := make(chan error, 5)
+
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			_, err := suite.client.Jobs().List(ctx, &interfaces.ListJobsOptions{Limit: 10})
+			if err != nil {
+				errors <- err
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	close(errors)
+
+	errorCount := 0
+	for err := range errors {
+		if err != nil {
+			suite.T().Errorf("Concurrent job listing failed: %v", err)
+			errorCount++
+		}
+	}
+	suite.Equal(0, errorCount, "No concurrent operations should fail")
 }
 
 // Test cluster statistics and diagnostics
 func (suite *V0040IntegrationTestSuite) TestClusterStatistics() {
 	ctx := context.Background()
-	
+
 	// Test cluster stats
 	stats, err := suite.client.Info().Stats(ctx)
 	suite.NoError(err, "Should be able to get cluster statistics")
 	suite.NotNil(stats, "Stats should not be nil")
-	suite.T().Logf("Cluster Stats - Nodes: %d, CPUs: %d, Jobs: %d", 
+	suite.T().Logf("Cluster Stats - Nodes: %d, CPUs: %d, Jobs: %d",
 		stats.TotalNodes, stats.TotalCPUs, stats.TotalJobs)
-	
+
 	// Validate stats make sense
 	suite.GreaterOrEqual(stats.TotalNodes, 0, "Total nodes should be non-negative")
 	suite.GreaterOrEqual(stats.TotalCPUs, 0, "Total CPUs should be non-negative")
@@ -274,7 +280,7 @@ func (suite *V0040IntegrationTestSuite) TestClusterStatistics() {
 // Test resource limits and constraints
 func (suite *V0040IntegrationTestSuite) TestResourceLimits() {
 	ctx := context.Background()
-	
+
 	// Test with various limits
 	testCases := []struct {
 		name  string
@@ -284,14 +290,14 @@ func (suite *V0040IntegrationTestSuite) TestResourceLimits() {
 		{"Medium Limit", 10},
 		{"Large Limit", 100},
 	}
-	
+
 	for _, tc := range testCases {
 		suite.T().Run(tc.name, func(t *testing.T) {
 			jobs, err := suite.client.Jobs().List(ctx, &interfaces.ListJobsOptions{
 				Limit: tc.limit,
 			})
 			suite.NoError(err, "Should handle limit %d", tc.limit)
-			suite.LessOrEqual(len(jobs.Jobs), tc.limit, 
+			suite.LessOrEqual(len(jobs.Jobs), tc.limit,
 				"Returned jobs should not exceed limit %d", tc.limit)
 		})
 	}
@@ -301,17 +307,17 @@ func (suite *V0040IntegrationTestSuite) TestResourceLimits() {
 func (suite *V0040IntegrationTestSuite) TestAPICompatibility() {
 	// Verify client version
 	suite.Equal("v0.0.40", suite.client.Version(), "Client should report correct version")
-	
+
 	// Test version-specific endpoint availability
 	ctx := context.Background()
-	
+
 	// v0.0.40 should have basic job, node, partition support
 	_, err := suite.client.Jobs().List(ctx, &interfaces.ListJobsOptions{Limit: 1})
 	suite.NoError(err, "v0.0.40 should support job operations")
-	
+
 	_, err = suite.client.Nodes().List(ctx, &interfaces.ListNodesOptions{Limit: 1})
 	suite.NoError(err, "v0.0.40 should support node operations")
-	
+
 	// Note: Some advanced features may not be available in v0.0.40
 	suite.T().Log("v0.0.40 compatibility tests passed")
 }

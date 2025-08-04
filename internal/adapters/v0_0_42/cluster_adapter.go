@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strconv"
 
+	api "github.com/jontk/slurm-client/internal/api/v0_0_42"
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/internal/managers/base"
-	api "github.com/jontk/slurm-client/internal/api/v0_0_42"
 )
 
 // ClusterAdapter implements the ClusterAdapter interface for v0.0.42

@@ -6,10 +6,11 @@ package v0_0_42
 import (
 	"context"
 	"fmt"
+	"time"
 
+	api "github.com/jontk/slurm-client/internal/api/v0_0_42"
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/internal/managers/base"
-	api "github.com/jontk/slurm-client/internal/api/v0_0_42"
 )
 
 // ReservationAdapter implements the ReservationAdapter interface for v0.0.42
@@ -75,7 +76,7 @@ func (a *ReservationAdapter) List(ctx context.Context, opts *types.ReservationLi
 				// Log conversion error but continue
 				continue
 			}
-			
+
 			// Apply client-side filtering if needed
 			if opts != nil && len(opts.Names) > 0 {
 				found := false
@@ -89,7 +90,7 @@ func (a *ReservationAdapter) List(ctx context.Context, opts *types.ReservationLi
 					continue
 				}
 			}
-			
+
 			reservationList.Reservations = append(reservationList.Reservations, *reservation)
 		}
 	}
@@ -190,4 +191,40 @@ func (a *ReservationAdapter) Delete(ctx context.Context, name string) error {
 	}
 
 	return nil
+}
+
+// convertAPIReservationToCommon converts API reservation to common type
+func (a *ReservationAdapter) convertAPIReservationToCommon(apiReservation api.V0042ReservationInfo) (*types.Reservation, error) {
+	reservation := &types.Reservation{}
+
+	// Set basic fields
+	if apiReservation.Name != nil {
+		reservation.Name = *apiReservation.Name
+	}
+
+	if apiReservation.StartTime != nil && apiReservation.StartTime.Set != nil && *apiReservation.StartTime.Set && apiReservation.StartTime.Number != nil {
+		reservation.StartTime = time.Unix(*apiReservation.StartTime.Number, 0)
+	}
+
+	if apiReservation.EndTime != nil && apiReservation.EndTime.Set != nil && *apiReservation.EndTime.Set && apiReservation.EndTime.Number != nil {
+		reservation.EndTime = time.Unix(*apiReservation.EndTime.Number, 0)
+	}
+
+	if apiReservation.NodeList != nil {
+		reservation.NodeList = *apiReservation.NodeList
+	}
+
+	if apiReservation.NodeCount != nil {
+		reservation.NodeCount = int32(*apiReservation.NodeCount)
+	}
+
+	if apiReservation.Users != nil {
+		reservation.Users = []string{*apiReservation.Users}
+	}
+
+	if apiReservation.Accounts != nil {
+		reservation.Accounts = []string{*apiReservation.Accounts}
+	}
+
+	return reservation, nil
 }

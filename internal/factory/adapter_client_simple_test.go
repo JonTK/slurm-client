@@ -71,6 +71,10 @@ func (t *testVersionAdapter) GetWCKeyManager() common.WCKeyAdapter {
 	return nil
 }
 
+func (t *testVersionAdapter) GetClusterManager() common.ClusterAdapter {
+	return nil
+}
+
 // Mock standalone adapter
 type mockStandaloneAdapter struct{}
 
@@ -208,7 +212,7 @@ func (m *mockAssociationAdapter) Delete(ctx context.Context, id string) error {
 
 func TestAdapterClient_ReservationOperations(t *testing.T) {
 	ctx := helpers.TestContext(t)
-	
+
 	// Create mock reservation adapter
 	mockReservation := &mockReservationAdapter{
 		listFunc: func(ctx context.Context, opts *types.ReservationListOptions) (*types.ReservationList, error) {
@@ -235,30 +239,30 @@ func TestAdapterClient_ReservationOperations(t *testing.T) {
 			}, nil
 		},
 	}
-	
+
 	// Create test version adapter
 	testAdapter := &testVersionAdapter{
 		version:            "v0.0.42",
 		reservationAdapter: mockReservation,
 	}
-	
+
 	// Create adapter client
 	client := &AdapterClient{
 		adapter: testAdapter,
 		version: testAdapter.GetVersion(),
 	}
-	
+
 	// Test Reservations() returns the manager
 	resManager := client.Reservations()
 	require.NotNil(t, resManager)
-	
+
 	// Test List operation through the interface
 	list, err := resManager.List(ctx, nil)
 	helpers.AssertNoError(t, err)
 	assert.Len(t, list.Reservations, 1)
 	assert.Equal(t, "test-res-1", list.Reservations[0].Name)
 	assert.Equal(t, "ACTIVE", list.Reservations[0].State)
-	
+
 	// Test Get operation
 	res, err := resManager.Get(ctx, "test-res-1")
 	helpers.AssertNoError(t, err)
@@ -268,7 +272,7 @@ func TestAdapterClient_ReservationOperations(t *testing.T) {
 
 func TestAdapterClient_AssociationOperations(t *testing.T) {
 	ctx := helpers.TestContext(t)
-	
+
 	// Create mock association adapter
 	mockAssociation := &mockAssociationAdapter{
 		listFunc: func(ctx context.Context, opts *types.AssociationListOptions) (*types.AssociationList, error) {
@@ -296,32 +300,32 @@ func TestAdapterClient_AssociationOperations(t *testing.T) {
 			}, nil
 		},
 	}
-	
+
 	// Create test version adapter
 	testAdapter := &testVersionAdapter{
 		version:            "v0.0.42",
 		associationAdapter: mockAssociation,
 	}
-	
+
 	// Create adapter client
 	client := &AdapterClient{
 		adapter: testAdapter,
 	}
-	
+
 	// Test Associations() returns the manager
 	assocManager := client.Associations()
 	require.NotNil(t, assocManager)
-	
+
 	// Test GetUserAssociations through the interface
 	userAssocs, err := assocManager.GetUserAssociations(ctx, "user1")
 	helpers.AssertNoError(t, err)
 	assert.Len(t, userAssocs, 2)
-	
+
 	// Both associations should belong to user1
 	for _, assoc := range userAssocs {
 		assert.Equal(t, "user1", assoc.User)
 	}
-	
+
 	// Test GetAccountAssociations
 	accountAssocs, err := assocManager.GetAccountAssociations(ctx, "account1")
 	helpers.AssertNoError(t, err)
@@ -335,12 +339,12 @@ func TestAdapterClient_Version(t *testing.T) {
 		adapter: nil,
 	}
 	assert.Equal(t, "", client.Version())
-	
+
 	// Test with valid adapter
 	testAdapter := &testVersionAdapter{
 		version: "v0.0.43",
 	}
-	
+
 	client = &AdapterClient{
 		adapter: testAdapter,
 		version: testAdapter.GetVersion(),
@@ -363,10 +367,10 @@ func TestAdapterClient_TypeConversions(t *testing.T) {
 			"matlab": 5,
 		},
 	}
-	
+
 	// Convert using the helper function
 	converted := convertReservationToInterface(reservation)
-	
+
 	assert.Equal(t, "test-res", converted.Name)
 	assert.Equal(t, "ACTIVE", converted.State)
 	assert.Equal(t, 10, converted.NodeCount)
@@ -375,7 +379,7 @@ func TestAdapterClient_TypeConversions(t *testing.T) {
 	assert.Equal(t, "compute", converted.PartitionName)
 	assert.Equal(t, []string{"MAINT"}, converted.Flags)
 	assert.Equal(t, 5, converted.Licenses["matlab"])
-	
+
 	// Test association type conversion
 	association := types.Association{
 		ID:             "assoc-123",
@@ -388,10 +392,10 @@ func TestAdapterClient_TypeConversions(t *testing.T) {
 		MaxJobs:        10,
 		IsDefault:      true,
 	}
-	
+
 	// Convert using the helper function
 	assocConverted := convertAssociationToInterface(association)
-	
+
 	// Note: ID is not properly mapped in convertAssociationToInterface (returns 0)
 	assert.Equal(t, uint32(0), assocConverted.ID) // ID is mapped to 0 in conversion
 	assert.Equal(t, "testuser", assocConverted.User)

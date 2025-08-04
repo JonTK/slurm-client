@@ -6,11 +6,11 @@ package v0_0_40
 import (
 	"context"
 
+	api "github.com/jontk/slurm-client/internal/api/v0_0_40"
 	"github.com/jontk/slurm-client/internal/common"
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/internal/managers/base"
 	"github.com/jontk/slurm-client/pkg/errors"
-	api "github.com/jontk/slurm-client/internal/api/v0_0_40"
 )
 
 // UserAdapter implements the UserAdapter interface for v0.0.40
@@ -331,7 +331,7 @@ func (a *UserAdapter) Delete(ctx context.Context, userName string) error {
 // filterUserList applies client-side filtering to the user list
 func (a *UserAdapter) filterUserList(users []types.User, opts *types.UserListOptions) []types.User {
 	filtered := make([]types.User, 0, len(users))
-	
+
 	for _, user := range users {
 		// Apply DefaultAccount filter
 		if opts.DefaultAccount != "" && user.DefaultAccount != opts.DefaultAccount {

@@ -205,10 +205,10 @@ func BenchmarkAnalyticsConcurrentLoad(b *testing.B) {
 	for _, concurrency := range concurrencyLevels {
 		b.Run(fmt.Sprintf("Concurrent_%d_Analytics", concurrency), func(b *testing.B) {
 			endpoint := fmt.Sprintf("%s/slurm/v0.0.42/job/%s/utilization", baseURL, jobID)
-			
+
 			b.SetParallelism(concurrency)
 			b.ResetTimer()
-			
+
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
 					resp, err := makeHTTPRequest(endpoint)
@@ -237,28 +237,28 @@ func BenchmarkAnalyticsLatencyDistribution(b *testing.B) {
 	b.Run("Latency_Distribution", func(b *testing.B) {
 		endpoint := fmt.Sprintf("%s/slurm/v0.0.42/job/%s/utilization", baseURL, jobID)
 		latencies := make([]time.Duration, b.N)
-		
+
 		b.ResetTimer()
 		start := time.Now()
-		
+
 		for i := 0; i < b.N; i++ {
 			reqStart := time.Now()
 			resp, err := makeHTTPRequest(endpoint)
 			latencies[i] = time.Since(reqStart)
-			
+
 			if err != nil {
 				b.Fatal(err)
 			}
 			resp.Body.Close()
 		}
-		
+
 		totalTime := time.Since(start)
-		
+
 		b.StopTimer()
-		
+
 		// Calculate latency statistics
 		min, max, avg, p95, p99 := calculateLatencyStats(latencies)
-		
+
 		b.ReportMetric(float64(totalTime.Nanoseconds())/float64(b.N), "ns/op")
 		b.ReportMetric(float64(min.Nanoseconds()), "min-ns")
 		b.ReportMetric(float64(max.Nanoseconds()), "max-ns")
@@ -271,7 +271,7 @@ func BenchmarkAnalyticsLatencyDistribution(b *testing.B) {
 // BenchmarkAnalyticsVersionComparison compares performance across API versions
 func BenchmarkAnalyticsVersionComparison(b *testing.B) {
 	versions := []string{"v0.0.40", "v0.0.41", "v0.0.42", "v0.0.43"}
-	
+
 	for _, version := range versions {
 		b.Run(fmt.Sprintf("Version_%s", version), func(b *testing.B) {
 			mockServer := mocks.NewMockSlurmServerForVersion(version)
@@ -323,7 +323,7 @@ func BenchmarkAnalyticsDataProcessing(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			
+
 			// Parse JSON response
 			_, err = parseJSONResponse(resp)
 			if err != nil {
@@ -342,13 +342,13 @@ func BenchmarkAnalyticsDataProcessing(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			
+
 			// Parse and process efficiency data
 			data, err := parseJSONResponse(resp)
 			if err != nil {
 				b.Fatal(err)
 			}
-			
+
 			// Simulate processing efficiency calculations
 			processEfficiencyData(data)
 			resp.Body.Close()
@@ -394,15 +394,15 @@ func TestAnalyticsOverheadCompliance(t *testing.T) {
 					return err
 				}
 				defer resp.Body.Close()
-				
+
 				// Include JSON parsing in overhead measurement
 				_, err = parseJSONResponse(resp)
 				return err
 			}, 100)
 
 			// Calculate overhead percentage
-			overhead := ((analyticsTime - baselineTime) / baselineTime) * 100
-			
+			overhead := float64(analyticsTime-baselineTime) / float64(baselineTime) * 100
+
 			t.Logf("Operation: %s", opName)
 			t.Logf("Baseline time: %v", baselineTime)
 			t.Logf("Analytics time: %v", analyticsTime)
@@ -410,7 +410,7 @@ func TestAnalyticsOverheadCompliance(t *testing.T) {
 
 			// Validate overhead is under 5%
 			if overhead > 5.0 {
-				t.Errorf("Analytics operation %s has %.2f%% overhead, which exceeds the 5%% threshold", 
+				t.Errorf("Analytics operation %s has %.2f%% overhead, which exceeds the 5%% threshold",
 					opName, overhead)
 			}
 		})
@@ -435,13 +435,13 @@ func TestAnalyticsOverheadCompliance(t *testing.T) {
 
 		// For combined operations, we expect the overhead per operation to be similar
 		avgAnalyticsTime := combinedAnalyticsTime / time.Duration(len(analyticsOperations))
-		overhead := ((avgAnalyticsTime - baselineTime) / baselineTime) * 100
+		overhead := float64(avgAnalyticsTime-baselineTime) / float64(baselineTime) * 100
 
 		t.Logf("Combined analytics average time per operation: %v", avgAnalyticsTime)
 		t.Logf("Combined analytics overhead: %.2f%%", overhead)
 
 		if overhead > 7.0 { // Slightly higher threshold for combined operations
-			t.Errorf("Combined analytics operations have %.2f%% overhead per operation, which exceeds the 7%% threshold", 
+			t.Errorf("Combined analytics operations have %.2f%% overhead per operation, which exceeds the 7%% threshold",
 				overhead)
 		}
 	})
@@ -461,14 +461,14 @@ func TestAnalyticsScalability(t *testing.T) {
 
 	// Test different request volumes
 	volumes := []int{1, 10, 50, 100, 200}
-	
+
 	for _, volume := range volumes {
 		t.Run(fmt.Sprintf("Volume_%d", volume), func(t *testing.T) {
 			start := time.Now()
-			
+
 			var wg sync.WaitGroup
 			errors := make(chan error, volume)
-			
+
 			for i := 0; i < volume; i++ {
 				wg.Add(1)
 				go func() {
@@ -479,19 +479,19 @@ func TestAnalyticsScalability(t *testing.T) {
 						return
 					}
 					defer resp.Body.Close()
-					
+
 					_, err = parseJSONResponse(resp)
 					if err != nil {
 						errors <- err
 					}
 				}()
 			}
-			
+
 			wg.Wait()
 			close(errors)
-			
+
 			duration := time.Since(start)
-			
+
 			// Check for errors
 			var errorCount int
 			for err := range errors {
@@ -500,27 +500,27 @@ func TestAnalyticsScalability(t *testing.T) {
 					errorCount++
 				}
 			}
-			
+
 			if errorCount > 0 {
 				t.Errorf("%d out of %d requests failed", errorCount, volume)
 			}
-			
+
 			// Calculate performance metrics
 			avgTimePerRequest := duration / time.Duration(volume)
 			requestsPerSecond := float64(volume) / duration.Seconds()
-			
+
 			t.Logf("Volume: %d requests", volume)
 			t.Logf("Total time: %v", duration)
 			t.Logf("Average time per request: %v", avgTimePerRequest)
 			t.Logf("Requests per second: %.2f", requestsPerSecond)
-			
+
 			// Performance expectations
 			if avgTimePerRequest > 100*time.Millisecond {
 				t.Errorf("Average response time %v exceeds 100ms threshold", avgTimePerRequest)
 			}
-			
+
 			if requestsPerSecond < 50 && volume >= 100 {
-				t.Errorf("Request throughput %.2f req/s is below expected 50 req/s for volume %d", 
+				t.Errorf("Request throughput %.2f req/s is below expected 50 req/s for volume %d",
 					requestsPerSecond, volume)
 			}
 		})

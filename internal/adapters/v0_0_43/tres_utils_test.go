@@ -240,7 +240,7 @@ func TestTRESUtils_ConvertCommonTRESToAPI(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := utils.ConvertCommonTRESToAPI(tt.input)
 			assert.Equal(t, len(tt.expected), len(result))
-			
+
 			for i, expected := range tt.expected {
 				if i < len(result) {
 					actual := result[i]
@@ -382,10 +382,10 @@ func TestTRESUtils_MergeTRESLists(t *testing.T) {
 	}
 
 	result := utils.MergeTRESLists(list1, list2)
-	
+
 	// Should have 3 entries: cpu (from list2), mem (from list1), node (from list2)
 	assert.Equal(t, 3, len(result))
-	
+
 	cpuTres := utils.ExtractTRESByType(result, "cpu")
 	require.NotNil(t, cpuTres)
 	assert.Equal(t, int64(8), cpuTres.Count) // Should be the overridden value

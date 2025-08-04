@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jontk/slurm-client/internal/common/types"
 	api "github.com/jontk/slurm-client/internal/api/v0_0_40"
+	"github.com/jontk/slurm-client/internal/common/types"
 )
 
 // convertAPIJobToCommon converts a v0.0.40 API Job to common Job type
@@ -113,7 +113,7 @@ func (a *JobAdapter) convertAPIJobToCommon(apiJob api.V0040JobInfo) (*types.Job,
 		job.ArrayTaskString = *apiJob.ArrayTaskString
 	}
 
-	// Note: Environment field not available in V0040JobInfo 
+	// Note: Environment field not available in V0040JobInfo
 	// Skip for now as this conversion is from JobInfo (API response), not JobDesc (API request)
 
 	// Mail settings
@@ -159,7 +159,7 @@ func (a *JobAdapter) convertAPIJobToCommon(apiJob api.V0040JobInfo) (*types.Job,
 	// Note: ExitCode field not available in common Job type
 	// This would need to be added to the common Job type or skipped
 
-	// Note: Tags field not available in common Job type  
+	// Note: Tags field not available in common Job type
 	// This would need to be added to the common Job type or mapped to WCKey
 
 	return job, nil
@@ -255,7 +255,7 @@ func (a *JobAdapter) convertCommonJobCreateToAPI(job *types.JobCreate) (*api.V00
 		jobDesc.Environment = &env
 	}
 
-	// Note: Features and Gres fields not available in V0040JobDescMsg 
+	// Note: Features and Gres fields not available in V0040JobDescMsg
 	// These would need different handling in v0.0.40
 
 	// Note: NodeList field not available in common JobCreate type
@@ -278,7 +278,7 @@ func (a *JobAdapter) convertCommonJobCreateToAPI(job *types.JobCreate) (*api.V00
 		jobDesc.Comment = &job.Comment
 	}
 
-	// Note: Tags, ArrayTaskString, and Requeue fields not available in common JobCreate type  
+	// Note: Tags, ArrayTaskString, and Requeue fields not available in common JobCreate type
 	// These would need to be added to the common types or handled differently
 
 	// Set the job in the submit request

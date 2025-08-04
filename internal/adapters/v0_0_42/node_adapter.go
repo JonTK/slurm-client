@@ -6,10 +6,11 @@ package v0_0_42
 import (
 	"context"
 	"fmt"
+	"time"
 
+	api "github.com/jontk/slurm-client/internal/api/v0_0_42"
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/internal/managers/base"
-	api "github.com/jontk/slurm-client/internal/api/v0_0_42"
 )
 
 // NodeAdapter implements the NodeAdapter interface for v0.0.42
@@ -93,7 +94,7 @@ func (a *NodeAdapter) List(ctx context.Context, opts *types.NodeListOptions) (*t
 						continue
 					}
 				}
-				
+
 				// Filter by state
 				if len(opts.States) > 0 {
 					match := false
@@ -107,7 +108,7 @@ func (a *NodeAdapter) List(ctx context.Context, opts *types.NodeListOptions) (*t
 						continue
 					}
 				}
-				
+
 				// Filter by partition
 				if len(opts.Partitions) > 0 {
 					match := false
@@ -130,7 +131,7 @@ func (a *NodeAdapter) List(ctx context.Context, opts *types.NodeListOptions) (*t
 					}
 				}
 			}
-			
+
 			nodeList.Nodes = append(nodeList.Nodes, *node)
 		}
 	}
@@ -244,4 +245,82 @@ func (a *NodeAdapter) Delete(ctx context.Context, name string) error {
 func (a *NodeAdapter) Watch(ctx context.Context, opts *types.NodeWatchOptions) (<-chan types.NodeWatchEvent, error) {
 	// For now, return not implemented error to satisfy interface
 	return nil, fmt.Errorf("watch functionality not fully implemented in v0.0.42 adapter")
+}
+
+// convertAPINodeToCommon converts API node to common type
+func (a *NodeAdapter) convertAPINodeToCommon(apiNode api.V0042Node) (*types.Node, error) {
+	node := &types.Node{}
+
+	// Set basic fields
+	if apiNode.Name != nil {
+		node.Name = *apiNode.Name
+	}
+
+	// Node state conversion
+	if apiNode.State != nil && len(*apiNode.State) > 0 {
+		node.State = types.NodeState((*apiNode.State)[0]) // Take the first state and convert to NodeState type
+	}
+
+	// CPU information
+	if apiNode.Cpus != nil {
+		node.CPUs = int32(*apiNode.Cpus)
+	}
+
+	// Memory information
+	if apiNode.RealMemory != nil {
+		node.RealMemory = int64(*apiNode.RealMemory)
+	}
+
+	// Partition information
+	if apiNode.Partitions != nil && len(*apiNode.Partitions) > 0 {
+		node.Partitions = *apiNode.Partitions
+	}
+
+	// Architecture
+	if apiNode.Architecture != nil {
+		node.Arch = *apiNode.Architecture
+	}
+
+	// OS information
+	if apiNode.OperatingSystem != nil {
+		node.OS = *apiNode.OperatingSystem
+	}
+
+	// Features
+	if apiNode.ActiveFeatures != nil && len(*apiNode.ActiveFeatures) > 0 {
+		node.ActiveFeatures = *apiNode.ActiveFeatures
+	}
+	if apiNode.Features != nil && len(*apiNode.Features) > 0 {
+		node.Features = *apiNode.Features
+	}
+
+	// GRES (Generic Resources)
+	if apiNode.Gres != nil {
+		node.Gres = *apiNode.Gres
+	}
+
+	// Boot time - check if it's set and has a number
+	if apiNode.BootTime != nil && apiNode.BootTime.Set != nil && *apiNode.BootTime.Set && apiNode.BootTime.Number != nil {
+		bootTime := time.Unix(*apiNode.BootTime.Number, 0)
+		node.BootTime = &bootTime
+	}
+
+	// Slurm version
+	if apiNode.Version != nil {
+		node.Version = *apiNode.Version
+	}
+
+	// Reason for node state
+	if apiNode.Reason != nil {
+		node.Reason = *apiNode.Reason
+	}
+
+	return node, nil
+}
+
+// convertCommonNodeUpdateToAPI converts common node update to API format
+func (a *NodeAdapter) convertCommonNodeUpdateToAPI(name string, update *types.NodeUpdateRequest) (*api.SlurmV0042PostNodeJSONRequestBody, error) {
+	// v0.0.42 has limited node update capabilities
+	// For now, return a basic structure
+	return &api.SlurmV0042PostNodeJSONRequestBody{}, nil
 }

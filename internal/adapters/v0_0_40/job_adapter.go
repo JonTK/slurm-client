@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"strconv"
 
+	api "github.com/jontk/slurm-client/internal/api/v0_0_40"
 	"github.com/jontk/slurm-client/internal/common"
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/internal/managers/base"
 	"github.com/jontk/slurm-client/pkg/errors"
-	api "github.com/jontk/slurm-client/internal/api/v0_0_40"
 )
 
 // JobAdapter implements the JobAdapter interface for v0.0.40
@@ -249,7 +249,7 @@ func (a *JobAdapter) Submit(ctx context.Context, job *types.JobCreate) (*types.J
 
 	// Handle environment variables - CRITICAL for avoiding SLURM errors
 	envList := make([]string, 0)
-	
+
 	// Always provide at least minimal environment to avoid SLURM write errors
 	hasPath := false
 	for key := range job.Environment {
@@ -258,16 +258,16 @@ func (a *JobAdapter) Submit(ctx context.Context, job *types.JobCreate) (*types.J
 			break
 		}
 	}
-	
+
 	if !hasPath {
 		envList = append(envList, "PATH=/usr/bin:/bin")
 	}
-	
+
 	// Add all user-provided environment variables
 	for key, value := range job.Environment {
 		envList = append(envList, fmt.Sprintf("%s=%s", key, value))
 	}
-	
+
 	// Set environment in job submission
 	jobDesc.Environment = &envList
 
@@ -317,7 +317,7 @@ func (a *JobAdapter) Submit(ctx context.Context, job *types.JobCreate) (*types.J
 		submitResp.Warning = warnings
 	}
 
-	// Extract errors if any  
+	// Extract errors if any
 	if resp.JSON200.Errors != nil {
 		errors := make([]string, 0, len(*resp.JSON200.Errors))
 		for _, error := range *resp.JSON200.Errors {
@@ -503,9 +503,9 @@ func (a *JobAdapter) validateJobUpdate(update *types.JobUpdate) error {
 		return fmt.Errorf("job update data is required")
 	}
 	// At least one field should be provided for update
-	if update.Name == nil && update.Account == nil && update.Partition == nil && 
-	   update.QoS == nil && update.TimeLimit == nil && update.Priority == nil && 
-	   update.Nice == nil && update.Comment == nil {
+	if update.Name == nil && update.Account == nil && update.Partition == nil &&
+		update.QoS == nil && update.TimeLimit == nil && update.Priority == nil &&
+		update.Nice == nil && update.Comment == nil {
 		return fmt.Errorf("at least one field must be provided for update")
 	}
 	return nil

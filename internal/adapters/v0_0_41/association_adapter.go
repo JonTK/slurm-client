@@ -6,10 +6,10 @@ package v0_0_41
 import (
 	"context"
 	"fmt"
-	"strings"
+	api "github.com/jontk/slurm-client/internal/api/v0_0_41"
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/internal/managers/base"
-	api "github.com/jontk/slurm-client/internal/api/v0_0_41"
+	"strings"
 )
 
 // AssociationAdapter implements the AssociationAdapter interface for v0.0.41
@@ -164,13 +164,13 @@ func (a *AssociationAdapter) Create(ctx context.Context, req *types.AssociationC
 
 	// Convert request to association for API call
 	association := &types.Association{
-		AccountName: req.AccountName,
-		UserName: req.UserName,
-		Cluster: req.Cluster,
-		Partition: req.Partition,
-		DefaultQoS: req.DefaultQoS,
-		SharesRaw: req.SharesRaw,
-		Priority: req.Priority,
+		AccountName:   req.AccountName,
+		UserName:      req.UserName,
+		Cluster:       req.Cluster,
+		Partition:     req.Partition,
+		DefaultQoS:    req.DefaultQoS,
+		SharesRaw:     req.SharesRaw,
+		Priority:      req.Priority,
 		ParentAccount: req.ParentAccount,
 	}
 
@@ -271,7 +271,7 @@ func (a *AssociationAdapter) Delete(ctx context.Context, id string) error {
 	if len(parts) < 3 {
 		return a.HandleValidationError("invalid association ID format, expected 'account:user:cluster[:partition]'")
 	}
-	
+
 	account := parts[0]
 	user := parts[1]
 	cluster := parts[2]
@@ -286,7 +286,7 @@ func (a *AssociationAdapter) Delete(ctx context.Context, id string) error {
 		User:    &user,
 		Cluster: &cluster,
 	}
-	
+
 	if partition != "" {
 		params.Partition = &partition
 	}
@@ -311,7 +311,7 @@ func (a *AssociationAdapter) Delete(ctx context.Context, id string) error {
 // func (a *AssociationAdapter) SetLimits(ctx context.Context, id uint32, limits *types.AssociationLimits) error {
 // 	// Use the Update method to set limits
 // 	update := &types.AssociationUpdate{}
-// 
+//
 // 	if limits.MaxJobs != nil {
 // 		update.MaxJobs = limits.MaxJobs
 // 	}
@@ -327,7 +327,7 @@ func (a *AssociationAdapter) Delete(ctx context.Context, id string) error {
 // 		tresStr := formatTRESMap(limits.MaxTRESPerJob)
 // 		update.MaxTRESPerJob = &tresStr
 // 	}
-// 
+//
 // 	return a.Update(ctx, id, update)
 // }
 

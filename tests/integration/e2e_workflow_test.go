@@ -144,7 +144,7 @@ func (suite *E2EWorkflowTestSuite) TestFullJobLifecycle() {
 		Limit: 5,
 	})
 	suite.Require().NoError(err)
-	
+
 	var targetQoS string
 	if len(qosList.QoS) > 0 {
 		targetQoS = qosList.QoS[0].Name
@@ -177,7 +177,7 @@ func (suite *E2EWorkflowTestSuite) TestFullJobLifecycle() {
 	suite.Require().NoError(err, "Job submission should succeed")
 	suite.Require().NotEmpty(response.JobID, "Job ID should be returned")
 	suite.createdJobs = append(suite.createdJobs, response.JobID)
-	
+
 	suite.T().Logf("Job submitted successfully: ID=%s", response.JobID)
 
 	// Step 7: Verify job was created
@@ -194,40 +194,40 @@ func (suite *E2EWorkflowTestSuite) TestFullJobLifecycle() {
 	maxWaitTime := 3 * time.Minute
 	checkInterval := 10 * time.Second
 	startTime := time.Now()
-	
+
 	var finalJob *interfaces.Job
 	seenStates := make(map[string]bool)
-	
+
 	for time.Since(startTime) < maxWaitTime {
 		currentJob, err := suite.client.Jobs().Get(ctx, response.JobID)
 		suite.Require().NoError(err)
-		
+
 		if !seenStates[currentJob.State] {
 			suite.T().Logf("Job state: %s (elapsed: %v)", currentJob.State, time.Since(startTime))
 			seenStates[currentJob.State] = true
 		}
-		
+
 		finalJob = currentJob
-		
+
 		// Break if job is in a final state
-		if currentJob.State == "COMPLETED" || currentJob.State == "FAILED" || 
+		if currentJob.State == "COMPLETED" || currentJob.State == "FAILED" ||
 		   currentJob.State == "CANCELLED" || currentJob.State == "TIMEOUT" {
 			break
 		}
-		
+
 		time.Sleep(checkInterval)
 	}
-	
+
 	suite.Require().NotNil(finalJob, "Should have job state")
 	suite.T().Logf("Final job state: %s", finalJob.State)
 
 	// Step 9: Test job cancellation (if still running)
-	if finalJob.State != "COMPLETED" && finalJob.State != "FAILED" && 
+	if finalJob.State != "COMPLETED" && finalJob.State != "FAILED" &&
 	   finalJob.State != "CANCELLED" && finalJob.State != "TIMEOUT" {
 		suite.T().Log("Step 9: Testing job cancellation...")
 		err = suite.client.Jobs().Cancel(ctx, response.JobID)
 		suite.Require().NoError(err, "Job cancellation should succeed")
-		
+
 		// Verify cancellation
 		time.Sleep(5 * time.Second)
 		cancelledJob, err := suite.client.Jobs().Get(ctx, response.JobID)
@@ -241,7 +241,7 @@ func (suite *E2EWorkflowTestSuite) TestFullJobLifecycle() {
 		Limit: 100,
 	})
 	suite.Require().NoError(err)
-	
+
 	foundJob := false
 	for _, j := range finalJobs.Jobs {
 		if j.ID == response.JobID {
@@ -263,7 +263,7 @@ func (suite *E2EWorkflowTestSuite) TestMultiJobWorkflow() {
 	})
 	suite.Require().NoError(err)
 	suite.Require().NotEmpty(partitions.Partitions)
-	
+
 	targetPartition := partitions.Partitions[0].Name
 
 	// Submit multiple jobs
@@ -284,10 +284,10 @@ func (suite *E2EWorkflowTestSuite) TestMultiJobWorkflow() {
 
 		response, err := suite.client.Jobs().Submit(ctx, submission)
 		suite.Require().NoError(err, "Job %d submission should succeed", i+1)
-		
+
 		submittedJobs = append(submittedJobs, response.JobID)
 		suite.createdJobs = append(suite.createdJobs, response.JobID)
-		
+
 		suite.T().Logf("Submitted job %d: ID=%s", i+1, response.JobID)
 	}
 
@@ -299,23 +299,23 @@ func (suite *E2EWorkflowTestSuite) TestMultiJobWorkflow() {
 
 	for time.Since(startTime) < maxWaitTime {
 		allCompleted := true
-		
+
 		for i, jobID := range submittedJobs {
 			job, err := suite.client.Jobs().Get(ctx, jobID)
 			suite.Require().NoError(err)
-			
+
 			suite.T().Logf("Job %d (%s): State=%s", i+1, jobID, job.State)
-			
-			if job.State != "COMPLETED" && job.State != "FAILED" && 
+
+			if job.State != "COMPLETED" && job.State != "FAILED" &&
 			   job.State != "CANCELLED" && job.State != "TIMEOUT" {
 				allCompleted = false
 			}
 		}
-		
+
 		if allCompleted {
 			break
 		}
-		
+
 		time.Sleep(checkInterval)
 	}
 
@@ -335,7 +335,7 @@ func (suite *E2EWorkflowTestSuite) TestResourceRelationshipWorkflow() {
 
 	// Step 1: Map cluster resources
 	suite.T().Log("Step 1: Mapping cluster resources...")
-	
+
 	// Get nodes
 	nodes, err := suite.client.Nodes().List(ctx, &interfaces.ListNodesOptions{
 		Limit: 10,
@@ -359,16 +359,16 @@ func (suite *E2EWorkflowTestSuite) TestResourceRelationshipWorkflow() {
 
 	// Step 2: Analyze resource relationships
 	suite.T().Log("Step 2: Analyzing resource relationships...")
-	
+
 	// Check partition-node relationships
 	for i, partition := range partitions.Partitions {
 		if i >= 3 { // Limit analysis to first 3 partitions
 			break
 		}
-		
-		suite.T().Logf("Partition '%s': %d total nodes", 
+
+		suite.T().Logf("Partition '%s': %d total nodes",
 			partition.Name, partition.TotalNodes)
-		
+
 		// Validate partition resources
 		suite.GreaterOrEqual(partition.TotalNodes, int32(0), "Total nodes should be non-negative")
 	}
@@ -376,10 +376,10 @@ func (suite *E2EWorkflowTestSuite) TestResourceRelationshipWorkflow() {
 	// Step 3: Test job submission with specific constraints
 	if len(partitions.Partitions) > 0 && len(qosList.QoS) > 0 {
 		suite.T().Log("Step 3: Testing job with resource constraints...")
-		
+
 		partition := partitions.Partitions[0]
-		qos := qosList.QoS[0]
-		
+		// qos := qosList.QoS[0] // QoS field removed from JobSubmission interface
+
 		jobName := fmt.Sprintf("%s-constrained", suite.testPrefix)
 		submission := &interfaces.JobSubmission{
 			Name:      jobName,
@@ -397,7 +397,7 @@ func (suite *E2EWorkflowTestSuite) TestResourceRelationshipWorkflow() {
 		} else {
 			suite.createdJobs = append(suite.createdJobs, response.JobID)
 			suite.T().Logf("Constrained job submitted: ID=%s", response.JobID)
-			
+
 			// Verify job details
 			job, err := suite.client.Jobs().Get(ctx, response.JobID)
 			suite.Require().NoError(err)
@@ -431,7 +431,7 @@ func (suite *E2EWorkflowTestSuite) TestErrorRecoveryWorkflow() {
 		Limit: 1,
 	})
 	suite.Require().NoError(err)
-	
+
 	if len(partitions.Partitions) > 0 {
 		suite.T().Log("Test 2: Testing invalid QoS handling...")
 		submission := &interfaces.JobSubmission{
@@ -461,12 +461,11 @@ func (suite *E2EWorkflowTestSuite) TestErrorRecoveryWorkflow() {
 			TimeLimit: 5,
 		}
 
-		_, err := suite.client.Jobs().Submit(ctx, submission)
+		response, err := suite.client.Jobs().Submit(ctx, submission)
 		if err != nil {
 			suite.T().Logf("Excessive resource error (expected): %v", err)
 		} else {
 			// If it succeeds, cancel it immediately
-			response := err.(*interfaces.JobSubmitResponse)
 			suite.createdJobs = append(suite.createdJobs, response.JobID)
 			suite.client.Jobs().Cancel(ctx, response.JobID)
 			suite.T().Log("Excessive resource job succeeded (cancelled immediately)")
@@ -475,7 +474,7 @@ func (suite *E2EWorkflowTestSuite) TestErrorRecoveryWorkflow() {
 
 	// Test 4: Network recovery
 	suite.T().Log("Test 4: Testing connection recovery...")
-	
+
 	// This test verifies that the client can handle temporary network issues
 	// We'll just do a series of quick operations to test resilience
 	for i := 0; i < 3; i++ {

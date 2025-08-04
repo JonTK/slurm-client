@@ -7,9 +7,9 @@ import (
 	"context"
 	"fmt"
 
+	api "github.com/jontk/slurm-client/internal/api/v0_0_42"
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/internal/managers/base"
-	api "github.com/jontk/slurm-client/internal/api/v0_0_42"
 )
 
 // UserAdapter implements the UserAdapter interface for v0.0.42
@@ -345,12 +345,12 @@ func (a *UserAdapter) convertUserAssociationRequestToAPI(req *types.UserAssociat
 	// Create a minimal user short structure
 	userShort := api.V0042UserShort{}
 
-	// Set default WCKey (note: field name is "Defaultwckey" in v0.0.42)
+	// Set default WCKey
 	if req.DefaultWCKey != "" {
 		userShort.Defaultwckey = &req.DefaultWCKey
 	}
 
-	// Set admin level if specified (note: field name is "Adminlevel" in v0.0.42, and it's an array)
+	// Set admin level if specified
 	if req.AdminLevel != "" {
 		adminLevel := api.V0042AdminLvl{req.AdminLevel}
 		userShort.Adminlevel = &adminLevel
@@ -408,4 +408,104 @@ func (a *UserAdapter) convertUserAssociationResponseToCommon(apiResp *api.V0042O
 	}
 
 	return resp
+}
+
+// convertAPIUserToCommon converts API user to common type
+func (a *UserAdapter) convertAPIUserToCommon(apiUser api.V0042User) (*types.User, error) {
+	user := &types.User{}
+
+	// Set basic fields - apiUser.Name is a string in V0042User
+	user.Name = apiUser.Name
+
+	// Set admin level
+	if apiUser.AdministratorLevel != nil && len(*apiUser.AdministratorLevel) > 0 {
+		adminLevel := (*apiUser.AdministratorLevel)[0]
+		user.AdminLevel = types.AdminLevel(adminLevel)
+	}
+
+	// Set default account
+	if apiUser.Default != nil && apiUser.Default.Account != nil {
+		user.DefaultAccount = *apiUser.Default.Account
+	}
+
+	// Set default wckey
+	if apiUser.Default != nil && apiUser.Default.Wckey != nil {
+		user.DefaultWCKey = *apiUser.Default.Wckey
+	}
+
+	// Convert associations if present
+	if apiUser.Associations != nil {
+		for _, apiAssoc := range *apiUser.Associations {
+			assoc := types.UserAssociation{}
+
+			if apiAssoc.Account != nil {
+				assoc.AccountName = *apiAssoc.Account
+			}
+			if apiAssoc.Cluster != nil {
+				assoc.Cluster = *apiAssoc.Cluster
+			}
+			if apiAssoc.Partition != nil {
+				assoc.Partition = *apiAssoc.Partition
+			}
+			// Note: V0042AssocShort doesn't have DefaultQoS or Fairshare fields
+			// These are simplified associations
+
+			user.Associations = append(user.Associations, assoc)
+		}
+	}
+
+	// Convert coordinators if present
+	if apiUser.Coordinators != nil {
+		for _, coord := range *apiUser.Coordinators {
+			user.Coordinators = append(user.Coordinators, types.UserCoordinator{
+				Coordinator: coord.Name,
+			})
+		}
+	}
+
+	// Convert WCKeys if present
+	if apiUser.Wckeys != nil {
+		for _, wckey := range *apiUser.Wckeys {
+			user.WCKeys = append(user.WCKeys, wckey.Name)
+		}
+	}
+
+	return user, nil
+}
+
+// convertCommonUserCreateToAPI converts common user create to API format
+func (a *UserAdapter) convertCommonUserCreateToAPI(userCreate *types.UserCreate) (*api.V0042OpenapiUsersResp, error) {
+	if userCreate == nil {
+		return nil, fmt.Errorf("user create request cannot be nil")
+	}
+
+	apiUser := api.V0042User{
+		Name: userCreate.Name,
+	}
+
+	if userCreate.DefaultAccount != "" || userCreate.DefaultWCKey != "" {
+		apiUser.Default = &struct {
+			Account *string `json:"account,omitempty"`
+			Wckey   *string `json:"wckey,omitempty"`
+		}{}
+
+		if userCreate.DefaultAccount != "" {
+			apiUser.Default.Account = &userCreate.DefaultAccount
+		}
+		if userCreate.DefaultWCKey != "" {
+			apiUser.Default.Wckey = &userCreate.DefaultWCKey
+		}
+	}
+
+	if userCreate.AdminLevel != "" {
+		adminLevel := api.V0042AdminLvl{string(userCreate.AdminLevel)}
+		apiUser.AdministratorLevel = &adminLevel
+	}
+
+	// Note: UserCreate doesn't have Associations field in v0.0.42
+	// Associations are typically created separately via association endpoints
+
+	return &api.V0042OpenapiUsersResp{
+		Users: []api.V0042User{apiUser},
+	}, nil
 }

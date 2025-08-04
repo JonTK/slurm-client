@@ -7,9 +7,9 @@ import (
 	"context"
 	"fmt"
 
+	api "github.com/jontk/slurm-client/internal/api/v0_0_41"
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/internal/managers/base"
-	api "github.com/jontk/slurm-client/internal/api/v0_0_41"
 )
 
 // NodeAdapter implements the NodeAdapter interface for v0.0.41
@@ -78,7 +78,7 @@ func (a *NodeAdapter) List(ctx context.Context, opts *types.NodeListOptions) (*t
 			// Log the error but continue processing other nodes
 			continue
 		}
-		
+
 		// Apply client-side filtering
 		if opts != nil {
 			// Filter by name
@@ -108,7 +108,7 @@ func (a *NodeAdapter) List(ctx context.Context, opts *types.NodeListOptions) (*t
 				}
 			}
 		}
-		
+
 		nodeList.Nodes = append(nodeList.Nodes, *node)
 	}
 
@@ -122,7 +122,7 @@ func (a *NodeAdapter) List(ctx context.Context, opts *types.NodeListOptions) (*t
 		_ = resp.JSON200.Warnings
 	}
 	if resp.JSON200.Errors != nil {
-		// Log errors if needed  
+		// Log errors if needed
 		_ = resp.JSON200.Errors
 	}
 

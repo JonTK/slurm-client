@@ -229,19 +229,19 @@ func (u *TRESUtils) ValidateTRES(tres types.TRES) error {
 // validateTRESList validates a list of TRES entries
 func (u *TRESUtils) ValidateTRESList(tresList []types.TRES) error {
 	seen := make(map[string]bool)
-	
+
 	for _, tres := range tresList {
 		if err := u.ValidateTRES(tres); err != nil {
 			return err
 		}
-		
+
 		key := u.getTRESKey(tres)
 		if seen[key] {
 			return fmt.Errorf("duplicate TRES entry: %s", key)
 		}
 		seen[key] = true
 	}
-	
+
 	return nil
 }
 
@@ -250,7 +250,7 @@ func (u *TRESUtils) ValidateTRESList(tresList []types.TRES) error {
 // parseCountValue parses various count value formats (e.g., "4", "8G", "1024M")
 func (u *TRESUtils) parseCountValue(countStr string) (int64, error) {
 	countStr = strings.ToUpper(strings.TrimSpace(countStr))
-	
+
 	if countStr == "" {
 		return 0, nil
 	}

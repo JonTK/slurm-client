@@ -7,9 +7,9 @@ import (
 	"context"
 	"fmt"
 
+	api "github.com/jontk/slurm-client/internal/api/v0_0_42"
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/internal/managers/base"
-	api "github.com/jontk/slurm-client/internal/api/v0_0_42"
 )
 
 // AccountAdapter implements the AccountAdapter interface for v0.0.42
@@ -348,4 +348,49 @@ func (a *AccountAdapter) convertAccountAssociationResponseToCommon(apiResp *api.
 	}
 
 	return resp
+}
+
+// convertAPIAccountToCommon converts API account to common type
+func (a *AccountAdapter) convertAPIAccountToCommon(apiAccount api.V0042Account) (*types.Account, error) {
+	account := &types.Account{}
+
+	// Set basic fields - V0042Account has Name and Description as strings, not pointers
+	account.Name = apiAccount.Name
+	account.Description = apiAccount.Description
+
+	// Organization is not directly available in V0042Account
+	// We'll leave it empty as it's not part of the main account structure
+
+	// Note: V0042Account structure doesn't expose associations in a way that maps to our common type
+	// Association data would need to be retrieved separately via the association adapter
+
+	// Convert coordinators if present
+	if apiAccount.Coordinators != nil {
+		for _, coord := range *apiAccount.Coordinators {
+			// V0042Coord has Name as string, not pointer
+			account.Coordinators = append(account.Coordinators, coord.Name)
+		}
+	}
+
+	return account, nil
+}
+
+// convertCommonAccountCreateToAPI converts common account create to API format
+func (a *AccountAdapter) convertCommonAccountCreateToAPI(accountCreate *types.AccountCreate) (*api.V0042OpenapiAccountsResp, error) {
+	if accountCreate == nil {
+		return nil, fmt.Errorf("account create request cannot be nil")
+	}
+
+	// V0042Account has Name and Description as strings, not pointers
+	apiAccount := api.V0042Account{
+		Name:        accountCreate.Name,
+		Description: accountCreate.Description,
+	}
+
+	// Note: V0042Account doesn't support embedded associations in create request
+	// Associations would need to be created separately via the association adapter
+
+	return &api.V0042OpenapiAccountsResp{
+		Accounts: []api.V0042Account{apiAccount},
+	}, nil
 }
