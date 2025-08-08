@@ -743,6 +743,81 @@ func (m *JobManagerImpl) Cancel(ctx context.Context, jobID string) error {
 	return nil
 }
 
+// Requeue requeues a job, allowing it to run again
+func (m *JobManagerImpl) Requeue(ctx context.Context, jobID string) error {
+	// Check if API client is available
+	if m.client.apiClient == nil {
+		return errors.NewClientError(errors.ErrorCodeClientNotInitialized, "API client not initialized")
+	}
+	
+	// Prepare parameters for the API call
+	params := &SlurmV0043DeleteJobParams{}
+	
+	// Use FEDERATIONREQUEUE flag to requeue instead of cancelling
+	// This flag tells SLURM to terminate the job and resubmit it
+	requeueFlag := FEDERATIONREQUEUE
+	params.Flags = &requeueFlag
+	
+	// No signal needed - we're requeuing, not terminating
+	// The FEDERATIONREQUEUE flag should trigger the requeue logic
+	
+	// Call the generated OpenAPI client
+	resp, err := m.client.apiClient.SlurmV0043DeleteJobWithResponse(ctx, jobID, params)
+	if err != nil {
+		wrappedErr := errors.WrapError(err)
+		return errors.EnhanceErrorWithVersion(wrappedErr, "v0.0.43")
+	}
+	
+	// Check HTTP status and handle API errors
+	if resp.StatusCode() != 200 {
+		var responseBody []byte
+		if resp.JSON200 != nil {
+			// Try to extract error details from response
+			if resp.JSON200.Errors != nil && len(*resp.JSON200.Errors) > 0 {
+				apiErrors := make([]errors.SlurmAPIErrorDetail, len(*resp.JSON200.Errors))
+				for i, apiErr := range *resp.JSON200.Errors {
+					var errorNumber int
+					if apiErr.ErrorNumber != nil {
+						errorNumber = int(*apiErr.ErrorNumber)
+					}
+					var errorCode string
+					if apiErr.Error != nil {
+						errorCode = *apiErr.Error
+					}
+					var source string
+					if apiErr.Source != nil {
+						source = *apiErr.Source
+					}
+					var description string
+					if apiErr.Description != nil {
+						description = *apiErr.Description
+					}
+					
+					apiErrors[i] = errors.SlurmAPIErrorDetail{
+						ErrorNumber: errorNumber,
+						ErrorCode:   errorCode,
+						Source:      source,
+						Description: description,
+					}
+				}
+				apiError := errors.NewSlurmAPIError(resp.StatusCode(), "v0.0.43", apiErrors)
+				return apiError.SlurmError
+			}
+		}
+		
+		// Fall back to HTTP error handling
+		httpErr := errors.WrapHTTPError(resp.StatusCode(), responseBody, "v0.0.43")
+		return httpErr
+	}
+	
+	// Check for unexpected response format
+	if resp.JSON200 == nil {
+		return errors.NewClientError(errors.ErrorCodeServerInternal, "Unexpected response format", "Expected JSON response but got nil")
+	}
+	
+	return nil
+}
+
 // Update updates job properties
 func (m *JobManagerImpl) Update(ctx context.Context, jobID string, update *interfaces.JobUpdate) error {
 	// Check if API client is available

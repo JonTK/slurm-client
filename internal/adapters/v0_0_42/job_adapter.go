@@ -439,6 +439,37 @@ func (a *JobAdapter) Notify(ctx context.Context, req *types.JobNotifyRequest) er
 	return fmt.Errorf("job notification not supported via v0.0.42 API")
 }
 
+// Requeue requeues a job
+func (a *JobAdapter) Requeue(ctx context.Context, jobID int32) error {
+	// Use base validation
+	if err := a.ValidateContext(ctx); err != nil {
+		return err
+	}
+
+	// Check client initialization
+	if err := a.CheckClientInitialized(a.client); err != nil {
+		return err
+	}
+
+	// Prepare parameters with FEDERATIONREQUEUE flag
+	params := &api.SlurmV0042DeleteJobParams{}
+	requeueFlag := api.FEDERATIONREQUEUE
+	params.Flags = &requeueFlag
+
+	// Call the generated OpenAPI client
+	resp, err := a.client.SlurmV0042DeleteJobWithResponse(ctx, fmt.Sprintf("%d", jobID), params)
+	if err != nil {
+		return a.HandleAPIError(err)
+	}
+
+	// Check response status
+	if resp.StatusCode() != 200 {
+		return a.HandleAPIError(fmt.Errorf("API error: status %d", resp.StatusCode()))
+	}
+
+	return nil
+}
+
 // Watch watches for job changes
 func (a *JobAdapter) Watch(ctx context.Context, opts *types.JobWatchOptions) (<-chan types.JobWatchEvent, error) {
 	// Use base validation

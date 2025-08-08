@@ -55,6 +55,7 @@ type JobAdapter interface {
 	Signal(ctx context.Context, req *types.JobSignalRequest) error
 	Hold(ctx context.Context, req *types.JobHoldRequest) error
 	Notify(ctx context.Context, req *types.JobNotifyRequest) error
+	Requeue(ctx context.Context, jobID int32) error
 	Watch(ctx context.Context, opts *types.JobWatchOptions) (<-chan types.JobWatchEvent, error)
 	Allocate(ctx context.Context, req *types.JobAllocateRequest) (*types.JobAllocateResponse, error)
 }

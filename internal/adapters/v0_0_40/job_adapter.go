@@ -486,6 +486,20 @@ func (a *JobAdapter) Notify(ctx context.Context, req *types.JobNotifyRequest) er
 	return a.Update(ctx, req.JobID, update)
 }
 
+// Requeue requeues a job (not available in v0.0.40)
+func (a *JobAdapter) Requeue(ctx context.Context, jobID int32) error {
+	// Use base validation
+	if err := a.ValidateContext(ctx); err != nil {
+		return err
+	}
+	if err := a.CheckClientInitialized(a.client); err != nil {
+		return err
+	}
+
+	// Requeue is not supported in v0.0.40
+	return fmt.Errorf("requeue operation not supported in API v0.0.40")
+}
+
 // validateJobCreate validates job creation request
 func (a *JobAdapter) validateJobCreate(job *types.JobCreate) error {
 	if job == nil {

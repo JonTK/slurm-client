@@ -453,6 +453,11 @@ func (a *JobAdapter) Notify(ctx context.Context, req *types.JobNotifyRequest) er
 	return a.HandleNotImplemented("Notify", "v0.0.41")
 }
 
+// Requeue requeues a job (not available in v0.0.41)
+func (a *JobAdapter) Requeue(ctx context.Context, jobID int32) error {
+	return a.HandleNotImplemented("Requeue", "v0.0.41")
+}
+
 // Allocate allocates resources for a job (not supported in v0.0.41)
 func (a *JobAdapter) Allocate(ctx context.Context, req *types.JobAllocateRequest) (*types.JobAllocateResponse, error) {
 	return nil, a.HandleNotImplemented("Allocate", "v0.0.41")

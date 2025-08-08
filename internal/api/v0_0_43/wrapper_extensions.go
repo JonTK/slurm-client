@@ -14,7 +14,15 @@ import (
 )
 
 // === Manager Methods ===
-// Note: All manager methods are now generated in wrapper.go
+// Note: All manager methods are now generated in managers.go
+
+// Requeue requeues a job
+func (m *JobManager) Requeue(ctx context.Context, jobID string) error {
+	if m.impl == nil {
+		m.impl = NewJobManagerImpl(m.client)
+	}
+	return m.impl.Requeue(ctx, jobID)
+}
 
 // === Standalone Operations Implementation ===
 

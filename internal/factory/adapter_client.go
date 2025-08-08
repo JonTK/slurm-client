@@ -380,6 +380,16 @@ func (m *adapterJobManager) Notify(ctx context.Context, jobID string, message st
 	return m.adapter.Notify(ctx, req)
 }
 
+// Requeue requeues a job
+func (m *adapterJobManager) Requeue(ctx context.Context, jobID string) error {
+	// Convert string to int32 for adapter
+	jobIDInt, err := strconv.ParseInt(jobID, 10, 32)
+	if err != nil {
+		return fmt.Errorf("invalid job ID: %w", err)
+	}
+	return m.adapter.Requeue(ctx, int32(jobIDInt))
+}
+
 func (m *adapterJobManager) Watch(ctx context.Context, opts *interfaces.WatchJobsOptions) (<-chan interfaces.JobEvent, error) {
 	// Convert WatchJobsOptions to types.JobWatchOptions
 	adapterOpts := &types.JobWatchOptions{}

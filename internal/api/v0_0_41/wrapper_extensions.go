@@ -12,6 +12,17 @@ import (
 	"github.com/jontk/slurm-client/pkg/errors"
 )
 
+// === Manager Methods ===
+// Note: All manager methods are now generated in managers.go
+
+// Requeue requeues a job
+func (m *JobManager) Requeue(ctx context.Context, jobID string) error {
+	if m.impl == nil {
+		m.impl = NewJobManagerImpl(m.client)
+	}
+	return m.impl.Requeue(ctx, jobID)
+}
+
 // Standalone operations - not implemented in this API version
 
 // GetLicenses returns not implemented error

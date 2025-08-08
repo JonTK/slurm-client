@@ -2500,3 +2500,8 @@ func (m *JobManagerImpl) Signal(ctx context.Context, jobID string, signal string
 func (m *JobManagerImpl) Notify(ctx context.Context, jobID string, message string) error {
 	return errors.NewNotImplementedError("Notify", "v0.0.41")
 }
+
+// Requeue requeues a job (not available in v0.0.41)
+func (m *JobManagerImpl) Requeue(ctx context.Context, jobID string) error {
+	return errors.NewNotImplementedError("Requeue", "v0.0.41")
+}

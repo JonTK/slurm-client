@@ -100,6 +100,9 @@ type JobManager interface {
 	// Cancel cancels a job
 	Cancel(ctx context.Context, jobID string) error
 
+	// Requeue requeues a job, allowing it to run again
+	Requeue(ctx context.Context, jobID string) error
+
 	// Update updates job properties (if supported by version)
 	Update(ctx context.Context, jobID string, update *JobUpdate) error
 

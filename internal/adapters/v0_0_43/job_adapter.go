@@ -525,6 +525,36 @@ func (a *JobAdapter) Notify(ctx context.Context, req *types.JobNotifyRequest) er
 	return a.Update(ctx, req.JobID, update)
 }
 
+// Requeue requeues a job
+func (a *JobAdapter) Requeue(ctx context.Context, jobID int32) error {
+	// Use base validation
+	if err := a.ValidateContext(ctx); err != nil {
+		return err
+	}
+	if err := a.CheckClientInitialized(a.client); err != nil {
+		return err
+	}
+
+	// Prepare parameters with FEDERATIONREQUEUE flag
+	params := &api.SlurmV0043DeleteJobParams{}
+	requeueFlag := api.FEDERATIONREQUEUE
+	params.Flags = &requeueFlag
+
+	// Call the generated OpenAPI client
+	resp, err := a.client.SlurmV0043DeleteJobWithResponse(ctx, strconv.Itoa(int(jobID)), params)
+	if err != nil {
+		return a.HandleAPIError(err)
+	}
+
+	// Use common response error handling
+	var apiErrors *api.V0043OpenapiErrors
+	if resp.JSON200 != nil {
+		apiErrors = resp.JSON200.Errors
+	}
+	responseAdapter := api.NewResponseAdapter(resp.StatusCode(), apiErrors)
+	return common.HandleAPIResponse(responseAdapter, "v0.0.43")
+}
+
 // Watch watches for job state changes using polling
 func (a *JobAdapter) Watch(ctx context.Context, opts *types.JobWatchOptions) (<-chan types.JobWatchEvent, error) {
 	// Use base validation
