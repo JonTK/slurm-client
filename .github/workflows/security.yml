@@ -43,9 +43,17 @@ jobs:
     - name: Upload vulnerability results
       uses: github/codeql-action/upload-sarif@v3
       if: always()
+      continue-on-error: true
       with:
         sarif_file: govulncheck-results.sarif
         category: govulncheck
+
+    - name: Upload govulncheck results as artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: govulncheck-results
+        path: govulncheck-results.sarif
 
   gosec:
     name: Security Scan with Gosec
@@ -63,9 +71,17 @@ jobs:
     - name: Upload SARIF file
       uses: github/codeql-action/upload-sarif@v3
       if: always()
+      continue-on-error: true
       with:
         sarif_file: gosec-results.sarif
         category: gosec
+
+    - name: Upload gosec results as artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: gosec-results
+        path: gosec-results.sarif
 
   codeql:
     name: CodeQL Analysis
@@ -130,9 +146,17 @@ jobs:
     - name: Upload Trivy scan results
       uses: github/codeql-action/upload-sarif@v3
       if: always()
+      continue-on-error: true
       with:
         sarif_file: 'trivy-results.sarif'
         category: trivy
+
+    - name: Upload Trivy results as artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: trivy-results
+        path: trivy-results.sarif
 
   nancy:
     name: Nancy Dependency Scan
@@ -212,6 +236,7 @@ jobs:
 
     - name: Upload SARIF results
       uses: github/codeql-action/upload-sarif@v3
+      continue-on-error: true
       with:
         sarif_file: scorecard-results.sarif
         category: scorecard
