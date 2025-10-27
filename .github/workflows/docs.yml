@@ -118,7 +118,7 @@ jobs:
 
     - name: Upload documentation artifacts
       if: steps.check_changes.outputs.changed == 'true'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: documentation
         path: docs/
