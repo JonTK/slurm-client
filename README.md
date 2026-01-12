@@ -14,7 +14,7 @@ The definitive solution addressing Go SLURM client ecosystem fragmentation throu
 
 ## ✨ Key Features
 
-- **🔄 Multi-Version Support**: Unified client supporting SLURM REST API v0.0.40-v0.0.43 (66,010+ lines OpenAPI specs)
+- **🔄 Multi-Version Support**: Unified client supporting SLURM REST API v0.0.40-v0.0.44 (88,000+ lines OpenAPI specs)
 - **🏢 Enterprise-Grade**: Production patterns inspired by AWS SDK and Kubernetes client-go
 - **🛡️ Structured Error Handling**: Comprehensive error classification with version-specific mapping
 - **⚡ Performance Optimized**: Connection pooling, retry policies with exponential backoff and jitter
@@ -47,7 +47,7 @@ Client Application
 └─────────────┴─────────────┘
         ↓           ↓
 Version-Specific Implementations
-(v0.0.40, v0.0.41, v0.0.42, v0.0.43)
+(v0.0.40, v0.0.41, v0.0.42, v0.0.43, v0.0.44)
 ```
 
 #### Adapter Pattern Benefits

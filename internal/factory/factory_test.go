@@ -88,9 +88,14 @@ func TestClientFactory_NewClientWithVersion(t *testing.T) {
 			expectError: false,
 		},
 		{
+			name:        "create client with v0.0.44",
+			version:     "v0.0.44",
+			expectError: false,
+		},
+		{
 			name:        "create client with latest",
 			version:     "latest",
-			expectError: false, // Latest is v0.0.43, now implemented
+			expectError: false, // Latest is v0.0.44, now implemented
 		},
 		{
 			name:        "create client with stable",
@@ -205,7 +210,7 @@ func TestClientFactory_ListSupportedVersions(t *testing.T) {
 	versions := factory.ListSupportedVersions()
 
 	// Verify we have the expected versions
-	expectedVersions := []string{"v0.0.40", "v0.0.41", "v0.0.42", "v0.0.43"}
+	expectedVersions := []string{"v0.0.40", "v0.0.41", "v0.0.42", "v0.0.43", "v0.0.44"}
 
 	helpers.AssertEqual(t, len(expectedVersions), len(versions))
 
@@ -227,7 +232,7 @@ func TestClientFactory_GetVersionCompatibility(t *testing.T) {
 	helpers.AssertNotNil(t, matrix.BreakingChanges)
 
 	// Verify all supported versions have Slurm version mappings
-	for _, version := range []string{"v0.0.40", "v0.0.41", "v0.0.42", "v0.0.43"} {
+	for _, version := range []string{"v0.0.40", "v0.0.41", "v0.0.42", "v0.0.43", "v0.0.44"} {
 		slurmVersions, exists := matrix.SlurmVersions[version]
 		assert.True(t, exists, "Version %s should have Slurm version mapping", version)
 		assert.NotEmpty(t, slurmVersions, "Version %s should have at least one Slurm version", version)

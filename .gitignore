@@ -123,3 +123,13 @@ update_v41_error_handling.sh
 package-lock.json
 adapter-test
 
+# Implementation and design notes (backed up separately)
+*_IMPLEMENTATION.md
+*_PROMPT.md
+*_DESIGN.md
+
+# Reports and temporary commit files
+*_report.json
+commit_*.json
+commit_*.txt
+

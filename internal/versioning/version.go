@@ -114,6 +114,7 @@ var SupportedVersions = []*APIVersion{
 	{Major: 0, Minor: 0, Patch: 41, Raw: "v0.0.41"},
 	{Major: 0, Minor: 0, Patch: 42, Raw: "v0.0.42"},
 	{Major: 0, Minor: 0, Patch: 43, Raw: "v0.0.43"},
+	{Major: 0, Minor: 0, Patch: 44, Raw: "v0.0.44"},
 }
 
 // LatestVersion returns the latest supported version
@@ -208,6 +209,7 @@ func DefaultCompatibilityMatrix() *VersionCompatibilityMatrix {
 			"v0.0.41": {"24.11", "25.05", "25.11"},
 			"v0.0.42": {"25.05", "25.11"},
 			"v0.0.43": {"25.05", "25.11"},
+			"v0.0.44": {"25.11"},
 		},
 		BreakingChanges: map[string][]BreakingChange{
 			"v0.0.40->v0.0.41": {
@@ -242,6 +244,43 @@ func DefaultCompatibilityMatrix() *VersionCompatibilityMatrix {
 					OldValue:    "FrontEnd mode",
 					NewValue:    "",
 					Mitigation:  "Use standard node management",
+				},
+			},
+			"v0.0.43->v0.0.44": {
+				{
+					Type:        "endpoint_added",
+					Description: "Node creation endpoint added",
+					OldValue:    "",
+					NewValue:    "/slurm/v0.0.44/new/node/",
+					Mitigation:  "Feature available only in v0.0.44+",
+				},
+				{
+					Type:        "endpoint_added", 
+					Description: "Job resource layout endpoint added",
+					OldValue:    "",
+					NewValue:    "/slurm/v0.0.44/resources/{job_id}",
+					Mitigation:  "Feature available only in v0.0.44+",
+				},
+				{
+					Type:        "field_added",
+					Description: "Enhanced job comment structure with admin, job, and system comments",
+					OldValue:    "comment (string)",
+					NewValue:    "comment (object with admin/job/system fields)",
+					Mitigation:  "Client handles both formats automatically",
+				},
+				{
+					Type:        "field_added",
+					Description: "Job submission returns step_id field",
+					OldValue:    "job_id only",
+					NewValue:    "job_id and step_id",
+					Mitigation:  "step_id is optional, existing code unaffected",
+				},
+				{
+					Type:        "field_added",
+					Description: "submit_line field added to job information",
+					OldValue:    "",
+					NewValue:    "submit_line",
+					Mitigation:  "Field is optional, provides additional context",
 				},
 			},
 		},

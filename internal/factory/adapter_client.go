@@ -15,10 +15,12 @@ import (
 	v041adapter "github.com/jontk/slurm-client/internal/adapters/v0_0_41"
 	v042adapter "github.com/jontk/slurm-client/internal/adapters/v0_0_42"
 	v043adapter "github.com/jontk/slurm-client/internal/adapters/v0_0_43"
+	v044adapter "github.com/jontk/slurm-client/internal/adapters/v0_0_44"
 	v040api "github.com/jontk/slurm-client/internal/api/v0_0_40"
 	v041api "github.com/jontk/slurm-client/internal/api/v0_0_41"
 	v042api "github.com/jontk/slurm-client/internal/api/v0_0_42"
 	v043api "github.com/jontk/slurm-client/internal/api/v0_0_43"
+	v044api "github.com/jontk/slurm-client/internal/api/v0_0_44"
 	"github.com/jontk/slurm-client/internal/interfaces"
 	"github.com/jontk/slurm-client/internal/common/types"
 )
@@ -71,6 +73,17 @@ func NewAdapterClient(version string, config *interfaces.ClientConfig) (SlurmCli
 			return nil, fmt.Errorf("failed to create v0.0.43 client: %w", err)
 		}
 		adapter := v043adapter.NewAdapter(client)
+		return &AdapterClient{
+			adapter: adapter,
+			version: version,
+		}, nil
+
+	case "v0.0.44":
+		client, err := v044api.NewClientWithResponses(config.BaseURL, v044api.WithHTTPClient(config.HTTPClient))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create v0.0.44 client: %w", err)
+		}
+		adapter := v044adapter.NewAdapter(client)
 		return &AdapterClient{
 			adapter: adapter,
 			version: version,

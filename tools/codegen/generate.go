@@ -47,7 +47,7 @@ func generateClient(version, specFile string) error {
 	outputFile := filepath.Join(outputDir, "client.go")
 	
 	// Generate client using oapi-codegen
-	cmd := exec.Command("/Users/jontk/go/bin/oapi-codegen",
+	cmd := exec.Command("oapi-codegen",
 		"-package", normalizeVersion(version),
 		"-generate", "client,models,spec",
 		"-o", outputFile,
@@ -234,8 +234,8 @@ func getUsersImplementation(version string) string {
 }
 
 func getClustersImplementation(version string) string {
-	// Only v0.0.43 has real ClusterManager implementation
-	if version == "v0.0.43" {
+	// v0.0.43+ has real ClusterManager implementation
+	if version == "v0.0.43" || version == "v0.0.44" {
 		return "return &ClusterManager{client: c}"
 	}
 	// For older versions, return a stub
@@ -243,8 +243,8 @@ func getClustersImplementation(version string) string {
 }
 
 func getAssociationsImplementation(version string) string {
-	// Only v0.0.43 has AssociationManager
-	if version == "v0.0.43" {
+	// v0.0.43+ has AssociationManager
+	if version == "v0.0.43" || version == "v0.0.44" {
 		return `
 
 // Associations returns the AssociationManager
@@ -722,8 +722,8 @@ func generateManagers(version, outputDir string) error {
 	accountManagerCode = fmt.Sprintf(getAccountManagerCode(), version)
 	userManagerCode = fmt.Sprintf(getUserManagerCode(), version)
 	
-	// Only v0.0.43 has ClusterManager and AssociationManager
-	if version == "v0.0.43" {
+	// v0.0.43+ has ClusterManager and AssociationManager
+	if version == "v0.0.43" || version == "v0.0.44" {
 		clusterManagerCode = fmt.Sprintf(getClusterManagerCode(), version)
 		associationManagerCode = fmt.Sprintf(getAssociationManagerCode(), version)
 	}

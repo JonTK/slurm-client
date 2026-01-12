@@ -273,6 +273,8 @@ func (f *ClientFactory) createClient(version *versioning.APIVersion) (SlurmClien
 		return f.createV0_0_42Client()
 	case "v0.0.43":
 		return f.createV0_0_43Client()
+	case "v0.0.44":
+		return f.createV0_0_44Client()
 	default:
 		return nil, fmt.Errorf("unsupported API version: %s", version.String())
 	}
@@ -410,6 +412,25 @@ func (f *ClientFactory) createV0_0_43Client() (SlurmClient, error) {
 
 	// Return the wrapper client
 	return v043.NewWrapperClient(config)
+}
+
+func (f *ClientFactory) createV0_0_44Client() (SlurmClient, error) {
+	// Create enhanced HTTP client with all features
+	httpClient := f.buildEnhancedHTTPClient()
+	
+	// Apply authentication if needed
+	if f.auth != nil {
+		httpClient = createAuthenticatedHTTPClient(httpClient, f.auth)
+	}
+
+	// Always use adapters for v0.0.44 as they are now implemented
+	config := &interfaces.ClientConfig{
+		BaseURL:    f.baseURL,
+		HTTPClient: httpClient,
+		APIKey:     "",    // Not used when we have auth provider
+		Debug:      f.config.Debug,
+	}
+	return NewAdapterClient("v0.0.44", config)
 }
 
 // extractVersionFromURL extracts version from a URL like "/slurm/v0.0.42/"

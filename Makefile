@@ -136,6 +136,11 @@ check-version:
 release-prep: check-version clean tidy fmt vet lint test
 	@echo "Release preparation complete"
 
+# Build SLURM with v0.0.44 support
+build-slurm:
+	@echo "Building SLURM with REST API v0.0.44 support..."
+	@./tools/build-slurm.sh
+
 # Download OpenAPI specifications
 download-specs:
 	@echo "Downloading OpenAPI specifications..."
@@ -144,7 +149,7 @@ download-specs:
 # Generate API clients from OpenAPI specs
 generate: install-tools download-specs
 	@echo "Generating API clients..."
-	@for version in v0.0.40 v0.0.41 v0.0.42 v0.0.43; do \
+	@for version in v0.0.40 v0.0.41 v0.0.42 v0.0.43 v0.0.44; do \
 		echo "Generating client for $$version..."; \
 		go run tools/codegen/generate.go $$version || echo "Failed to generate $$version client"; \
 	done
@@ -171,9 +176,10 @@ help:
 	@echo "  clean           - Clean build artifacts"
 	@echo "  docs            - Generate documentation"
 	@echo "  install-tools   - Install development tools"
+	@echo "  build-slurm     - Build SLURM with REST API v0.0.44 support"
 	@echo "  download-specs  - Download OpenAPI specifications"
 	@echo "  generate        - Generate all API clients from specs"
-	@echo "  generate-version - Generate specific version client (VERSION=v0.0.42)"
+	@echo "  generate-version - Generate specific version client (VERSION=v0.0.44)"
 	@echo "  tidy            - Tidy up dependencies"
 	@echo "  update          - Update dependencies"
 	@echo "  security        - Run security audit"
