@@ -22,14 +22,17 @@ linters:
     - gocognit
     - goconst
     - gocritic
+    - godoclint                 # Doc comment style (v2.8+ only)
     - godot
     - godox
+    - gosmopolitan              # I18n linter - not needed for this project
     - interfacebloat
     - intrange
     - ireturn
     - lll
     - maintidx
     - mnd
+    - modernize                 # Modernization suggestions (v2.8+ only) - not always appropriate
     - nestif
     - nilerr
     - noinlineerr               # Inline error handling is idiomatic Go
@@ -85,11 +88,12 @@ linters:
       min-complexity: 75
     gosec:
       excludes:
-        - G104
-        - G307
-        - G115
-        - G404
-        - G601
+        - G104  # Duplicated errcheck
+        - G307  # Duplicated errcheck on file defer Close()
+        - G115  # Integer overflow conversion - SLURM resource counts unlikely to overflow int32
+        - G404  # Use of weak random generator - acceptable for test data and non-cryptographic randomness
+        - G601  # Implicit memory aliasing - fixed in Go 1.22+ with new loop variable scoping
+        - G602  # Slice index out of range - covered by bounds checking
     misspell:
       locale: US
       ignore-rules:
@@ -107,8 +111,11 @@ linters:
     staticcheck:
       checks:
         - all
-        - -SA9003
-        - -ST1003
+        - -SA9003   # Empty branch - placeholder branches reserved for future implementation
+        - -ST1003   # Package naming - version packages use underscores to match SLURM API versions
+        - -QF1001   # De Morgan's law - readability preference
+        - -QF1003   # Tagged switch - style preference
+        - -QF1008   # Embedded field selector - intentional for clarity
     unparam:
       check-exported: false
   exclusions:
