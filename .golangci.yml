@@ -8,12 +8,14 @@ linters:
     - copyloopvar
     - cyclop
     - dupword
+    - embeddedstructfieldcheck  # Embedded struct formatting is stylistic
     - err113
     - errorlint
     - exhaustive
     - exhaustruct
     - forbidigo
     - forcetypeassert
+    - funcorder                 # Function ordering is developer's choice
     - funlen
     - gochecknoglobals
     - gochecknoinits
@@ -30,6 +32,7 @@ linters:
     - mnd
     - nestif
     - nilerr
+    - noinlineerr               # Inline error handling is idiomatic Go
     - nlreturn
     - noctx
     - nonamedreturns
@@ -49,7 +52,8 @@ linters:
     - varnamelen
     - wastedassign
     - wrapcheck
-    - wsl
+    - wsl                       # Whitespace linter (deprecated version)
+    - wsl_v5                    # Whitespace linter (new version) - very opinionated
   settings:
     depguard:
       rules:
@@ -198,11 +202,12 @@ issues:
   max-issues-per-linter: 0
   max-same-issues: 0
 formatters:
-  enable:
-    - gci
-    - gofmt
-    - gofumpt
-    - goimports
+  # Formatters should only run with --fix, not during regular linting
+  # enable:
+  #   - gci
+  #   - gofmt
+  #   - gofumpt
+  #   - goimports
   exclusions:
     generated: lax
     paths:
