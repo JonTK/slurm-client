@@ -118,9 +118,7 @@ func (a *JobAdapter) convertAPIJobToCommon(apiJob api.V0040JobInfo) (*types.Job,
 	// Mail settings
 	if apiJob.MailType != nil && len(*apiJob.MailType) > 0 {
 		mailTypes := make([]string, len(*apiJob.MailType))
-		for i, mt := range *apiJob.MailType {
-			mailTypes[i] = mt
-		}
+		copy(mailTypes, *apiJob.MailType)
 		job.MailType = mailTypes
 	}
 	if apiJob.MailUser != nil {
