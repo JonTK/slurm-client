@@ -298,7 +298,7 @@ jobs:
         cache: true
 
     - name: Install benchstat
-      run: go install golang.org/x/perf/cmd/benchstat@latest
+      run: go install golang.org/x/perf/cmd/benchstat@v0.0.0-20241210180533-e620fc2d884c
 
     - name: Install oapi-codegen
       run: go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
