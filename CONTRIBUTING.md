@@ -51,11 +51,77 @@ git checkout -b fix/issue-description
 - Ensure all tests pass
 
 #### 4. Commit Changes
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+**⚠️ IMPORTANT: All commits MUST follow [Conventional Commits](https://www.conventionalcommits.org/) format.**
+
+Conventional commits are **strictly enforced** by automated checks. Non-compliant commits will cause PR failures.
+
+**Format:**
+```
+<type>(<scope>): <subject>
+
+[optional body]
+
+[optional footer]
+```
+
+**Required Types:**
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, missing semicolons, etc.)
+- `refactor`: Code refactoring (no functional changes)
+- `perf`: Performance improvements
+- `test`: Adding or updating tests
+- `build`: Build system changes
+- `ci`: CI/CD changes
+- `chore`: Other changes (maintenance, dependencies, etc.)
+- `revert`: Reverting a previous commit
+
+**Scope (optional but recommended):**
+- Use lowercase
+- Examples: `api`, `client`, `test`, `docs`, `release`, `contrib`
+
+**Subject:**
+- Use imperative mood ("add" not "added" or "adds")
+- Don't capitalize first letter
+- No period at the end
+- Max 100 characters for entire header
+
+**Examples:**
 ```bash
-git commit -m "feat: add new job scheduling feature"
-git commit -m "fix: resolve connection timeout issue"
+git commit -m "feat(api): add new job scheduling endpoint"
+git commit -m "fix(client): resolve connection timeout issue"
 git commit -m "docs: update API documentation"
+git commit -m "test(streaming): add WebSocket tests"
+git commit -m "refactor(auth): simplify token validation"
+```
+
+**With body:**
+```bash
+git commit -m "feat(api): add batch job submission
+
+Allow submitting multiple jobs in a single API call.
+Improves performance by reducing HTTP overhead.
+
+Closes #123"
+```
+
+**Breaking changes:**
+```bash
+git commit -m "feat(api)!: change job submission response format
+
+BREAKING CHANGE: Response now returns job array instead of single job"
+```
+
+**Automated Validation:**
+- Pre-commit hooks validate commit messages locally
+- GitHub Actions validate all PR commits
+- Non-compliant commits will fail CI checks
+
+**Install hooks:**
+```bash
+make install-hooks  # Enables local validation
 ```
 
 #### 5. Push and Create PR

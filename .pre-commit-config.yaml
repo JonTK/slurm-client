@@ -55,3 +55,12 @@ repos:
         language: system
         files: go.mod
         pass_filenames: false
+
+  # Commit message linting
+  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.5.0
+    hooks:
+      - id: commitlint
+        name: commitlint
+        stages: [commit-msg]
+        additional_dependencies: ['@commitlint/config-conventional@latest']
