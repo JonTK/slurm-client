@@ -263,6 +263,30 @@ linters:
         path: ^internal/factory/
         text: importShadow  # Factory pattern - config/auth/pool variable shadowing is idiomatic
       - linters:
+          - gocritic
+        path: ^internal/adapters/
+        text: importShadow|unnamedResult|typeAssertChain|singleCaseSwitch|nestingReduce  # Adapter layer - minor style issues
+      - linters:
+          - gocritic
+        path: ^internal/api/
+        text: importShadow|unnamedResult|emptyStringTest|nestingReduce  # Business logic layer - minor style issues
+      - linters:
+          - gocritic
+        path: ^internal/managers/
+        text: unnamedResult  # Base managers - generic return types
+      - linters:
+          - gocritic
+        path: ^client\.go$
+        text: importShadow  # WithAuth function parameter name matches package name (idiomatic)
+      - linters:
+          - gocritic
+        path: ^pkg/errors/
+        text: appendCombine|typeAssertChain  # Minor style issues - sequential logic is clearer
+      - linters:
+          - gocritic
+        path: ^pkg/performance/cache\.go$
+        text: emptyStringTest  # False positive - checking length before indexing, not string comparison
+      - linters:
           - staticcheck
         path: internal/adapters/
         text: deprecated
