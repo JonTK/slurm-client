@@ -17,6 +17,7 @@ on:
 permissions:
   contents: write
   packages: write
+  id-token: write  # Required for cosign keyless signing
 
 jobs:
   validate-tag:
@@ -102,6 +103,11 @@ jobs:
       with:
         go-version-file: 'go.mod'
         cache: true
+
+    - name: Install cosign
+      uses: sigstore/cosign-installer@v3
+      with:
+        cosign-release: 'v2.4.1'
 
     - name: Run GoReleaser
       uses: goreleaser/goreleaser-action@v6
