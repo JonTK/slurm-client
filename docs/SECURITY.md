@@ -214,6 +214,6 @@ All releases include:
 ## Questions?
 
 For security-related questions (non-vulnerabilities):
-- Open a [GitHub Discussion](https://github.com/jontk/slurm-client/discussions)
-- Review [documentation](./README.md)
 - Check [existing issues](https://github.com/jontk/slurm-client/issues)
+- Review [documentation](./README.md)
+- Open a [new issue](https://github.com/jontk/slurm-client/issues/new) for questions

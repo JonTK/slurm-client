@@ -90,7 +90,12 @@
     "perfsprint",
     "testifylint",
     "thelper",
-    "gocritic"
+    "gocritic",
+    "coverprofile",
+    "covermode",
+    "benchmem",
+    "benchtime",
+    "goimports"
   ],
   "ignorePaths": [
     "vendor/**",
