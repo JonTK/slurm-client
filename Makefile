@@ -110,7 +110,10 @@ install-hooks:
 		fi; \
 	}
 	@pre-commit install
+	@pre-commit install --hook-type commit-msg
 	@echo "✅ Pre-commit hooks installed successfully"
+	@echo "   - Pre-commit hooks: code formatting, linting"
+	@echo "   - Commit-msg hooks: conventional commit validation"
 	@echo "Run 'pre-commit run --all-files' to check all files"
 
 # Uninstall pre-commit hooks

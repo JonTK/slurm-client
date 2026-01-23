@@ -1,0 +1,78 @@
+# SPDX-FileCopyrightText: 2025 Jon Thor Kristinsson
+# SPDX-License-Identifier: Apache-2.0
+
+name: Commit Lint
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  commitlint:
+    name: Lint Commit Messages
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install commitlint
+      run: |
+        npm install --save-dev @commitlint/config-conventional@latest @commitlint/cli@latest
+
+    - name: Validate PR commits
+      run: |
+        # Get all commit messages in this PR
+        git fetch origin ${{ github.base_ref }}
+
+        # Check each commit
+        echo "Validating commit messages..."
+        FAILED=0
+
+        for commit in $(git rev-list origin/${{ github.base_ref }}..HEAD); do
+          echo ""
+          echo "Checking commit: $commit"
+          git log -1 --pretty=format:"%h %s" $commit
+          echo ""
+
+          if ! git log -1 --pretty=format:"%B" $commit | npx commitlint; then
+            FAILED=$((FAILED + 1))
+            echo "❌ Commit $commit does not follow conventional commit format"
+          else
+            echo "✅ Commit $commit follows conventional commit format"
+          fi
+        done
+
+        if [ $FAILED -gt 0 ]; then
+          echo ""
+          echo "========================================="
+          echo "❌ $FAILED commit(s) do not follow conventional commit format"
+          echo ""
+          echo "Conventional Commit Format:"
+          echo "  <type>(<scope>): <subject>"
+          echo ""
+          echo "Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
+          echo ""
+          echo "Examples:"
+          echo "  feat(api): add new endpoint for job submission"
+          echo "  fix(client): resolve connection timeout issue"
+          echo "  docs: update README with installation instructions"
+          echo ""
+          echo "See: https://www.conventionalcommits.org/"
+          echo "========================================="
+          exit 1
+        fi
+
+        echo ""
+        echo "✅ All commits follow conventional commit format"
