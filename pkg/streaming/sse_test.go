@@ -96,15 +96,12 @@ func TestHandleSSE_JobsStream(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	// Use a context with timeout to prevent hanging
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
 	req = req.WithContext(ctx)
 
-	go server.HandleSSE(w, req)
-
-	// Wait for events to be sent
-	time.Sleep(500 * time.Millisecond)
-	cancel() // Cancel context to stop the handler
+	// HandleSSE blocks until context is done or channel closes
+	server.HandleSSE(w, req)
 
 	resp := w.Result()
 	defer resp.Body.Close()
