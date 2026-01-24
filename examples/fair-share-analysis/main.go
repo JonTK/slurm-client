@@ -53,10 +53,10 @@ func main() {
 
 	if err := run(ctx, client); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		client.Close()
+		_ = client.Close()
 		os.Exit(1)
 	}
-	client.Close()
+	_ = client.Close()
 }
 
 func run(ctx context.Context, client slurm.SlurmClient) error {
