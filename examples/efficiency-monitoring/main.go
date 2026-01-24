@@ -272,7 +272,7 @@ func NewEfficiencyMonitor() *EfficiencyMonitor {
 }
 
 // StartMonitoring initializes the mock server and begins monitoring
-func (em *EfficiencyMonitor) StartMonitoring() error {
+func (em *EfficiencyMonitor) StartMonitoring() {
 	fmt.Println("🔄 Starting SLURM Efficiency Monitoring System...")
 
 	// Start mock SLURM server
@@ -280,7 +280,6 @@ func (em *EfficiencyMonitor) StartMonitoring() error {
 	em.baseURL = em.mockServer.URL()
 
 	fmt.Printf("✅ Mock SLURM server started at: %s\n", em.baseURL)
-	return nil
 }
 
 // StopMonitoring shuts down the monitoring system
@@ -550,7 +549,7 @@ func (em *EfficiencyMonitor) generateOptimizationOpportunities(data *JobEfficien
 }
 
 // GenerateEfficiencyReport creates comprehensive efficiency report
-func (em *EfficiencyMonitor) GenerateEfficiencyReport(jobIDs []string) (*EfficiencyReport, error) {
+func (em *EfficiencyMonitor) GenerateEfficiencyReport(jobIDs []string) *EfficiencyReport {
 	fmt.Printf("📈 Generating efficiency report for %d jobs...\n", len(jobIDs))
 
 	report := &EfficiencyReport{
@@ -634,7 +633,7 @@ func (em *EfficiencyMonitor) GenerateEfficiencyReport(jobIDs []string) (*Efficie
 	report.TrendAnalysis = em.generateTrendAnalysis(report)
 
 	fmt.Printf("✅ Efficiency report generated successfully\n")
-	return report, nil
+	return report
 }
 
 // calculatePotentialSavings estimates system-wide savings potential
@@ -936,19 +935,14 @@ func main() {
 	monitor := NewEfficiencyMonitor()
 
 	// Start monitoring
-	if err := monitor.StartMonitoring(); err != nil {
-		log.Fatalf("Failed to start monitoring: %v", err)
-	}
+	monitor.StartMonitoring()
 	defer monitor.StopMonitoring()
 
 	// Sample job IDs for demonstration
 	jobIDs := []string{"1001", "1002", "1003", "1004", "1005"}
 
 	// Generate comprehensive efficiency report
-	report, err := monitor.GenerateEfficiencyReport(jobIDs)
-	if err != nil {
-		log.Fatalf("Failed to generate efficiency report: %v", err)
-	}
+	report := monitor.GenerateEfficiencyReport(jobIDs)
 
 	// Print the efficiency report
 	monitor.PrintEfficiencyReport(report)

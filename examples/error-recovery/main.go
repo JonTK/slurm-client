@@ -449,12 +449,8 @@ func demonstrateErrorRecoveryWorkflows(ctx context.Context, cfg *config.Config, 
 		fmt.Println("\nAll attempts failed - initiating fallback workflow")
 
 		// Fallback: Submit to local queue for later processing
-		err := submitToLocalQueue(job)
-		if err != nil {
-			log.Printf("Local queue submission failed: %v", err)
-		} else {
-			fmt.Println("Job queued locally for later submission")
-		}
+		submitToLocalQueue(job)
+		fmt.Println("Job queued locally for later submission")
 		return
 	}
 
@@ -593,10 +589,9 @@ func simulateOperation(shouldFail bool) error {
 	return nil
 }
 
-func submitToLocalQueue(job *interfaces.JobSubmission) error {
+func submitToLocalQueue(job *interfaces.JobSubmission) {
 	// Simulate local queue submission
 	fmt.Printf("Queuing job '%s' locally\n", job.Name)
-	return nil
 }
 
 func shouldResubmit(exitCode int) bool {

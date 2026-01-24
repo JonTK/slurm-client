@@ -204,7 +204,7 @@ func NewAnalyticsCollector(baseURL string) *AnalyticsCollector {
 }
 
 // CollectJobAnalytics collects comprehensive analytics data for a job
-func (ac *AnalyticsCollector) CollectJobAnalytics(ctx context.Context, jobID string) (*JobAnalyticsData, error) {
+func (ac *AnalyticsCollector) CollectJobAnalytics(ctx context.Context, jobID string) *JobAnalyticsData {
 	analytics := &JobAnalyticsData{
 		JobID: jobID,
 	}
@@ -249,7 +249,7 @@ func (ac *AnalyticsCollector) CollectJobAnalytics(ctx context.Context, jobID str
 		analytics.Trends = trends
 	}
 
-	return analytics, nil
+	return analytics
 }
 
 func (ac *AnalyticsCollector) getJobUtilization(ctx context.Context, jobID string) (*UtilizationData, error) {
@@ -1055,13 +1055,8 @@ func main() {
 		fmt.Printf("Collecting analytics for Job %s...\n", jobID)
 
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		analytics, err := collector.CollectJobAnalytics(ctx, jobID)
+		analytics := collector.CollectJobAnalytics(ctx, jobID)
 		cancel()
-
-		if err != nil {
-			log.Printf("Failed to collect analytics for job %s: %v", jobID, err)
-			continue
-		}
 
 		jobAnalytics[jobID] = analytics
 		fmt.Printf("✅ Successfully collected analytics for Job %s\n", jobID)
