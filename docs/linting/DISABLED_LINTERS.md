@@ -160,6 +160,11 @@ These linters were recently enabled as part of major enhancements:
 - ✅ `unparam` - Detects unused parameters and always-nil returns
 - ✅ `intrange` - Suggests Go 1.22+ range loop syntax
 - ✅ `revive` (Phase 1) - Comprehensive Go style checking
+  - empty-block, context-as-argument, context-keys-type
+- ✅ `revive` (Phase 2) - Exported API checking and unreachable code
+  - exported, unused-parameter, unreachable-code
+- ✅ `revive` (Phase 3) - Error handling and code organization patterns
+  - error-naming, error-return, receiver-naming, indent-error-flow, blank-imports, var-declaration, unnecessary-stmt
 
 ## Future Enablement Candidates
 
