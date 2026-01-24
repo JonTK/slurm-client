@@ -306,10 +306,16 @@ func (a *JobAdapter) Update(ctx context.Context, jobID int32, update *types.JobU
 
 	// Add fields from update if provided
 	if update.TimeLimit != nil {
-		updateReq["jobs"].([]map[string]interface{})[0]["time_limit"] = *update.TimeLimit
+		jobs, ok := updateReq["jobs"].([]map[string]interface{})
+		if ok && len(jobs) > 0 {
+			jobs[0]["time_limit"] = *update.TimeLimit
+		}
 	}
 	if update.Priority != nil {
-		updateReq["jobs"].([]map[string]interface{})[0]["priority"] = *update.Priority
+		jobs, ok := updateReq["jobs"].([]map[string]interface{})
+		if ok && len(jobs) > 0 {
+			jobs[0]["priority"] = *update.Priority
+		}
 	}
 
 	// Note: v0.0.41 may not support job updates via API

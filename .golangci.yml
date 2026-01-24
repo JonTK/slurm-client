@@ -10,7 +10,6 @@ linters:
     - err113
     - exhaustruct
     - forbidigo
-    - forcetypeassert
     - funcorder                 # Function ordering is developer's choice
     - funlen
     - gochecknoglobals
@@ -143,6 +142,7 @@ linters:
           - errcheck
           - errchkjson
           - errorlint
+          - forcetypeassert
           - goconst
           - gocyclo
           - gocritic
@@ -221,6 +221,7 @@ linters:
           - errcheck
           - errorlint
           - exhaustive
+          - forcetypeassert
           - goconst
           - gocritic
           - gosec
