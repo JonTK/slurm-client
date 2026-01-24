@@ -7,7 +7,7 @@ This directory contains comprehensive examples demonstrating various features an
 ### 🚀 Basic Examples
 Start here if you're new to the library:
 
-- [`basic/`](basic/) - **Essential examples for beginners**
+- [`basic/`](basic/README.md) - **Essential examples for beginners**
   - [Connection & Authentication](basic/01_connect/main.go) - Various ways to connect to SLURM
   - [Listing Jobs](basic/02_list_jobs/main.go) - Query and filter job information
   - [Submitting Jobs](basic/03_submit_job/main.go) - Submit different types of jobs
@@ -99,7 +99,7 @@ Start here if you're new to the library:
 
 ## Multi-Version Support
 
-The [`multi-version/`](multi-version/) directory contains examples specifically demonstrating:
+The [`multi-version/`](multi-version/README.md) directory contains examples specifically demonstrating:
 - Version-specific features
 - API compatibility across versions
 - Version detection and selection
