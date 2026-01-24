@@ -148,6 +148,10 @@ This document explains why certain golangci-lint linters are permanently disable
 **Status**: Disabled
 **Reason**: Modernization suggestions (v2.8+ only). Not all suggestions are appropriate; we evaluate improvements case-by-case.
 
+#### `nestif`
+**Status**: Disabled
+**Reason**: Suggests reducing nested if statements. While reducing deep nesting can improve readability, sometimes nested if statements are the clearest way to express complex conditional logic without introducing unnecessary helper functions.
+
 ## Linters Intentionally Enabled
 
 These linters were recently enabled as part of major enhancements:
