@@ -184,7 +184,11 @@
     "gocognit",
     "funlen",
     "exhaustruct",
-    "nonamedreturns"
+    "nonamedreturns",
+    "Setenv",
+    "subtests",
+    "Errorf",
+    "nolint"
   ],
   "ignorePaths": [
     "vendor/**",
