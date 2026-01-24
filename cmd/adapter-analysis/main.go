@@ -161,7 +161,7 @@ func testJobsManager(client interfaces.SlurmClient, version string) {
 	}
 }
 
-func testNodesManager(client interfaces.SlurmClient, version string) {
+func testNodesManager(client interfaces.SlurmClient, _ string) {
 	ctx := context.Background()
 	fmt.Println("\n=== Nodes Manager ===")
 
@@ -220,7 +220,7 @@ func testNodesManager(client interfaces.SlurmClient, version string) {
 	}
 }
 
-func testPartitionsManager(client interfaces.SlurmClient, version string) {
+func testPartitionsManager(client interfaces.SlurmClient, _ string) {
 	ctx := context.Background()
 	fmt.Println("\n=== Partitions Manager ===")
 
@@ -269,7 +269,7 @@ func testPartitionsManager(client interfaces.SlurmClient, version string) {
 	}
 }
 
-func testAccountsManager(client interfaces.SlurmClient, version string) {
+func testAccountsManager(client interfaces.SlurmClient, _ string) {
 	ctx := context.Background()
 	fmt.Println("\n=== Accounts Manager ===")
 
@@ -337,7 +337,7 @@ func testAccountsManager(client interfaces.SlurmClient, version string) {
 	}
 }
 
-func testUsersManager(client interfaces.SlurmClient, version string) {
+func testUsersManager(client interfaces.SlurmClient, _ string) {
 	ctx := context.Background()
 	fmt.Println("\n=== Users Manager ===")
 
@@ -404,7 +404,7 @@ func testUsersManager(client interfaces.SlurmClient, version string) {
 	}
 }
 
-func testQoSManager(client interfaces.SlurmClient, version string) {
+func testQoSManager(client interfaces.SlurmClient, _ string) {
 	ctx := context.Background()
 	fmt.Println("\n=== QoS Manager ===")
 
@@ -479,7 +479,7 @@ func testQoSManager(client interfaces.SlurmClient, version string) {
 	}
 }
 
-func testReservationsManager(client interfaces.SlurmClient, version string) {
+func testReservationsManager(client interfaces.SlurmClient, _ string) {
 	ctx := context.Background()
 	fmt.Println("\n=== Reservations Manager ===")
 
@@ -551,7 +551,7 @@ func testReservationsManager(client interfaces.SlurmClient, version string) {
 	}
 }
 
-func testAssociationsManager(client interfaces.SlurmClient, version string) {
+func testAssociationsManager(client interfaces.SlurmClient, _ string) {
 	ctx := context.Background()
 	fmt.Println("\n=== Associations Manager ===")
 

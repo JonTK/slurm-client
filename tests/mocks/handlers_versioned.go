@@ -24,8 +24,10 @@ type JobHandler interface {
 }
 
 // V0040JobHandler handles v0.0.40 jobs
+// V0040JobHandler handles v0.0.40 job-related mock requests.
 type V0040JobHandler struct{}
 
+// ListJobs returns a list of jobs for v0.0.40.
 func (h *V0040JobHandler) ListJobs(r *http.Request, storage *MockStorage) ([]interface{}, error) {
 	// Parse filters
 	userID := parseQueryParam(r, "user_id")
@@ -58,6 +60,7 @@ func (h *V0040JobHandler) ListJobs(r *http.Request, storage *MockStorage) ([]int
 	return jobs, nil
 }
 
+// GetJob retrieves a specific job for v0.0.40.
 func (h *V0040JobHandler) GetJob(jobID string, storage *MockStorage) (interface{}, error) {
 	storage.mu.RLock()
 	defer storage.mu.RUnlock()
@@ -114,8 +117,10 @@ func (h *V0040JobHandler) matchesFilters(job *v0_0_40.V0040JobInfo, userID, part
 }
 
 // V0042JobHandler handles v0.0.42 jobs
+// V0042JobHandler handles v0.0.42 job-related mock requests.
 type V0042JobHandler struct{}
 
+// ListJobs returns a list of jobs for v0.0.42.
 func (h *V0042JobHandler) ListJobs(r *http.Request, storage *MockStorage) ([]interface{}, error) {
 	userID := parseQueryParam(r, "user_id")
 	partition := parseQueryParam(r, "partition")
@@ -146,6 +151,7 @@ func (h *V0042JobHandler) ListJobs(r *http.Request, storage *MockStorage) ([]int
 	return jobs, nil
 }
 
+// GetJob retrieves a specific job for v0.0.42.
 func (h *V0042JobHandler) GetJob(jobID string, storage *MockStorage) (interface{}, error) {
 	storage.mu.RLock()
 	defer storage.mu.RUnlock()
@@ -199,8 +205,10 @@ func (h *V0042JobHandler) matchesFilters(job *v0_0_42.V0042JobInfo, userID, part
 }
 
 // V0043JobHandler handles v0.0.43 jobs
+// V0043JobHandler handles v0.0.43 job-related mock requests.
 type V0043JobHandler struct{}
 
+// ListJobs returns a list of jobs for v0.0.43.
 func (h *V0043JobHandler) ListJobs(r *http.Request, storage *MockStorage) ([]interface{}, error) {
 	userID := parseQueryParam(r, "user_id")
 	partition := parseQueryParam(r, "partition")
@@ -231,6 +239,7 @@ func (h *V0043JobHandler) ListJobs(r *http.Request, storage *MockStorage) ([]int
 	return jobs, nil
 }
 
+// GetJob retrieves a specific job for v0.0.43.
 func (h *V0043JobHandler) GetJob(jobID string, storage *MockStorage) (interface{}, error) {
 	storage.mu.RLock()
 	defer storage.mu.RUnlock()
@@ -285,8 +294,10 @@ func (h *V0043JobHandler) matchesFilters(job *v0_0_43.V0043JobInfo, userID, part
 }
 
 // V0044JobHandler handles v0.0.44 jobs
+// V0044JobHandler handles v0.0.44 job-related mock requests.
 type V0044JobHandler struct{}
 
+// ListJobs returns a list of jobs for v0.0.44.
 func (h *V0044JobHandler) ListJobs(r *http.Request, storage *MockStorage) ([]interface{}, error) {
 	userID := parseQueryParam(r, "user_id")
 	partition := parseQueryParam(r, "partition")
@@ -317,6 +328,7 @@ func (h *V0044JobHandler) ListJobs(r *http.Request, storage *MockStorage) ([]int
 	return jobs, nil
 }
 
+// GetJob retrieves a specific job for v0.0.44.
 func (h *V0044JobHandler) GetJob(jobID string, storage *MockStorage) (interface{}, error) {
 	storage.mu.RLock()
 	defer storage.mu.RUnlock()

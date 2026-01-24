@@ -512,7 +512,7 @@ type customRetryPolicy struct {
 	shouldRetry func(error, int) bool
 }
 
-func (c *customRetryPolicy) ShouldRetry(ctx context.Context, resp *http.Response, err error, attempt int) bool {
+func (c *customRetryPolicy) ShouldRetry(_ context.Context, _ *http.Response, err error, attempt int) bool {
 	if attempt >= c.maxRetries {
 		return false
 	}

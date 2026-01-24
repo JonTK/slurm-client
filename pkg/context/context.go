@@ -119,14 +119,17 @@ func IsContextError(err error) bool {
 	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 }
 
-// ContextError wraps context errors with more descriptive messages
-type ContextError struct {
+// Error wraps context errors with more descriptive messages
+type Error struct {
 	Operation string
 	Timeout   time.Duration
 	Err       error
 }
 
-func (e *ContextError) Error() string {
+// ContextError is a deprecated alias for Error, kept for backward compatibility
+type ContextError = Error
+
+func (e *Error) Error() string {
 	if errors.Is(e.Err, context.DeadlineExceeded) {
 		return "operation '" + e.Operation + "' timed out after " + e.Timeout.String()
 	}
@@ -136,7 +139,7 @@ func (e *ContextError) Error() string {
 	return "context error in operation '" + e.Operation + "': " + e.Err.Error()
 }
 
-func (e *ContextError) Unwrap() error {
+func (e *Error) Unwrap() error {
 	return e.Err
 }
 
@@ -145,7 +148,7 @@ func WrapContextError(err error, operation string, timeout time.Duration) error 
 	if !IsContextError(err) {
 		return err
 	}
-	return &ContextError{
+	return &Error{
 		Operation: operation,
 		Timeout:   timeout,
 		Err:       err,

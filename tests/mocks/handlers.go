@@ -688,7 +688,7 @@ func (m *MockSlurmServer) handlePartitionsUpdate(w http.ResponseWriter, r *http.
 
 // Info endpoint handlers
 
-func (m *MockSlurmServer) handleInfoGet(w http.ResponseWriter, r *http.Request) {
+func (m *MockSlurmServer) handleInfoGet(w http.ResponseWriter, _ *http.Request) {
 	if !m.config.SupportedOperations["info.get"] {
 		m.writeErrorResponse(w, http.StatusNotImplemented, "Operation not supported")
 		return
@@ -705,7 +705,7 @@ func (m *MockSlurmServer) handleInfoGet(w http.ResponseWriter, r *http.Request) 
 	m.writeJSONResponse(w, response)
 }
 
-func (m *MockSlurmServer) handleInfoPing(w http.ResponseWriter, r *http.Request) {
+func (m *MockSlurmServer) handleInfoPing(w http.ResponseWriter, _ *http.Request) {
 	if !m.config.SupportedOperations["info.ping"] {
 		m.writeErrorResponse(w, http.StatusNotImplemented, "Operation not supported")
 		return
@@ -751,7 +751,7 @@ func (m *MockSlurmServer) handleInfoPing(w http.ResponseWriter, r *http.Request)
 	m.writeJSONResponse(w, response)
 }
 
-func (m *MockSlurmServer) handleInfoStats(w http.ResponseWriter, r *http.Request) {
+func (m *MockSlurmServer) handleInfoStats(w http.ResponseWriter, _ *http.Request) {
 	if !m.config.SupportedOperations["info.stats"] {
 		m.writeErrorResponse(w, http.StatusNotImplemented, "Operation not supported")
 		return
@@ -793,7 +793,7 @@ func (m *MockSlurmServer) handleInfoStats(w http.ResponseWriter, r *http.Request
 	m.writeJSONResponse(w, response)
 }
 
-func (m *MockSlurmServer) handleInfoVersion(w http.ResponseWriter, r *http.Request) {
+func (m *MockSlurmServer) handleInfoVersion(w http.ResponseWriter, _ *http.Request) {
 	if !m.config.SupportedOperations["info.version"] {
 		m.writeErrorResponse(w, http.StatusNotImplemented, "Operation not supported")
 		return
@@ -1181,7 +1181,7 @@ func (m *MockSlurmServer) handleJobPerformanceHistory(w http.ResponseWriter, r *
 	m.writeJSONResponse(w, response)
 }
 
-func (m *MockSlurmServer) handlePerformanceTrends(w http.ResponseWriter, r *http.Request) {
+func (m *MockSlurmServer) handlePerformanceTrends(w http.ResponseWriter, _ *http.Request) {
 	if !m.config.SupportedOperations["jobs.performance_trends"] {
 		m.writeErrorResponse(w, http.StatusNotImplemented, "Operation not supported")
 		return

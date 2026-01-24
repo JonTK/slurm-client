@@ -525,7 +525,7 @@ func TestResponseCache_Cleanup(t *testing.T) {
 	assert.Equal(t, int64(0), stats.CurrentItems)
 }
 
-func TestResponseCache_Close(t *testing.T) {
+func TestResponseCache_Close(_ *testing.T) {
 	cache := NewResponseCache(&CacheConfig{
 		CleanupInterval: 1 * time.Millisecond,
 	})

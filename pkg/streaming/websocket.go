@@ -26,7 +26,7 @@ func NewWebSocketServer(client interfaces.SlurmClient) *WebSocketServer {
 	return &WebSocketServer{
 		client: client,
 		upgrader: websocket.Upgrader{
-			CheckOrigin: func(r *http.Request) bool {
+			CheckOrigin: func(_ *http.Request) bool {
 				// In production, implement proper origin checking
 				return true
 			},

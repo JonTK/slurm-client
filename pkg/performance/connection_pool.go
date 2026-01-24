@@ -241,28 +241,31 @@ type EndpointStats struct {
 	AvgResponseTime string `json:"avg_response_time"`
 }
 
-// PerformanceProfile represents different performance optimization profiles
-type PerformanceProfile string
+// Profile represents different performance optimization profiles
+type Profile string
+
+// PerformanceProfile is a deprecated alias for Profile, kept for backward compatibility
+type PerformanceProfile = Profile
 
 const (
 	// ProfileDefault provides balanced performance and resource usage
-	ProfileDefault PerformanceProfile = "default"
+	ProfileDefault Profile = "default"
 
 	// ProfileHighThroughput optimizes for maximum throughput
-	ProfileHighThroughput PerformanceProfile = "high_throughput"
+	ProfileHighThroughput Profile = "high_throughput"
 
 	// ProfileLowLatency optimizes for minimum latency
-	ProfileLowLatency PerformanceProfile = "low_latency"
+	ProfileLowLatency Profile = "low_latency"
 
 	// ProfileConservative minimizes resource usage
-	ProfileConservative PerformanceProfile = "conservative"
+	ProfileConservative Profile = "conservative"
 
 	// ProfileBatch optimizes for batch processing workloads
-	ProfileBatch PerformanceProfile = "batch"
+	ProfileBatch Profile = "batch"
 )
 
 // GetConnectionPoolConfigForProfile returns an optimized configuration for the given profile
-func GetConnectionPoolConfigForProfile(profile PerformanceProfile) *ConnectionPoolConfig {
+func GetConnectionPoolConfigForProfile(profile Profile) *ConnectionPoolConfig {
 	switch profile {
 	case ProfileHighThroughput:
 		return HighPerformanceConnectionPoolConfig()
@@ -303,7 +306,7 @@ func NewHTTPClientPoolManager() *HTTPClientPoolManager {
 }
 
 // GetPoolForVersion returns a connection pool optimized for the given API version
-func (m *HTTPClientPoolManager) GetPoolForVersion(version string, profile PerformanceProfile) *HTTPClientPool {
+func (m *HTTPClientPoolManager) GetPoolForVersion(version string, profile Profile) *HTTPClientPool {
 	poolKey := version + ":" + string(profile)
 
 	m.mutex.RLock()

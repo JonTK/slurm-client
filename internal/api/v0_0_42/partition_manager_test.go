@@ -100,9 +100,9 @@ func TestConvertAPIPartitionToInterface(t *testing.T) {
 			},
 		},
 		Defaults: &struct {
-			Job                    *string                 `json:"job,omitempty"`
-			MemoryPerCpu           *int64                  `json:"memory_per_cpu,omitempty"`
-			PartitionMemoryPerCpu  *V0042Uint64NoValStruct `json:"partition_memory_per_cpu,omitempty"`
+			Job                     *string                 `json:"job,omitempty"`
+			MemoryPerCpu            *int64                  `json:"memory_per_cpu,omitempty"`
+			PartitionMemoryPerCpu   *V0042Uint64NoValStruct `json:"partition_memory_per_cpu,omitempty"`
 			PartitionMemoryPerNode *V0042Uint64NoValStruct `json:"partition_memory_per_node,omitempty"`
 			Time                   *V0042Uint32NoValStruct `json:"time,omitempty"`
 		}{

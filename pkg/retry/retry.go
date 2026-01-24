@@ -182,7 +182,7 @@ func (f *FixedDelay) ShouldRetry(ctx context.Context, resp *http.Response, err e
 }
 
 // WaitTime returns the wait time before the next retry
-func (f *FixedDelay) WaitTime(attempt int) time.Duration {
+func (f *FixedDelay) WaitTime(_ int) time.Duration {
 	return f.delay
 }
 
@@ -200,12 +200,12 @@ func NewNoRetry() *NoRetry {
 }
 
 // ShouldRetry always returns false
-func (n *NoRetry) ShouldRetry(ctx context.Context, resp *http.Response, err error, attempt int) bool {
+func (n *NoRetry) ShouldRetry(_ context.Context, _ *http.Response, _ error, _ int) bool {
 	return false
 }
 
 // WaitTime returns zero duration
-func (n *NoRetry) WaitTime(attempt int) time.Duration {
+func (n *NoRetry) WaitTime(_ int) time.Duration {
 	return 0
 }
 
