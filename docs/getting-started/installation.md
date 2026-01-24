@@ -73,4 +73,4 @@ slurm-cli --version
 
 - [Quick Start Guide](quick-start.md) - Learn the basics
 - [Configuration](../configuration.md) - Configure authentication and options
-- [Examples](../examples/README.md) - Browse code examples
+- [Examples](../../examples/README.md) - Browse code examples

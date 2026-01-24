@@ -1228,7 +1228,7 @@ go test -v ./tests/integration/...
 ./scripts/diagnose-slurm-auth.sh
 ```
 
-See [Real Server Testing Guide](tests/integration/REAL_SERVER_TESTING.md) for detailed setup instructions.
+See [Real Server Testing Guide](https://github.com/jontk/slurm-client/blob/main/tests/integration/REAL_SERVER_TESTING.md) for detailed setup instructions.
 
 ### Known Limitations
 

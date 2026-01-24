@@ -161,7 +161,7 @@ Common issues with wrapper pattern:
 
 ## See Also
 
-- [Adapter Pattern Documentation](../README.md#quick-start-recommended-approach)
-- [API Reference](./api/)
-- [Examples](../examples/)
+- [Adapter Pattern Documentation](../index.md#quick-start-recommended-approach)
+- [API Reference](../api/README.md)
+- [Examples](../../examples/README.md)
 - [Architecture Overview](./ARCHITECTURE.md)

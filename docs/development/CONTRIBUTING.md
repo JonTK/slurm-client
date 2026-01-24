@@ -314,8 +314,8 @@ Releases are managed by maintainers:
 
 ## Getting Help
 
-- Check [documentation](./docs)
-- Review [examples](./examples)
+- Check [documentation](../index.md)
+- Review [examples](../../examples/README.md)
 - Ask questions in [GitHub Issues](https://github.com/jontk/slurm-client/issues)
 - Review existing [Pull Requests](https://github.com/jontk/slurm-client/pulls)
 

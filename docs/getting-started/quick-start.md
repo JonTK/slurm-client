@@ -229,7 +229,7 @@ func main() {
 
 ## Next Steps
 
-- Explore more [Examples](../examples/README.md)
+- Explore more [Examples](../../examples/README.md)
 - Learn about [Configuration](../configuration.md) options
 - Read the [API Reference](../api/README.md)
 - Check out the [CLI Reference](../cli/README.md) for command-line usage
