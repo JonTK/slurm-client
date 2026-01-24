@@ -679,7 +679,7 @@ func (em *EfficiencyMonitor) identifyTopSystemIssues(jobAnalyses []JobEfficiency
 		issue string
 		count int
 	}
-	var issues []issueCount
+	issues := make([]issueCount, 0, len(issueFrequency))
 	for issue, count := range issueFrequency {
 		issues = append(issues, issueCount{issue, count})
 	}
@@ -919,7 +919,7 @@ func (em *EfficiencyMonitor) ExportReportToJSON(report *EfficiencyReport, filena
 		return fmt.Errorf("failed to marshal report: %w", err)
 	}
 
-	if err := os.WriteFile(filename, data, 0644); err != nil {
+	if err := os.WriteFile(filename, data, 0600); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 

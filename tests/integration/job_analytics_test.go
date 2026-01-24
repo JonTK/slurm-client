@@ -378,9 +378,9 @@ func testComparativeAnalyticsEndpoints(t *testing.T, baseURL, apiVersion, jobID 
 		if err != nil {
 			// Fallback to GET request if POST is not handled
 			getUrl := fmt.Sprintf("%s?job_ids=%s,1002", url, jobID)
-			getReq, err := http.NewRequestWithContext(context.Background(), http.MethodGet, getUrl, nil)
-			if err != nil {
-				t.Fatalf("failed to create GET request: %v", err)
+			getReq, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, getUrl, nil)
+			if reqErr != nil {
+				t.Fatalf("failed to create GET request: %v", reqErr)
 			}
 			resp, err = http.DefaultClient.Do(getReq)
 		}
@@ -444,9 +444,9 @@ func testComparativeAnalyticsEndpoints(t *testing.T, baseURL, apiVersion, jobID 
 		if err != nil {
 			// Fallback to GET request if POST is not handled
 			getUrl := fmt.Sprintf("%s?job_ids=%s,1002", url, jobID)
-			getReq, err := http.NewRequestWithContext(context.Background(), http.MethodGet, getUrl, nil)
-			if err != nil {
-				t.Fatalf("failed to create GET request: %v", err)
+			getReq, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, getUrl, nil)
+			if reqErr != nil {
+				t.Fatalf("failed to create GET request: %v", reqErr)
 			}
 			resp, err = http.DefaultClient.Do(getReq)
 		}
@@ -642,11 +642,12 @@ func TestJobAnalyticsPerformance(t *testing.T) {
 			go func(requestID int) {
 				url := fmt.Sprintf("%s/slurm/v0.0.42/job/%s/utilization", baseURL, jobID)
 				req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
-		if err != nil {
-			t.Fatalf("failed to create request: %v", err)
-		}
-		resp, err := http.DefaultClient.Do(req)
-
+				assert.NoError(t, err)
+				if err != nil {
+					done <- false
+					return
+				}
+				resp, err := http.DefaultClient.Do(req)
 				assert.NoError(t, err)
 				if resp != nil {
 					assert.Equal(t, http.StatusOK, resp.StatusCode)

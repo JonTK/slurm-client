@@ -115,7 +115,7 @@ func advancedExample(ctx context.Context) {
 				TLSClientConfig: &tls.Config{
 					MinVersion: tls.VersionTLS12,
 					// Only for development/testing
-					InsecureSkipVerify: true,
+					InsecureSkipVerify: true, // #nosec G402 - only for development/testing
 				},
 			},
 		}),
