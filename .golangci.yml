@@ -157,6 +157,9 @@ linters:
         - name: var-declaration
           severity: warning
           disabled: false
+        - name: unnecessary-stmt
+          severity: warning
+          disabled: false
     perfsprint:
       # Enable performance optimizations for sprintf
       int-conversion: true      # Use strconv instead of fmt.Sprintf for integers
