@@ -252,7 +252,7 @@ When new SLURM REST API versions are released, the library follows this deprecat
 
 ### Migration Assistance
 
-For migration between versions, see [MIGRATION.md](MIGRATION.md) which includes:
+For migration between versions, see [MIGRATION.md](development/MIGRATION.md) which includes:
 - Breaking changes between versions
 - API compatibility matrices
 - Step-by-step migration guides
@@ -448,7 +448,7 @@ func advancedExample() {
 }
 ```
 
-> **📚 Need wrapper documentation?** See [Advanced Wrapper Usage](docs/wrapper-advanced.md)
+> **📚 Need wrapper documentation?** See [Advanced Wrapper Usage](wrapper-advanced.md)
 
 #### Adapter Configuration Options
 
@@ -1066,7 +1066,7 @@ make generate          # Generate all version-specific clients
 make generate-version VERSION=v0.0.43  # Generate specific version
 ```
 
-**Important**: Never edit generated files (marked with "DO NOT EDIT"). See [Code Generation Guide](docs/CODE_GENERATION.md) for details.
+**Important**: Never edit generated files (marked with "DO NOT EDIT"). See [Code Generation Guide](CODE_GENERATION.md) for details.
 
 ### Development Setup
 
@@ -1157,7 +1157,7 @@ Stream different resource types:
 - **Nodes**: Availability, allocation changes
 - **Partitions**: Configuration updates
 
-See the [streaming example](examples/streaming-server/) for a complete web interface.
+See the [streaming example](../examples/streaming-server/main.go) for a complete web interface.
 
 ## 🔧 CLI Tool
 
@@ -1253,9 +1253,9 @@ We welcome contributions! This project follows enterprise development practices:
 
 ## 📚 Documentation
 
-- **[Architecture Documentation](docs/ARCHITECTURE.md)**: Technical design and patterns
-- **[API Documentation](docs/api/)**: Version-specific API documentation
-- **[Examples](examples/)**: Practical usage examples and tutorials
+- **[Architecture Documentation](ARCHITECTURE.md)**: Technical design and patterns
+- **[API Documentation](api/README.md)**: Version-specific API documentation
+- **[Examples](../examples/README.md)**: Practical usage examples and tutorials
 
 ## 🏆 Recognition
 
@@ -1268,7 +1268,7 @@ We welcome contributions! This project follows enterprise development practices:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/jontk/slurm-client/blob/main/LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 

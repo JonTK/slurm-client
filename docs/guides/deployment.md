@@ -363,6 +363,6 @@ if os.Getenv("DEBUG") == "true" {
 
 ## See Also
 
-- [Configuration Guide](./configuration.md)
+- [Configuration Guide](../configuration.md)
 - [Troubleshooting Guide](./troubleshooting.md)
-- [Examples](../examples)
+- [Examples](../../examples/README.md)

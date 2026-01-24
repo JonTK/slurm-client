@@ -612,7 +612,7 @@ go test ./tests/integration/... -v
 If you encounter issues during migration:
 
 1. **Check version compatibility**: See [README.md](../index.md#supported-versions)
-2. **Review examples**: See [examples/](examples/) for version-specific examples
+2. **Review examples**: See [examples/](../../examples/README.md) for version-specific examples
 3. **Run diagnostics**: Use `./scripts/diagnose-slurm-auth.sh` for auth issues
 4. **Open an issue**: [GitHub Issues](https://github.com/jontk/slurm-client/issues)
 

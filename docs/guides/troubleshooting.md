@@ -163,6 +163,6 @@ If you continue to experience issues:
 
 ## See Also
 
-- [Configuration Guide](./configuration.md)
-- [API Documentation](./api)
-- [Examples](../examples)
+- [Configuration Guide](../configuration.md)
+- [API Documentation](../api/README.md)
+- [Examples](../../examples/README.md)
