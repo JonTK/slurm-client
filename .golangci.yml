@@ -245,23 +245,6 @@ linters:
           - lll
         source: '^//go:generate '
       - linters:
-          - dupl
-          - errcheck
-          - errorlint
-          - exhaustive
-          - forcetypeassert
-          - goconst
-          - gocritic
-          - gosec
-          - ineffassign
-          - noctx
-          - perfsprint
-          - prealloc
-          - staticcheck
-          - unparam
-          - unused
-        path: ^examples/
-      - linters:
           - errcheck
           - goconst
           - unparam
@@ -379,7 +362,6 @@ linters:
       - testdata
       - third_party$
       - builtin$
-      - examples$
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -330,7 +331,12 @@ func (em *EfficiencyMonitor) CollectJobEfficiencyData(jobID string) (*JobEfficie
 
 // fetchAndParseJSON performs HTTP request and JSON parsing
 func (em *EfficiencyMonitor) fetchAndParseJSON(url string, target interface{}) error {
-	resp, err := em.httpClient.Get(url)
+	ctx := context.Background()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
+	if err != nil {
+		return err
+	}
+	resp, err := em.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
