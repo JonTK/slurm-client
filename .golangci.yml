@@ -262,13 +262,8 @@ linters:
           - unused
         path: ^examples/
       - linters:
-          - dupl
           - errcheck
-          - errorlint
           - goconst
-          - gocritic
-          - perfsprint
-          - staticcheck
           - unparam
           - unused
         path: ^cmd/
