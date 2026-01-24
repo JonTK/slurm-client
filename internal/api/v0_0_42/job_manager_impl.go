@@ -2569,7 +2569,7 @@ func calculateStepScalability(stepDetails *interfaces.JobStepDetails, nodeCount 
 	return scalabilityRatio * 100
 }
 
-func generateTaskUtilizations(stepDetails *interfaces.JobStepDetails, stepID int) []interfaces.TaskUtilization {
+func generateTaskUtilizations(stepDetails *interfaces.JobStepDetails, _ int) []interfaces.TaskUtilization {
 	tasks := make([]interfaces.TaskUtilization, len(stepDetails.Tasks))
 
 	for i, task := range stepDetails.Tasks {
@@ -2707,7 +2707,7 @@ func (m *JobManagerImpl) ListJobStepsWithMetrics(ctx context.Context, jobID stri
 }
 
 // Helper function to generate basic trends for v0.0.42
-func generateBasicStepTrends(stepDetails *interfaces.JobStepDetails, stepUtilization *interfaces.JobStepUtilization) *interfaces.StepResourceTrends {
+func generateBasicStepTrends(stepDetails *interfaces.JobStepDetails, _ *interfaces.JobStepUtilization) *interfaces.StepResourceTrends {
 	// Simplified trend generation for v0.0.42
 	return &interfaces.StepResourceTrends{
 		StepID:           stepDetails.StepID,
@@ -3372,19 +3372,19 @@ func combineBottlenecksV42(cpu *interfaces.CPUAnalytics, memory *interfaces.Memo
 }
 
 // GetStepAccountingData retrieves accounting data for a specific job step
-func (m *JobManagerImpl) GetStepAccountingData(ctx context.Context, jobID string, stepID string) (*interfaces.StepAccountingRecord, error) {
+func (m *JobManagerImpl) GetStepAccountingData(_ context.Context, jobID string, stepID string) (*interfaces.StepAccountingRecord, error) {
 	// v0.0.42 has basic step accounting data support
 	return nil, fmt.Errorf("GetStepAccountingData not fully implemented in v0.0.42")
 }
 
 // GetJobStepAPIData integrates with SLURM's native job step APIs for real-time data
-func (m *JobManagerImpl) GetJobStepAPIData(ctx context.Context, jobID string, stepID string) (*interfaces.JobStepAPIData, error) {
+func (m *JobManagerImpl) GetJobStepAPIData(_ context.Context, jobID string, stepID string) (*interfaces.JobStepAPIData, error) {
 	// v0.0.42 has basic job step API data support
 	return nil, fmt.Errorf("GetJobStepAPIData not fully implemented in v0.0.42")
 }
 
 // ListJobStepsFromSacct queries job steps using SLURM's sacct command integration
-func (m *JobManagerImpl) ListJobStepsFromSacct(ctx context.Context, jobID string, opts *interfaces.SacctQueryOptions) (*interfaces.SacctJobStepData, error) {
+func (m *JobManagerImpl) ListJobStepsFromSacct(_ context.Context, jobID string, opts *interfaces.SacctQueryOptions) (*interfaces.SacctJobStepData, error) {
 	// v0.0.42 has basic sacct integration support
 	return &interfaces.SacctJobStepData{
 		JobID: jobID,
@@ -3393,7 +3393,7 @@ func (m *JobManagerImpl) ListJobStepsFromSacct(ctx context.Context, jobID string
 }
 
 // AnalyzeBatchJobs performs bulk analysis on a collection of jobs
-func (m *JobManagerImpl) AnalyzeBatchJobs(ctx context.Context, jobIDs []string, opts *interfaces.BatchAnalysisOptions) (*interfaces.BatchJobAnalysis, error) {
+func (m *JobManagerImpl) AnalyzeBatchJobs(ctx context.Context, jobIDs []string, _ *interfaces.BatchAnalysisOptions) (*interfaces.BatchJobAnalysis, error) {
 	if len(jobIDs) == 0 {
 		return nil, fmt.Errorf("no job IDs provided for batch analysis")
 	}
@@ -3464,7 +3464,7 @@ func (m *JobManagerImpl) AnalyzeBatchJobs(ctx context.Context, jobIDs []string, 
 }
 
 // GetJobStepsFromAccounting retrieves job step data from SLURM's accounting database
-func (m *JobManagerImpl) GetJobStepsFromAccounting(ctx context.Context, jobID string, opts *interfaces.AccountingQueryOptions) (*interfaces.AccountingJobSteps, error) {
+func (m *JobManagerImpl) GetJobStepsFromAccounting(ctx context.Context, jobID string, _ *interfaces.AccountingQueryOptions) (*interfaces.AccountingJobSteps, error) {
 	return &interfaces.AccountingJobSteps{
 		JobID: jobID,
 		Steps: []interfaces.StepAccountingRecord{},
@@ -3472,7 +3472,7 @@ func (m *JobManagerImpl) GetJobStepsFromAccounting(ctx context.Context, jobID st
 }
 
 // GetJobPerformanceHistory retrieves historical performance data for a job
-func (m *JobManagerImpl) GetJobPerformanceHistory(ctx context.Context, jobID string, opts *interfaces.PerformanceHistoryOptions) (*interfaces.JobPerformanceHistory, error) {
+func (m *JobManagerImpl) GetJobPerformanceHistory(ctx context.Context, jobID string, _ *interfaces.PerformanceHistoryOptions) (*interfaces.JobPerformanceHistory, error) {
 	// Validate job exists
 	_, err := m.Get(ctx, jobID)
 	if err != nil {

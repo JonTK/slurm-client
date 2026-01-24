@@ -23,26 +23,26 @@ func NewClusterManagerStub(version string) *ClusterManagerStub {
 }
 
 // List returns not implemented error
-func (c *ClusterManagerStub) List(ctx context.Context, opts *interfaces.ListClustersOptions) (*interfaces.ClusterList, error) {
+func (c *ClusterManagerStub) List(_ context.Context, _ *interfaces.ListClustersOptions) (*interfaces.ClusterList, error) {
 	return nil, errors.NewNotImplementedError("cluster listing", c.Version)
 }
 
 // Get returns not implemented error
-func (c *ClusterManagerStub) Get(ctx context.Context, clusterName string) (*interfaces.Cluster, error) {
+func (c *ClusterManagerStub) Get(_ context.Context, _ string) (*interfaces.Cluster, error) {
 	return nil, errors.NewNotImplementedError("cluster retrieval", c.Version)
 }
 
 // Create returns not implemented error
-func (c *ClusterManagerStub) Create(ctx context.Context, cluster *interfaces.ClusterCreate) (*interfaces.ClusterCreateResponse, error) {
+func (c *ClusterManagerStub) Create(_ context.Context, _ *interfaces.ClusterCreate) (*interfaces.ClusterCreateResponse, error) {
 	return nil, errors.NewNotImplementedError("cluster creation", c.Version)
 }
 
 // Update returns not implemented error
-func (c *ClusterManagerStub) Update(ctx context.Context, clusterName string, update *interfaces.ClusterUpdate) error {
+func (c *ClusterManagerStub) Update(_ context.Context, _ string, _ *interfaces.ClusterUpdate) error {
 	return errors.NewNotImplementedError("cluster update", c.Version)
 }
 
 // Delete returns not implemented error
-func (c *ClusterManagerStub) Delete(ctx context.Context, clusterName string) error {
+func (c *ClusterManagerStub) Delete(_ context.Context, _ string) error {
 	return errors.NewNotImplementedError("cluster deletion", c.Version)
 }

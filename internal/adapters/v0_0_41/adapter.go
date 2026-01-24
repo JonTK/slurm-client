@@ -103,19 +103,19 @@ func (a *Adapter) GetClusterManager() common.ClusterAdapter {
 // NotImplementedClusterAdapter provides stub implementation for versions that don't have cluster management
 type NotImplementedClusterAdapter struct{}
 
-func (n *NotImplementedClusterAdapter) List(ctx context.Context, opts *types.ClusterListOptions) (*types.ClusterList, error) {
+func (n *NotImplementedClusterAdapter) List(_ context.Context, _ *types.ClusterListOptions) (*types.ClusterList, error) {
 	return nil, fmt.Errorf("cluster management not implemented for this API version")
 }
 
-func (n *NotImplementedClusterAdapter) Get(ctx context.Context, clusterName string) (*types.Cluster, error) {
+func (n *NotImplementedClusterAdapter) Get(_ context.Context, _ string) (*types.Cluster, error) {
 	return nil, fmt.Errorf("cluster management not implemented for this API version")
 }
 
-func (n *NotImplementedClusterAdapter) Create(ctx context.Context, cluster *types.ClusterCreate) (*types.ClusterCreateResponse, error) {
+func (n *NotImplementedClusterAdapter) Create(_ context.Context, _ *types.ClusterCreate) (*types.ClusterCreateResponse, error) {
 	return nil, fmt.Errorf("cluster management not implemented for this API version")
 }
 
-func (n *NotImplementedClusterAdapter) Delete(ctx context.Context, clusterName string) error {
+func (n *NotImplementedClusterAdapter) Delete(_ context.Context, _ string) error {
 	return fmt.Errorf("cluster management not implemented for this API version")
 }
 

@@ -48,7 +48,7 @@ func NewLogger(config *Config) Logger {
 
 	opts := &slog.HandlerOptions{
 		Level: config.Level,
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+		ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
 			// Customize time format
 			if a.Key == slog.TimeKey {
 				return slog.String(slog.TimeKey, a.Value.Time().Format(time.RFC3339))
@@ -274,12 +274,12 @@ func getErrorType(err error) string {
 // NoOpLogger is a logger that discards all log messages
 type NoOpLogger struct{}
 
-func (NoOpLogger) Debug(msg string, args ...any)          {}
-func (NoOpLogger) Info(msg string, args ...any)           {}
-func (NoOpLogger) Warn(msg string, args ...any)           {}
-func (NoOpLogger) Error(msg string, args ...any)          {}
-func (NoOpLogger) With(args ...any) Logger                { return NoOpLogger{} }
-func (NoOpLogger) WithContext(ctx context.Context) Logger { return NoOpLogger{} }
+func (NoOpLogger) Debug(_ string, _ ...any)          {}
+func (NoOpLogger) Info(_ string, _ ...any)           {}
+func (NoOpLogger) Warn(_ string, _ ...any)           {}
+func (NoOpLogger) Error(_ string, _ ...any)          {}
+func (NoOpLogger) With(_ ...any) Logger                { return NoOpLogger{} }
+func (NoOpLogger) WithContext(_ context.Context) Logger { return NoOpLogger{} }
 
 // DefaultLogger is a package-level logger for convenience
 var DefaultLogger = NewLogger(DefaultConfig())

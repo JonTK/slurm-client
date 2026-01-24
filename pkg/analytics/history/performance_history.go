@@ -28,7 +28,7 @@ func NewPerformanceHistoryTracker() *PerformanceHistoryTracker {
 
 // GetJobPerformanceHistory retrieves historical performance data for a job
 func (pht *PerformanceHistoryTracker) GetJobPerformanceHistory(
-	ctx context.Context,
+	_ context.Context,
 	job *interfaces.Job,
 	samples []interfaces.JobComprehensiveAnalytics,
 	opts *interfaces.PerformanceHistoryOptions,

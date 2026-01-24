@@ -160,12 +160,12 @@ func (c *InMemoryCollector) RecordError(method, path string, err error) {
 }
 
 // RecordCacheHit records a cache hit
-func (c *InMemoryCollector) RecordCacheHit(key string) {
+func (c *InMemoryCollector) RecordCacheHit(_ string) {
 	atomic.AddInt64(&c.cacheHits, 1)
 }
 
 // RecordCacheMiss records a cache miss
-func (c *InMemoryCollector) RecordCacheMiss(key string) {
+func (c *InMemoryCollector) RecordCacheMiss(_ string) {
 	atomic.AddInt64(&c.cacheMisses, 1)
 }
 
@@ -341,11 +341,11 @@ func (d *durationAggregator) stats() DurationStats {
 // NoOpCollector is a no-op implementation of Collector
 type NoOpCollector struct{}
 
-func (NoOpCollector) RecordRequest(method, path string)                                          {}
-func (NoOpCollector) RecordResponse(method, path string, statusCode int, duration time.Duration) {}
-func (NoOpCollector) RecordError(method, path string, err error)                                 {}
-func (NoOpCollector) RecordCacheHit(key string)                                                  {}
-func (NoOpCollector) RecordCacheMiss(key string)                                                 {}
+func (NoOpCollector) RecordRequest(_ string, _ string)                                          {}
+func (NoOpCollector) RecordResponse(_ string, _ string, _ int, _ time.Duration) {}
+func (NoOpCollector) RecordError(_ string, _ string, _ error)                                 {}
+func (NoOpCollector) RecordCacheHit(_ string)                                                  {}
+func (NoOpCollector) RecordCacheMiss(_ string)                                                 {}
 func (NoOpCollector) GetStats() *Stats                                                           { return &Stats{} }
 func (NoOpCollector) Reset()                                                                     {}
 

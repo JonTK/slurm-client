@@ -42,7 +42,7 @@ type ClientFactory struct {
 }
 
 // NewClientFactory creates a new client factory
-func NewClientFactory(options ...FactoryOption) (*ClientFactory, error) {
+func NewClientFactory(options ...Option) (*ClientFactory, error) {
 	factory := &ClientFactory{
 		config: config.NewDefault(),
 		httpClient: &http.Client{
@@ -65,11 +65,14 @@ func NewClientFactory(options ...FactoryOption) (*ClientFactory, error) {
 	return factory, nil
 }
 
-// FactoryOption represents a configuration option for the ClientFactory
-type FactoryOption func(*ClientFactory) error
+// Option represents a configuration option for the ClientFactory
+type Option func(*ClientFactory) error
+
+// FactoryOption is a deprecated alias for Option, kept for backward compatibility
+type FactoryOption = Option
 
 // WithConfig sets the factory configuration
-func WithConfig(cfg *config.Config) FactoryOption {
+func WithConfig(cfg *config.Config) Option {
 	return func(f *ClientFactory) error {
 		f.config = cfg
 		return nil
@@ -77,7 +80,7 @@ func WithConfig(cfg *config.Config) FactoryOption {
 }
 
 // WithHTTPClient sets a custom HTTP client
-func WithHTTPClient(httpClient *http.Client) FactoryOption {
+func WithHTTPClient(httpClient *http.Client) Option {
 	return func(f *ClientFactory) error {
 		f.httpClient = httpClient
 		return nil
@@ -85,7 +88,7 @@ func WithHTTPClient(httpClient *http.Client) FactoryOption {
 }
 
 // WithAuth sets the authentication provider
-func WithAuth(auth auth.Provider) FactoryOption {
+func WithAuth(auth auth.Provider) Option {
 	return func(f *ClientFactory) error {
 		f.auth = auth
 		return nil
@@ -93,7 +96,7 @@ func WithAuth(auth auth.Provider) FactoryOption {
 }
 
 // WithRetryPolicy sets the retry policy
-func WithRetryPolicy(policy retry.Policy) FactoryOption {
+func WithRetryPolicy(policy retry.Policy) Option {
 	return func(f *ClientFactory) error {
 		f.retryPolicy = policy
 		return nil
@@ -101,7 +104,7 @@ func WithRetryPolicy(policy retry.Policy) FactoryOption {
 }
 
 // WithBaseURL sets the base URL for the Slurm REST API
-func WithBaseURL(baseURL string) FactoryOption {
+func WithBaseURL(baseURL string) Option {
 	return func(f *ClientFactory) error {
 		f.baseURL = baseURL
 		return nil
@@ -109,7 +112,7 @@ func WithBaseURL(baseURL string) FactoryOption {
 }
 
 // WithUseAdapters enables the use of adapter implementations instead of wrapper clients
-func WithUseAdapters(useAdapters bool) FactoryOption {
+func WithUseAdapters(useAdapters bool) Option {
 	return func(f *ClientFactory) error {
 		f.useAdapters = useAdapters
 		return nil

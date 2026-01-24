@@ -130,6 +130,15 @@ linters:
         - name: context-keys-type
           severity: warning
           disabled: false
+        - name: exported
+          severity: warning
+          disabled: false
+        - name: unused-parameter
+          severity: warning
+          disabled: false
+        - name: unreachable-code
+          severity: warning
+          disabled: false
     perfsprint:
       # Enable performance optimizations for sprintf
       int-conversion: true      # Use strconv instead of fmt.Sprintf for integers
@@ -272,6 +281,46 @@ linters:
           - thelper
           - unparam
         path: ^tests/
+      - linters:
+          - revive
+        path: client_options\.go
+        text: unused-parameter  # Builder pattern functions intentionally have unused parameters
+      - linters:
+          - revive
+        path: ^internal/factory/
+        text: unused-parameter  # Factory builder functions intentionally have unused parameters
+      - linters:
+          - revive
+        path: ^pkg/.*_options\.go
+        text: unused-parameter  # Options functions intentionally have unused parameters
+      - linters:
+          - revive
+        path: ^internal/api/.*_manager_impl\.go$
+        text: unused-parameter  # Converter functions have consistent signatures across versions
+      - linters:
+          - revive
+        path: ^internal/common/(standalone_stubs|association_manager_stub)\.go$
+        text: unused-parameter  # Stub implementations need to match interface signatures
+      - linters:
+          - revive
+        path: ^internal/adapters/.*_adapter\.go$
+        text: unused-parameter  # Adapter implementations need to match interface signatures
+      - linters:
+          - revive
+        path: ^pkg/streaming/test_helpers\.go$
+        text: unused-parameter  # Test helper functions intentionally have unused parameters
+      - linters:
+          - revive
+        path: _test\.go$
+        text: unused-parameter  # Test functions often have unused parameters
+      - linters:
+          - revive
+        path: (client\.go|interfaces\.go|pkg/errors/)
+        text: exported  # Established public API types - renaming would break compatibility
+      - linters:
+          - revive
+        path: (internal/factory/factory\.go|pkg/context/context\.go|pkg/performance/connection_pool\.go|pkg/pool/connection_pool\.go|internal/managers/base/base_manager\.go)
+        text: exported  # Backward compatibility type aliases and established internal types
       - linters:
           - exhaustive
         path: ^internal/common/slurm_error_codes\.go$

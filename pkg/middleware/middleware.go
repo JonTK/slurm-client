@@ -111,7 +111,7 @@ func WithRetry(maxAttempts int, shouldRetry ShouldRetryFunc) Middleware {
 			var lastResp *http.Response
 
 			for attempt := range maxAttempts {
-				// Clone request for retry
+			// Clone request for retry
 				reqCopy := cloneRequest(req)
 
 				resp, err := next.RoundTrip(reqCopy)
@@ -155,7 +155,7 @@ func WithRetry(maxAttempts int, shouldRetry ShouldRetryFunc) Middleware {
 type ShouldRetryFunc func(resp *http.Response, err error, attempt int) bool
 
 // DefaultShouldRetry is the default retry logic
-func DefaultShouldRetry(resp *http.Response, err error, attempt int) bool {
+func DefaultShouldRetry(resp *http.Response, err error, _ int) bool {
 	// Don't retry if context is canceled
 	if err != nil && errors.Is(err, context.Canceled) {
 		return false

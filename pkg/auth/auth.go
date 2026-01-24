@@ -28,7 +28,7 @@ func NewTokenAuth(token string) *TokenAuth {
 }
 
 // Authenticate adds the token to the request
-func (t *TokenAuth) Authenticate(ctx context.Context, req *http.Request) error {
+func (t *TokenAuth) Authenticate(_ context.Context, req *http.Request) error {
 	req.Header.Set("X-SLURM-USER-TOKEN", t.token)
 	return nil
 }
@@ -53,7 +53,7 @@ func NewBasicAuth(username, password string) *BasicAuth {
 }
 
 // Authenticate adds basic auth to the request
-func (b *BasicAuth) Authenticate(ctx context.Context, req *http.Request) error {
+func (b *BasicAuth) Authenticate(_ context.Context, req *http.Request) error {
 	req.SetBasicAuth(b.username, b.password)
 	return nil
 }
@@ -72,7 +72,7 @@ func NewNoAuth() *NoAuth {
 }
 
 // Authenticate is a no-op for no authentication
-func (n *NoAuth) Authenticate(ctx context.Context, req *http.Request) error {
+func (n *NoAuth) Authenticate(_ context.Context, _ *http.Request) error {
 	return nil
 }
 

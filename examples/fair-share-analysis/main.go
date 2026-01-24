@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2025 Jon Thor Kristinsson
 // SPDX-License-Identifier: Apache-2.0
 
+// Package main demonstrates fair-share analysis and job priority calculation.
 package main
 
 import (

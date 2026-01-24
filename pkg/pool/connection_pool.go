@@ -20,7 +20,7 @@ import (
 type HTTPClientPool struct {
 	mu      sync.RWMutex
 	clients map[string]*pooledClient
-	config  *PoolConfig
+	config  *Config
 	logger  logging.Logger
 }
 
@@ -33,8 +33,8 @@ type pooledClient struct {
 	activeConns int32
 }
 
-// PoolConfig holds configuration for the HTTP client pool
-type PoolConfig struct {
+// Config holds configuration for the HTTP client pool
+type Config struct {
 	// MaxIdleConns controls the maximum number of idle connections across all hosts
 	MaxIdleConns int
 
@@ -64,8 +64,8 @@ type PoolConfig struct {
 }
 
 // DefaultPoolConfig returns a pool configuration optimized for SLURM API access
-func DefaultPoolConfig() *PoolConfig {
-	return &PoolConfig{
+func DefaultPoolConfig() *Config {
+	return &Config{
 		MaxIdleConns:           100,
 		MaxIdleConnsPerHost:    10,
 		MaxConnsPerHost:        50,
@@ -79,7 +79,7 @@ func DefaultPoolConfig() *PoolConfig {
 }
 
 // NewHTTPClientPool creates a new HTTP client pool
-func NewHTTPClientPool(config *PoolConfig, logger logging.Logger) *HTTPClientPool {
+func NewHTTPClientPool(config *Config, logger logging.Logger) *HTTPClientPool {
 	if config == nil {
 		config = DefaultPoolConfig()
 	}
@@ -174,11 +174,11 @@ func (p *HTTPClientPool) createHTTPClient() *http.Client {
 }
 
 // Stats returns statistics about the connection pool
-func (p *HTTPClientPool) Stats() PoolStats {
+func (p *HTTPClientPool) Stats() Stats {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
-	stats := PoolStats{
+	stats := Stats{
 		TotalClients: len(p.clients),
 		ClientStats:  make(map[string]ClientStats),
 	}
@@ -239,8 +239,8 @@ func (p *HTTPClientPool) Close() error {
 	return nil
 }
 
-// PoolStats contains statistics about the connection pool
-type PoolStats struct {
+// Stats contains statistics about the connection pool
+type Stats struct {
 	TotalClients int
 	ClientStats  map[string]ClientStats
 }
@@ -332,3 +332,11 @@ func (cm *ConnectionManager) GetHealthyClient(ctx context.Context, endpoint stri
 
 	return client, nil
 }
+
+// PoolConfig is deprecated, use Config instead
+// Kept for backward compatibility
+type PoolConfig = Config
+
+// PoolStats is deprecated, use Stats instead
+// Kept for backward compatibility
+type PoolStats = Stats
