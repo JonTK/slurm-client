@@ -33,14 +33,14 @@ func TestJobManager_List_Structure(t *testing.T) {
 
 func TestConvertAPIJobToInterface(t *testing.T) {
 	// Test the conversion function with minimal data
-	jobId := int32(12345)
+	jobID := int32(12345)
 	name := "test-job"
-	userId := int32(1000)
+	userID := int32(1000)
 
 	apiJob := V0042JobInfo{
-		JobId:  &jobId,
+		JobId:  &jobID,
 		Name:   &name,
-		UserId: &userId,
+		UserId: &userID,
 	}
 
 	interfaceJob, err := convertAPIJobToInterface(apiJob)

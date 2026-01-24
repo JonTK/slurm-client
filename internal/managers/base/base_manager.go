@@ -149,7 +149,7 @@ func (b *BaseManager) WrapError(err error, message string) error {
 }
 
 // HandleHTTPResponse checks HTTP response status
-func (b *BaseManager) HandleHTTPResponse(resp interface{}, body []byte) error {
+func (b *BaseManager) HandleHTTPResponse(_ interface{}, _ []byte) error {
 	// This is a placeholder - in production, this would check HTTP status codes
 	// For now, we'll just return nil to allow compilation
 	return nil
@@ -175,27 +175,27 @@ func (b *BaseManager) HandleValidationError(message string) error {
 }
 
 // Hold pauses a job (placeholder for interface compliance)
-func (b *BaseManager) Hold(ctx context.Context, req *types.JobHoldRequest) error {
+func (b *BaseManager) Hold(_ context.Context, _ *types.JobHoldRequest) error {
 	return fmt.Errorf("hold operation not implemented for %s in version %s", b.resourceType, b.version)
 }
 
 // Release releases a held job (placeholder for interface compliance)
-func (b *BaseManager) Release(ctx context.Context, jobID string) error {
+func (b *BaseManager) Release(_ context.Context, _ string) error {
 	return fmt.Errorf("release operation not implemented for %s in version %s", b.resourceType, b.version)
 }
 
 // Suspend suspends a running job (placeholder for interface compliance)
-func (b *BaseManager) Suspend(ctx context.Context, jobID string) error {
+func (b *BaseManager) Suspend(_ context.Context, _ string) error {
 	return fmt.Errorf("suspend operation not implemented for %s in version %s", b.resourceType, b.version)
 }
 
 // Resume resumes a suspended job (placeholder for interface compliance)
-func (b *BaseManager) Resume(ctx context.Context, jobID string) error {
+func (b *BaseManager) Resume(_ context.Context, _ string) error {
 	return fmt.Errorf("resume operation not implemented for %s in version %s", b.resourceType, b.version)
 }
 
 // Requeue requeues a job (placeholder for interface compliance)
-func (b *BaseManager) Requeue(ctx context.Context, jobID string) error {
+func (b *BaseManager) Requeue(_ context.Context, _ string) error {
 	return fmt.Errorf("requeue operation not implemented for %s in version %s", b.resourceType, b.version)
 }
 
