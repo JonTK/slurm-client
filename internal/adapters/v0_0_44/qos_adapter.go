@@ -174,6 +174,49 @@ func (a *QoSAdapter) Get(ctx context.Context, qosName string) (*types.QoS, error
 	return qos, nil
 }
 
+// validateQoSCreateFields validates all fields in a QoS create request
+func (a *QoSAdapter) validateQoSCreateFields(qos *types.QoSCreate, allQoS []types.QoS) error {
+	if len(qos.PreemptMode) > 0 {
+		if err := a.ValidateQoSPreemptMode(qos.PreemptMode); err != nil {
+			return err
+		}
+	}
+	if len(qos.Flags) > 0 {
+		if err := a.ValidateQoSFlags(qos.Flags); err != nil {
+			return err
+		}
+	}
+	if qos.GraceTime > 0 {
+		if err := a.ValidateQoSGracetime(qos.GraceTime); err != nil {
+			return err
+		}
+	}
+	if qos.ParentQoS != "" {
+		if err := a.ValidateQoSHierarchy(qos.Name, qos.ParentQoS, allQoS); err != nil {
+			return err
+		}
+	}
+	if qos.MaxTRESPerUser != "" {
+		if err := a.ValidateTRESLimits(qos.MaxTRESPerUser); err != nil {
+			return err
+		}
+	}
+	if qos.MaxTRESPerAccount != "" {
+		if err := a.ValidateTRESLimits(qos.MaxTRESPerAccount); err != nil {
+			return err
+		}
+	}
+	if qos.MaxTRESPerJob != "" {
+		if err := a.ValidateTRESLimits(qos.MaxTRESPerJob); err != nil {
+			return err
+		}
+	}
+	if qos.Limits != nil {
+		return a.ValidateQoSLimitsConsistency(qos.Limits)
+	}
+	return nil
+}
+
 // Create creates a new QoS
 func (a *QoSAdapter) Create(ctx context.Context, qos *types.QoSCreate) (*types.QoSCreateResponse, error) {
 	// Use base validation
@@ -201,56 +244,9 @@ func (a *QoSAdapter) Create(ctx context.Context, qos *types.QoSCreate) (*types.Q
 		return nil, err
 	}
 
-	// Validate preempt mode
-	if len(qos.PreemptMode) > 0 {
-		if err := a.ValidateQoSPreemptMode(qos.PreemptMode); err != nil {
-			return nil, err
-		}
-	}
-
-	// Validate flags
-	if len(qos.Flags) > 0 {
-		if err := a.ValidateQoSFlags(qos.Flags); err != nil {
-			return nil, err
-		}
-	}
-
-	// Validate grace time
-	if qos.GraceTime > 0 {
-		if err := a.ValidateQoSGracetime(qos.GraceTime); err != nil {
-			return nil, err
-		}
-	}
-
-	// Validate parent QoS hierarchy
-	if qos.ParentQoS != "" {
-		if err := a.ValidateQoSHierarchy(qos.Name, qos.ParentQoS, existingQoS.QoS); err != nil {
-			return nil, err
-		}
-	}
-
-	// Validate TRES limits
-	if qos.MaxTRESPerUser != "" {
-		if err := a.ValidateTRESLimits(qos.MaxTRESPerUser); err != nil {
-			return nil, err
-		}
-	}
-	if qos.MaxTRESPerAccount != "" {
-		if err := a.ValidateTRESLimits(qos.MaxTRESPerAccount); err != nil {
-			return nil, err
-		}
-	}
-	if qos.MaxTRESPerJob != "" {
-		if err := a.ValidateTRESLimits(qos.MaxTRESPerJob); err != nil {
-			return nil, err
-		}
-	}
-
-	// Validate limit consistency
-	if qos.Limits != nil {
-		if err := a.ValidateQoSLimitsConsistency(qos.Limits); err != nil {
-			return nil, err
-		}
+	// Validate all QoS fields
+	if err := a.validateQoSCreateFields(qos, existingQoS.QoS); err != nil {
+		return nil, err
 	}
 
 	// Convert to API format
