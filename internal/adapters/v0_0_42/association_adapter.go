@@ -258,6 +258,36 @@ func (a *AssociationAdapter) Delete(ctx context.Context, associationID string) e
 }
 
 // convertAPIAssociationToCommon converts API association to common type
+// extractPriorityIfSet safely extracts priority from nested structure
+func (a *AssociationAdapter) extractPriorityIfSet(priority *api.V0042Uint32NoValStruct) int32 {
+	if priority == nil || priority.Set == nil || !*priority.Set || priority.Number == nil {
+		return 0
+	}
+	return *priority.Number
+}
+
+// extractMaxJobsIfSet safely extracts max jobs from nested structure
+func (a *AssociationAdapter) extractMaxJobsIfSet(maxJobs *api.V0042Uint32NoValStruct) int32 {
+	if maxJobs == nil || maxJobs.Set == nil || !*maxJobs.Set || maxJobs.Number == nil {
+		return 0
+	}
+	return *maxJobs.Number
+}
+
+// extractMaxTRESwithTotal safely extracts TRES from nested structure
+func (a *AssociationAdapter) extractMaxTRESwithTotal(tresList *[]api.V0042Tres) map[string]int64 {
+	tresCounts := make(map[string]int64)
+	if tresList == nil {
+		return tresCounts
+	}
+	for _, tres := range *tresList {
+		if tres.Count != nil {
+			tresCounts[tres.Type] = *tres.Count
+		}
+	}
+	return tresCounts
+}
+
 func (a *AssociationAdapter) convertAPIAssociationToCommon(apiAssoc api.V0042Assoc) *types.Association {
 	assoc := &types.Association{}
 
@@ -265,23 +295,18 @@ func (a *AssociationAdapter) convertAPIAssociationToCommon(apiAssoc api.V0042Ass
 	if apiAssoc.Account != nil {
 		assoc.AccountName = *apiAssoc.Account
 	}
-
-	// User is a string in V0042Assoc, not a pointer
 	assoc.UserName = apiAssoc.User
-
 	if apiAssoc.Cluster != nil {
 		assoc.Cluster = *apiAssoc.Cluster
 	}
-
 	if apiAssoc.Partition != nil {
 		assoc.Partition = *apiAssoc.Partition
 	}
-
 	if apiAssoc.ParentAccount != nil {
 		assoc.ParentAccount = *apiAssoc.ParentAccount
 	}
 
-	// Default QoS is nested in Default.Qos
+	// Default QoS
 	if apiAssoc.Default != nil && apiAssoc.Default.Qos != nil {
 		assoc.DefaultQoS = *apiAssoc.Default.Qos
 	}
@@ -291,32 +316,18 @@ func (a *AssociationAdapter) convertAPIAssociationToCommon(apiAssoc api.V0042Ass
 		assoc.SharesRaw = *apiAssoc.SharesRaw
 	}
 
-	// Priority is nested
-	if apiAssoc.Priority != nil && apiAssoc.Priority.Set != nil && *apiAssoc.Priority.Set && apiAssoc.Priority.Number != nil {
-		assoc.Priority = *apiAssoc.Priority.Number
-	}
+	// Extract priority using helper
+	assoc.Priority = a.extractPriorityIfSet(apiAssoc.Priority)
 
-	// Max jobs are nested in Max.Jobs structure
+	// Extract max jobs using helpers
 	if apiAssoc.Max != nil && apiAssoc.Max.Jobs != nil {
-		if apiAssoc.Max.Jobs.Active != nil && apiAssoc.Max.Jobs.Active.Set != nil && *apiAssoc.Max.Jobs.Active.Set && apiAssoc.Max.Jobs.Active.Number != nil {
-			assoc.MaxJobs = *apiAssoc.Max.Jobs.Active.Number
-		}
-		if apiAssoc.Max.Jobs.Total != nil && apiAssoc.Max.Jobs.Total.Set != nil && *apiAssoc.Max.Jobs.Total.Set && apiAssoc.Max.Jobs.Total.Number != nil {
-			assoc.MaxSubmitJobs = *apiAssoc.Max.Jobs.Total.Number
-		}
+		assoc.MaxJobs = a.extractMaxJobsIfSet(apiAssoc.Max.Jobs.Active)
+		assoc.MaxSubmitJobs = a.extractMaxJobsIfSet(apiAssoc.Max.Jobs.Total)
 	}
 
-	// TRES limits are nested in Max.Tres structure
-	if apiAssoc.Max != nil && apiAssoc.Max.Tres != nil {
-		assoc.MaxTRES = make(map[string]int64)
-		if apiAssoc.Max.Tres.Total != nil {
-			for _, tres := range *apiAssoc.Max.Tres.Total {
-				if tres.Count != nil {
-					// V0042Tres has Type as string, not pointer
-					assoc.MaxTRES[tres.Type] = *tres.Count
-				}
-			}
-		}
+	// Extract TRES limits using helper
+	if apiAssoc.Max != nil && apiAssoc.Max.Tres != nil && apiAssoc.Max.Tres.Total != nil {
+		assoc.MaxTRES = a.extractMaxTRESwithTotal(apiAssoc.Max.Tres.Total)
 	}
 
 	// Set ID as a combination of account and user
@@ -326,7 +337,7 @@ func (a *AssociationAdapter) convertAPIAssociationToCommon(apiAssoc api.V0042Ass
 		assoc.ID = assoc.AccountName
 	}
 
-	// Set other fields if available
+	// Override with explicit ID if available
 	if apiAssoc.Id != nil {
 		assoc.ID = strconv.Itoa(int(*apiAssoc.Id))
 	}

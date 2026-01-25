@@ -90,81 +90,7 @@ func (a *JobAdapter) List(ctx context.Context, opts *types.JobListOptions) (*typ
 
 	// Apply client-side filtering since API has limited support
 	if opts != nil {
-		filteredJobs := make([]types.Job, 0)
-		for _, job := range jobs {
-			// Filter by accounts
-			if len(opts.Accounts) > 0 {
-				found := false
-				for _, account := range opts.Accounts {
-					if job.Account == account {
-						found = true
-						break
-					}
-				}
-				if !found {
-					continue
-				}
-			}
-
-			// Filter by partitions
-			if len(opts.Partitions) > 0 {
-				found := false
-				for _, partition := range opts.Partitions {
-					if job.Partition == partition {
-						found = true
-						break
-					}
-				}
-				if !found {
-					continue
-				}
-			}
-
-			// Filter by users
-			if len(opts.Users) > 0 {
-				found := false
-				for _, user := range opts.Users {
-					if job.UserName == user || strconv.Itoa(int(job.UserID)) == user {
-						found = true
-						break
-					}
-				}
-				if !found {
-					continue
-				}
-			}
-
-			// Filter by states
-			if len(opts.States) > 0 {
-				found := false
-				for _, state := range opts.States {
-					if string(job.State) == string(state) {
-						found = true
-						break
-					}
-				}
-				if !found {
-					continue
-				}
-			}
-
-			// Filter by job IDs
-			if len(opts.JobIDs) > 0 {
-				found := false
-				for _, id := range opts.JobIDs {
-					if job.JobID == id {
-						found = true
-						break
-					}
-				}
-				if !found {
-					continue
-				}
-			}
-
-			filteredJobs = append(filteredJobs, job)
-		}
-		jobs = filteredJobs
+		jobs = a.applyClientSideFilters(jobs, opts)
 	}
 
 	// Apply pagination
@@ -588,7 +514,31 @@ func (a *JobAdapter) convertAPIJobAllocateResponseToCommon(apiResp *api.V0042Ope
 	return resp
 }
 
-// convertAPIJobToCommon converts API job to common type
+// extractTimeIfSet safely extracts a Unix timestamp from a nested structure
+func (a *JobAdapter) extractTimeIfSet(timeStruct *api.V0042Uint64NoValStruct) *time.Time {
+	if timeStruct == nil || timeStruct.Number == nil {
+		return nil
+	}
+	t := time.Unix(*timeStruct.Number, 0)
+	return &t
+}
+
+// extractTimeRequired safely extracts a required Unix timestamp (non-pointer return)
+func (a *JobAdapter) extractTimeRequired(timeStruct *api.V0042Uint64NoValStruct) time.Time {
+	if timeStruct == nil || timeStruct.Number == nil {
+		return time.Time{}
+	}
+	return time.Unix(*timeStruct.Number, 0)
+}
+
+// extractInt32IfSet safely extracts int32 from nested structure
+func (a *JobAdapter) extractInt32IfSet(valStruct *api.V0042Uint32NoValStruct) int32 {
+	if valStruct == nil || valStruct.Number == nil {
+		return 0
+	}
+	return *valStruct.Number
+}
+
 func (a *JobAdapter) convertAPIJobToCommon(apiJob api.V0042JobInfo) (*types.Job, error) {
 	job := &types.Job{}
 
@@ -636,23 +586,10 @@ func (a *JobAdapter) convertAPIJobToCommon(apiJob api.V0042JobInfo) (*types.Job,
 	}
 
 	// Time fields - convert from Unix timestamp to time.Time
-	if apiJob.SubmitTime != nil && apiJob.SubmitTime.Set != nil && *apiJob.SubmitTime.Set && apiJob.SubmitTime.Number != nil {
-		job.SubmitTime = time.Unix(*apiJob.SubmitTime.Number, 0)
-	}
-
-	if apiJob.StartTime != nil && apiJob.StartTime.Set != nil && *apiJob.StartTime.Set && apiJob.StartTime.Number != nil {
-		startTime := time.Unix(*apiJob.StartTime.Number, 0)
-		job.StartTime = &startTime
-	}
-
-	if apiJob.EndTime != nil && apiJob.EndTime.Set != nil && *apiJob.EndTime.Set && apiJob.EndTime.Number != nil {
-		endTime := time.Unix(*apiJob.EndTime.Number, 0)
-		job.EndTime = &endTime
-	}
-
-	if apiJob.TimeLimit != nil && apiJob.TimeLimit.Set != nil && *apiJob.TimeLimit.Set && apiJob.TimeLimit.Number != nil {
-		job.TimeLimit = *apiJob.TimeLimit.Number
-	}
+	job.SubmitTime = a.extractTimeRequired(apiJob.SubmitTime)
+	job.StartTime = a.extractTimeIfSet(apiJob.StartTime)
+	job.EndTime = a.extractTimeIfSet(apiJob.EndTime)
+	job.TimeLimit = a.extractInt32IfSet(apiJob.TimeLimit)
 
 	// Working directory is not available in v0.0.42 JobInfo structure
 
@@ -679,4 +616,84 @@ func (a *JobAdapter) convertAPIJobSubmitResponseToCommon(apiResp *api.V0042Opena
 	}
 
 	return resp, nil
+}
+
+// applyClientSideFilters applies filtering to the job list
+func (a *JobAdapter) applyClientSideFilters(jobs []types.Job, opts *types.JobListOptions) []types.Job {
+	filteredJobs := make([]types.Job, 0)
+	for _, job := range jobs {
+		if a.matchesJobFilters(job, opts) {
+			filteredJobs = append(filteredJobs, job)
+		}
+	}
+	return filteredJobs
+}
+
+// matchesJobFilters checks if a job matches all the provided filters
+func (a *JobAdapter) matchesJobFilters(job types.Job, opts *types.JobListOptions) bool {
+	return a.checkAccountFilter(job, opts.Accounts) &&
+		a.checkPartitionFilter(job, opts.Partitions) &&
+		a.checkUserFilter(job, opts.Users) &&
+		a.checkStateFilter(job, opts.States) &&
+		a.checkJobIDFilter(job, opts.JobIDs)
+}
+
+func (a *JobAdapter) checkAccountFilter(job types.Job, accounts []string) bool {
+	if len(accounts) == 0 {
+		return true
+	}
+	for _, account := range accounts {
+		if job.Account == account {
+			return true
+		}
+	}
+	return false
+}
+
+func (a *JobAdapter) checkPartitionFilter(job types.Job, partitions []string) bool {
+	if len(partitions) == 0 {
+		return true
+	}
+	for _, partition := range partitions {
+		if job.Partition == partition {
+			return true
+		}
+	}
+	return false
+}
+
+func (a *JobAdapter) checkUserFilter(job types.Job, users []string) bool {
+	if len(users) == 0 {
+		return true
+	}
+	for _, user := range users {
+		if job.UserName == user || strconv.Itoa(int(job.UserID)) == user {
+			return true
+		}
+	}
+	return false
+}
+
+func (a *JobAdapter) checkStateFilter(job types.Job, states []types.JobState) bool {
+	if len(states) == 0 {
+		return true
+	}
+	for _, state := range states {
+		if string(job.State) == string(state) {
+			return true
+		}
+	}
+	return false
+}
+
+func (a *JobAdapter) checkJobIDFilter(job types.Job, jobIDs []int32) bool {
+	if len(jobIDs) == 0 {
+		return true
+	}
+	for _, id := range jobIDs {
+		if job.JobID == id {
+			return true
+		}
+	}
+	return false
 }
