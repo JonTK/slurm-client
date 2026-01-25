@@ -296,25 +296,21 @@ func (m *AssociationBaseManager) FilterAssociationList(items []types.Association
 
 // matchesAssociationFilters checks if an association matches the given filters
 func (m *AssociationBaseManager) matchesAssociationFilters(association types.Association, opts *types.AssociationListOptions) bool {
-	return m.checkStringFilter(opts.Accounts, association.AccountName, true) &&
-		m.checkStringFilter(opts.Clusters, association.Cluster, true) &&
-		m.checkStringFilter(opts.Users, association.UserName, true) &&
-		m.checkStringFilter(opts.Partitions, association.Partition, true) &&
+	return m.checkStringFilter(opts.Accounts, association.AccountName) &&
+		m.checkStringFilter(opts.Clusters, association.Cluster) &&
+		m.checkStringFilter(opts.Users, association.UserName) &&
+		m.checkStringFilter(opts.Partitions, association.Partition) &&
 		(!opts.OnlyDefaults || association.IsDefault) &&
 		(opts.WithDeleted || !association.Deleted)
 }
 
 // checkStringFilter checks if a value matches any of the filters (case-insensitive)
-func (m *AssociationBaseManager) checkStringFilter(filters []string, value string, caseInsensitive bool) bool {
+func (m *AssociationBaseManager) checkStringFilter(filters []string, value string) bool {
 	if len(filters) == 0 {
 		return true
 	}
 	for _, filter := range filters {
-		if caseInsensitive {
-			if strings.EqualFold(value, filter) {
-				return true
-			}
-		} else if value == filter {
+		if strings.EqualFold(value, filter) {
 			return true
 		}
 	}

@@ -70,7 +70,7 @@ func runPingTest(ctx context.Context, client slurm.SlurmClient) {
 	}
 }
 
-func runVersionTest(ctx context.Context, client slurm.SlurmClient) {
+func runVersionTest(_ context.Context, client slurm.SlurmClient) {
 	fmt.Println("\n=== Test 2: Get API Version ===")
 	fmt.Printf("Client API Version: %s\n", client.Version())
 }

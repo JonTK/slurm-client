@@ -317,12 +317,12 @@ func (m *JobBaseManager) FilterJobList(jobs []types.Job, opts *types.JobListOpti
 // matchesJobFilters checks if a job matches the given filters
 func (m *JobBaseManager) matchesJobFilters(job types.Job, opts *types.JobListOptions) bool {
 	return m.checkJobIDFilter(opts.JobIDs, job.JobID) &&
-		m.checkStringFilter(opts.JobNames, job.Name, true) &&
-		m.checkStringFilter(opts.Accounts, job.Account, true) &&
-		m.checkStringFilter(opts.Users, job.UserName, true) &&
+		m.checkStringFilter(opts.JobNames, job.Name) &&
+		m.checkStringFilter(opts.Accounts, job.Account) &&
+		m.checkStringFilter(opts.Users, job.UserName) &&
 		m.checkStateFilter(opts.States, job.State) &&
-		m.checkStringFilter(opts.Partitions, job.Partition, true) &&
-		m.checkStringFilter(opts.QoS, job.QoS, true) &&
+		m.checkStringFilter(opts.Partitions, job.Partition) &&
+		m.checkStringFilter(opts.QoS, job.QoS) &&
 		m.checkTimeRange(&job.SubmitTime, opts.StartTime, opts.EndTime)
 }
 
@@ -338,16 +338,12 @@ func (m *JobBaseManager) checkJobIDFilter(filterIDs []int32, jobID int32) bool {
 	return false
 }
 
-func (m *JobBaseManager) checkStringFilter(filters []string, value string, caseInsensitive bool) bool {
+func (m *JobBaseManager) checkStringFilter(filters []string, value string) bool {
 	if len(filters) == 0 {
 		return true
 	}
 	for _, filter := range filters {
-		if caseInsensitive {
-			if strings.EqualFold(value, filter) {
-				return true
-			}
-		} else if value == filter {
+		if strings.EqualFold(value, filter) {
 			return true
 		}
 	}
