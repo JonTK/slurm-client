@@ -286,6 +286,73 @@ func (a *QoSAdapter) Create(ctx context.Context, qos *types.QoSCreate) (*types.Q
 	}, nil
 }
 
+// validatePreemptModeIfSet validates preempt mode if it's provided
+func (a *QoSAdapter) validatePreemptModeIfSet(preemptMode *[]string) error {
+	if preemptMode != nil && len(*preemptMode) > 0 {
+		return a.ValidateQoSPreemptMode(*preemptMode)
+	}
+	return nil
+}
+
+// validateFlagsIfSet validates flags if they're provided
+func (a *QoSAdapter) validateFlagsIfSet(flags *[]string) error {
+	if flags != nil && len(*flags) > 0 {
+		return a.ValidateQoSFlags(*flags)
+	}
+	return nil
+}
+
+// validateGraceTimeIfSet validates grace time if it's provided and positive
+func (a *QoSAdapter) validateGraceTimeIfSet(graceTime *int) error {
+	if graceTime != nil && *graceTime > 0 {
+		return a.ValidateQoSGracetime(*graceTime)
+	}
+	return nil
+}
+
+// validateTRESLimitsIfSet validates all TRES limits if they're provided
+func (a *QoSAdapter) validateTRESLimitsIfSet(update *types.QoSUpdate) error {
+	if update.MaxTRESPerUser != nil && *update.MaxTRESPerUser != "" {
+		if err := a.ValidateTRESLimits(*update.MaxTRESPerUser); err != nil {
+			return err
+		}
+	}
+	if update.MaxTRESPerAccount != nil && *update.MaxTRESPerAccount != "" {
+		if err := a.ValidateTRESLimits(*update.MaxTRESPerAccount); err != nil {
+			return err
+		}
+	}
+	if update.MaxTRESPerJob != nil && *update.MaxTRESPerJob != "" {
+		return a.ValidateTRESLimits(*update.MaxTRESPerJob)
+	}
+	return nil
+}
+
+// validateQoSUpdateFields validates all fields in the QoS update request
+func (a *QoSAdapter) validateQoSUpdateFields(qosName string, update *types.QoSUpdate, allQoS []types.QoS) error {
+	if err := a.validatePreemptModeIfSet(update.PreemptMode); err != nil {
+		return err
+	}
+	if err := a.validateFlagsIfSet(update.Flags); err != nil {
+		return err
+	}
+	if err := a.validateGraceTimeIfSet(update.GraceTime); err != nil {
+		return err
+	}
+	if update.ParentQoS != nil && *update.ParentQoS != "" {
+		if err := a.ValidateQoSHierarchy(qosName, *update.ParentQoS, allQoS); err != nil {
+			return err
+		}
+	}
+	if err := a.validateTRESLimitsIfSet(update); err != nil {
+		return err
+	}
+	if update.Limits != nil {
+		return a.ValidateQoSLimitsConsistency(update.Limits)
+	}
+	return nil
+}
+
 // Update updates an existing QoS
 func (a *QoSAdapter) Update(ctx context.Context, qosName string, update *types.QoSUpdate) error {
 	// Use base validation
@@ -311,62 +378,15 @@ func (a *QoSAdapter) Update(ctx context.Context, qosName string, update *types.Q
 	// Validate update safety (non-blocking - warnings only)
 	_ = a.ValidateQoSUpdateSafety(existingQoS, update) // Allow update even if validation fails
 
-	// Validate preempt mode if updating
-	if update.PreemptMode != nil && len(*update.PreemptMode) > 0 {
-		if err := a.ValidateQoSPreemptMode(*update.PreemptMode); err != nil {
-			return err
-		}
-	}
-
-	// Validate flags if updating
-	if update.Flags != nil && len(*update.Flags) > 0 {
-		if err := a.ValidateQoSFlags(*update.Flags); err != nil {
-			return err
-		}
-	}
-
-	// Validate grace time if updating
-	if update.GraceTime != nil && *update.GraceTime > 0 {
-		if err := a.ValidateQoSGracetime(*update.GraceTime); err != nil {
-			return err
-		}
-	}
-
 	// Get all QoS for hierarchy validation
 	allQoS, err := a.List(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	// Validate parent QoS hierarchy if updating
-	if update.ParentQoS != nil && *update.ParentQoS != "" {
-		if err := a.ValidateQoSHierarchy(qosName, *update.ParentQoS, allQoS.QoS); err != nil {
-			return err
-		}
-	}
-
-	// Validate TRES limits if updating
-	if update.MaxTRESPerUser != nil && *update.MaxTRESPerUser != "" {
-		if err := a.ValidateTRESLimits(*update.MaxTRESPerUser); err != nil {
-			return err
-		}
-	}
-	if update.MaxTRESPerAccount != nil && *update.MaxTRESPerAccount != "" {
-		if err := a.ValidateTRESLimits(*update.MaxTRESPerAccount); err != nil {
-			return err
-		}
-	}
-	if update.MaxTRESPerJob != nil && *update.MaxTRESPerJob != "" {
-		if err := a.ValidateTRESLimits(*update.MaxTRESPerJob); err != nil {
-			return err
-		}
-	}
-
-	// Validate limit consistency if updating
-	if update.Limits != nil {
-		if err := a.ValidateQoSLimitsConsistency(update.Limits); err != nil {
-			return err
-		}
+	// Validate all update fields
+	if err := a.validateQoSUpdateFields(qosName, update, allQoS.QoS); err != nil {
+		return err
 	}
 
 	// Convert to API format and apply updates
