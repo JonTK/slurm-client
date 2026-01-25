@@ -50,7 +50,7 @@ linters:
     dupl:
       threshold: 75
     errcheck:
-      check-type-assertions: false
+      check-type-assertions: true
       check-blank: false
     errorlint:
       errorf: true      # Check for error wrapping with %w
