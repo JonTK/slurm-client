@@ -22,136 +22,159 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Configuration
-	cfg := &config.Config{
-		BaseURL: "http://rocky9.ar.jontk.com:6820/slurm",
-		Debug:   true,
-	}
-
-	// Create token auth provider for JWT
-	authProvider := auth.NewTokenAuth(jwtToken)
-
-	// Create client with specific version for v0.0.40
-	ctx := context.Background()
-	client, err := slurm.NewClientWithVersion(ctx, "v0.0.40",
-		slurm.WithConfig(cfg),
-		slurm.WithAuth(authProvider),
-	)
+	// Create client
+	client, err := createClient(jwtToken)
 	if err != nil {
 		fmt.Printf("Failed to create client: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Test 1: Ping
+	ctx := context.Background()
+	runTests(ctx, client)
+	fmt.Println("\n=== All Tests Completed ===")
+}
+
+func createClient(jwtToken string) (slurm.SlurmClient, error) {
+	cfg := &config.Config{
+		BaseURL: "http://rocky9.ar.jontk.com:6820/slurm",
+		Debug:   true,
+	}
+
+	authProvider := auth.NewTokenAuth(jwtToken)
+	ctx := context.Background()
+	return slurm.NewClientWithVersion(ctx, "v0.0.40",
+		slurm.WithConfig(cfg),
+		slurm.WithAuth(authProvider),
+	)
+}
+
+func runTests(ctx context.Context, client slurm.SlurmClient) {
+	runPingTest(ctx, client)
+	runVersionTest(ctx, client)
+	runClusterInfoTest(ctx, client)
+	runJobListTest(ctx, client)
+	runNodeListTest(ctx, client)
+	runPartitionListTest(ctx, client)
+	runAccountListTest(ctx, client)
+	runUserListTest(ctx, client)
+}
+
+func runPingTest(ctx context.Context, client slurm.SlurmClient) {
 	fmt.Println("\n=== Test 1: Ping ===")
 	infoMgr := client.Info()
-	err = infoMgr.Ping(ctx)
+	err := infoMgr.Ping(ctx)
 	if err != nil {
 		fmt.Printf("Ping failed: %v\n", err)
 	} else {
 		fmt.Printf("Ping successful!\n")
 	}
+}
 
-	// Test 2: Get API version
+func runVersionTest(ctx context.Context, client slurm.SlurmClient) {
 	fmt.Println("\n=== Test 2: Get API Version ===")
 	fmt.Printf("Client API Version: %s\n", client.Version())
+}
 
-	// Test 2b: Get cluster info
+func runClusterInfoTest(ctx context.Context, client slurm.SlurmClient) {
 	fmt.Println("\n=== Test 2b: Get Cluster Info ===")
+	infoMgr := client.Info()
 	info, err := infoMgr.Get(ctx)
 	if err != nil {
 		fmt.Printf("Get cluster info failed: %v\n", err)
 	} else {
 		fmt.Printf("Cluster Info: Name=%s, Version=%s, API=%s\n", info.ClusterName, info.Version, info.APIVersion)
 	}
+}
 
-	// Test 3: List jobs
+func runJobListTest(ctx context.Context, client slurm.SlurmClient) {
 	fmt.Println("\n=== Test 3: List Jobs ===")
 	jobMgr := client.Jobs()
 	jobs, err := jobMgr.List(ctx, nil)
 	if err != nil {
 		fmt.Printf("List jobs failed: %v\n", err)
-	} else {
-		fmt.Printf("Found %d jobs\n", len(jobs.Jobs))
-		for i, job := range jobs.Jobs {
-			if i < 5 { // Show first 5 jobs
-				fmt.Printf("  Job: ID=%s, Name=%s, State=%s\n", job.ID, job.Name, job.State)
-			}
-		}
-		if len(jobs.Jobs) > 5 {
-			fmt.Printf("  ... and %d more jobs\n", len(jobs.Jobs)-5)
+		return
+	}
+	fmt.Printf("Found %d jobs\n", len(jobs.Jobs))
+	for i, job := range jobs.Jobs {
+		if i < 5 {
+			fmt.Printf("  Job: ID=%s, Name=%s, State=%s\n", job.ID, job.Name, job.State)
 		}
 	}
+	if len(jobs.Jobs) > 5 {
+		fmt.Printf("  ... and %d more jobs\n", len(jobs.Jobs)-5)
+	}
+}
 
-	// Test 4: List nodes
+func runNodeListTest(ctx context.Context, client slurm.SlurmClient) {
 	fmt.Println("\n=== Test 4: List Nodes ===")
 	nodeMgr := client.Nodes()
 	nodes, err := nodeMgr.List(ctx, nil)
 	if err != nil {
 		fmt.Printf("List nodes failed: %v\n", err)
-	} else {
-		fmt.Printf("Found %d nodes\n", len(nodes.Nodes))
-		for i, node := range nodes.Nodes {
-			if i < 5 { // Show first 5 nodes
-				fmt.Printf("  Node: Name=%s, State=%s, CPUs=%d\n", node.Name, node.State, node.CPUs)
-			}
-		}
-		if len(nodes.Nodes) > 5 {
-			fmt.Printf("  ... and %d more nodes\n", len(nodes.Nodes)-5)
+		return
+	}
+	fmt.Printf("Found %d nodes\n", len(nodes.Nodes))
+	for i, node := range nodes.Nodes {
+		if i < 5 {
+			fmt.Printf("  Node: Name=%s, State=%s, CPUs=%d\n", node.Name, node.State, node.CPUs)
 		}
 	}
+	if len(nodes.Nodes) > 5 {
+		fmt.Printf("  ... and %d more nodes\n", len(nodes.Nodes)-5)
+	}
+}
 
-	// Test 5: List partitions
+func runPartitionListTest(ctx context.Context, client slurm.SlurmClient) {
 	fmt.Println("\n=== Test 5: List Partitions ===")
 	partMgr := client.Partitions()
 	partitions, err := partMgr.List(ctx, nil)
 	if err != nil {
 		fmt.Printf("List partitions failed: %v\n", err)
-	} else {
-		fmt.Printf("Found %d partitions\n", len(partitions.Partitions))
-		for _, partition := range partitions.Partitions {
-			fmt.Printf("  Partition: Name=%s, State=%s, Nodes=%s\n",
-				partition.Name, partition.State, partition.Nodes)
-		}
+		return
 	}
+	fmt.Printf("Found %d partitions\n", len(partitions.Partitions))
+	for _, partition := range partitions.Partitions {
+		fmt.Printf("  Partition: Name=%s, State=%s, Nodes=%s\n",
+			partition.Name, partition.State, partition.Nodes)
+	}
+}
 
-	// Test 6: List accounts
+func runAccountListTest(ctx context.Context, client slurm.SlurmClient) {
 	fmt.Println("\n=== Test 6: List Accounts ===")
 	acctMgr := client.Accounts()
 	accounts, err := acctMgr.List(ctx, nil)
 	if err != nil {
 		fmt.Printf("List accounts failed: %v\n", err)
-	} else {
-		fmt.Printf("Found %d accounts\n", len(accounts.Accounts))
-		for i, account := range accounts.Accounts {
-			if i < 5 { // Show first 5 accounts
-				fmt.Printf("  Account: Name=%s, Description=%s\n",
-					account.Name, account.Description)
-			}
-		}
-		if len(accounts.Accounts) > 5 {
-			fmt.Printf("  ... and %d more accounts\n", len(accounts.Accounts)-5)
+		return
+	}
+	fmt.Printf("Found %d accounts\n", len(accounts.Accounts))
+	for i, account := range accounts.Accounts {
+		if i < 5 {
+			fmt.Printf("  Account: Name=%s, Description=%s\n",
+				account.Name, account.Description)
 		}
 	}
+	if len(accounts.Accounts) > 5 {
+		fmt.Printf("  ... and %d more accounts\n", len(accounts.Accounts)-5)
+	}
+}
 
-	// Test 7: List users
+func runUserListTest(ctx context.Context, client slurm.SlurmClient) {
 	fmt.Println("\n=== Test 7: List Users ===")
 	userMgr := client.Users()
 	users, err := userMgr.List(ctx, nil)
 	if err != nil {
 		fmt.Printf("List users failed: %v\n", err)
-	} else {
-		fmt.Printf("Found %d users\n", len(users.Users))
-		for i, user := range users.Users {
-			if i < 5 { // Show first 5 users
-				fmt.Printf("  User: Name=%s, DefaultAccount=%s\n",
-					user.Name, user.DefaultAccount)
-			}
-		}
-		if len(users.Users) > 5 {
-			fmt.Printf("  ... and %d more users\n", len(users.Users)-5)
+		return
+	}
+	fmt.Printf("Found %d users\n", len(users.Users))
+	for i, user := range users.Users {
+		if i < 5 {
+			fmt.Printf("  User: Name=%s, DefaultAccount=%s\n",
+				user.Name, user.DefaultAccount)
 		}
 	}
-
-	fmt.Println("\n=== All Tests Completed ===")
+	if len(users.Users) > 5 {
+		fmt.Printf("  ... and %d more users\n", len(users.Users)-5)
+	}
 }

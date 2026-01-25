@@ -292,94 +292,67 @@ func (m *ReservationBaseManager) FilterReservationList(items []types.Reservation
 
 // matchesReservationFilters checks if a reservation matches the given filters
 func (m *ReservationBaseManager) matchesReservationFilters(reservation types.Reservation, opts *types.ReservationListOptions) bool {
-	// Filter by names
-	if len(opts.Names) > 0 {
-		found := false
-		for _, name := range opts.Names {
-			if strings.EqualFold(reservation.Name, name) {
-				found = true
-				break
+	return m.checkStringFilter(opts.Names, reservation.Name, true) &&
+		m.checkStateFilter(opts.States, reservation.State) &&
+		m.checkStringSliceFilter(opts.Accounts, reservation.Accounts, true) &&
+		m.checkStringSliceFilter(opts.Users, reservation.Users, true) &&
+		m.checkStringFilter(opts.Partitions, reservation.PartitionName, true) &&
+		m.checkReservationTimeRange(reservation, opts)
+}
+
+func (m *ReservationBaseManager) checkStringFilter(filters []string, value string, caseInsensitive bool) bool {
+	if len(filters) == 0 {
+		return true
+	}
+	for _, filter := range filters {
+		if caseInsensitive {
+			if strings.EqualFold(value, filter) {
+				return true
 			}
-		}
-		if !found {
-			return false
+		} else if value == filter {
+			return true
 		}
 	}
+	return false
+}
 
-	// Filter by states
-	if len(opts.States) > 0 {
-		found := false
-		for _, state := range opts.States {
-			if reservation.State == state {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
+func (m *ReservationBaseManager) checkStateFilter(states []types.ReservationState, resState types.ReservationState) bool {
+	if len(states) == 0 {
+		return true
+	}
+	for _, state := range states {
+		if resState == state {
+			return true
 		}
 	}
+	return false
+}
 
-	// Filter by accounts
-	if len(opts.Accounts) > 0 {
-		found := false
-		for _, filterAccount := range opts.Accounts {
-			for _, resAccount := range reservation.Accounts {
-				if strings.EqualFold(resAccount, filterAccount) {
-					found = true
-					break
+func (m *ReservationBaseManager) checkStringSliceFilter(filters []string, values []string, caseInsensitive bool) bool {
+	if len(filters) == 0 {
+		return true
+	}
+	for _, filter := range filters {
+		for _, value := range values {
+			if caseInsensitive {
+				if strings.EqualFold(value, filter) {
+					return true
 				}
+			} else if value == filter {
+				return true
 			}
-			if found {
-				break
-			}
-		}
-		if !found {
-			return false
 		}
 	}
+	return false
+}
 
-	// Filter by users
-	if len(opts.Users) > 0 {
-		found := false
-		for _, filterUser := range opts.Users {
-			for _, resUser := range reservation.Users {
-				if strings.EqualFold(resUser, filterUser) {
-					found = true
-					break
-				}
-			}
-			if found {
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-
-	// Filter by partitions
-	if len(opts.Partitions) > 0 {
-		found := false
-		for _, partition := range opts.Partitions {
-			if strings.EqualFold(reservation.PartitionName, partition) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-
-	// Filter by time ranges
+func (m *ReservationBaseManager) checkReservationTimeRange(reservation types.Reservation, opts *types.ReservationListOptions) bool {
 	if opts.StartTime != nil && reservation.EndTime.Before(*opts.StartTime) {
 		return false
 	}
 	if opts.EndTime != nil && reservation.StartTime.After(*opts.EndTime) {
 		return false
 	}
-
 	return true
 }
 

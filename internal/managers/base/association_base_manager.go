@@ -33,30 +33,42 @@ func (m *AssociationBaseManager) ValidateAssociationCreate(association *types.As
 		)
 	}
 
+	if err := m.validateAssociationNames(association); err != nil {
+		return err
+	}
+	if err := m.validateAssociationLimits(association); err != nil {
+		return err
+	}
+	if err := m.validateAssociationTRES(association); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *AssociationBaseManager) validateAssociationNames(association *types.AssociationCreate) error {
 	if err := m.ValidateResourceName(association.AccountName, "Association name"); err != nil {
 		return err
 	}
-
 	if err := m.ValidateResourceName(association.Cluster, "cluster name"); err != nil {
 		return err
 	}
-
-	// User name is optional for account associations
 	if association.UserName != "" {
 		if err := m.ValidateResourceName(association.UserName, "user name"); err != nil {
 			return err
 		}
 	}
+	return nil
+}
 
-	// Validate numeric resource limits
+func (m *AssociationBaseManager) validateAssociationLimits(association *types.AssociationCreate) error {
+	// Validate numeric fields
 	if err := m.ValidateNonNegative(int(association.SharesRaw), "association.SharesRaw"); err != nil {
 		return err
 	}
 	if err := m.ValidateNonNegative(int(association.Priority), "association.Priority"); err != nil {
 		return err
 	}
-
-	// Validate job limits
 	if err := m.ValidateNonNegative(int(association.MaxJobs), "association.MaxJobs"); err != nil {
 		return err
 	}
@@ -66,16 +78,12 @@ func (m *AssociationBaseManager) ValidateAssociationCreate(association *types.As
 	if err := m.ValidateNonNegative(int(association.MaxSubmitJobs), "association.MaxSubmitJobs"); err != nil {
 		return err
 	}
-
-	// Validate time limits
 	if err := m.ValidateNonNegative(int(association.MaxWallTime), "association.MaxWallTime"); err != nil {
 		return err
 	}
 	if err := m.ValidateNonNegative(int(association.MaxCPUTime), "association.MaxCPUTime"); err != nil {
 		return err
 	}
-
-	// Validate resource limits
 	if err := m.ValidateNonNegative(int(association.MaxNodes), "association.MaxNodes"); err != nil {
 		return err
 	}
@@ -89,8 +97,6 @@ func (m *AssociationBaseManager) ValidateAssociationCreate(association *types.As
 			"association.MaxMemory", association.MaxMemory, nil,
 		)
 	}
-
-	// Validate group limits
 	if err := m.ValidateNonNegative(int(association.GrpJobs), "association.GrpJobs"); err != nil {
 		return err
 	}
@@ -110,8 +116,6 @@ func (m *AssociationBaseManager) ValidateAssociationCreate(association *types.As
 			"association.GrpMemory", association.GrpMemory, nil,
 		)
 	}
-
-	// Validate CPU run mins
 	if association.GrpCPURunMins < 0 {
 		return errors.NewValidationError(
 			errors.ErrorCodeValidationFailed,
@@ -119,8 +123,10 @@ func (m *AssociationBaseManager) ValidateAssociationCreate(association *types.As
 			"association.GrpCPURunMins", association.GrpCPURunMins, nil,
 		)
 	}
+	return nil
+}
 
-	// Validate TRES maps
+func (m *AssociationBaseManager) validateAssociationTRES(association *types.AssociationCreate) error {
 	if err := m.validateTRESMap(association.GrpTRES, "association.GrpTRES"); err != nil {
 		return err
 	}
@@ -133,7 +139,6 @@ func (m *AssociationBaseManager) ValidateAssociationCreate(association *types.As
 	if err := m.validateTRESMap(association.MinTRES, "association.MinTRES"); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -147,7 +152,20 @@ func (m *AssociationBaseManager) ValidateAssociationUpdate(update *types.Associa
 		)
 	}
 
-	// Validate numeric fields if provided
+	if err := m.validateAssociationUpdateLimits(update); err != nil {
+		return err
+	}
+	if err := m.validateAssociationUpdateMemory(update); err != nil {
+		return err
+	}
+	if err := m.validateAssociationUpdateTRES(update); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *AssociationBaseManager) validateAssociationUpdateLimits(update *types.AssociationUpdate) error {
 	if update.SharesRaw != nil {
 		if err := m.ValidateNonNegative(int(*update.SharesRaw), "update.SharesRaw"); err != nil {
 			return err
@@ -158,8 +176,6 @@ func (m *AssociationBaseManager) ValidateAssociationUpdate(update *types.Associa
 			return err
 		}
 	}
-
-	// Validate job limits if provided
 	if update.MaxJobs != nil {
 		if err := m.ValidateNonNegative(int(*update.MaxJobs), "update.MaxJobs"); err != nil {
 			return err
@@ -175,8 +191,6 @@ func (m *AssociationBaseManager) ValidateAssociationUpdate(update *types.Associa
 			return err
 		}
 	}
-
-	// Validate time limits if provided
 	if update.MaxWallTime != nil {
 		if err := m.ValidateNonNegative(int(*update.MaxWallTime), "update.MaxWallTime"); err != nil {
 			return err
@@ -187,8 +201,10 @@ func (m *AssociationBaseManager) ValidateAssociationUpdate(update *types.Associa
 			return err
 		}
 	}
+	return nil
+}
 
-	// Validate memory limits if provided
+func (m *AssociationBaseManager) validateAssociationUpdateMemory(update *types.AssociationUpdate) error {
 	if update.MaxMemory != nil && *update.MaxMemory < 0 {
 		return errors.NewValidationError(
 			errors.ErrorCodeValidationFailed,
@@ -203,8 +219,6 @@ func (m *AssociationBaseManager) ValidateAssociationUpdate(update *types.Associa
 			"update.GrpMemory", *update.GrpMemory, nil,
 		)
 	}
-
-	// Validate CPU run mins if provided
 	if update.GrpCPURunMins != nil && *update.GrpCPURunMins < 0 {
 		return errors.NewValidationError(
 			errors.ErrorCodeValidationFailed,
@@ -212,8 +226,10 @@ func (m *AssociationBaseManager) ValidateAssociationUpdate(update *types.Associa
 			"update.GrpCPURunMins", *update.GrpCPURunMins, nil,
 		)
 	}
+	return nil
+}
 
-	// Validate TRES maps if provided
+func (m *AssociationBaseManager) validateAssociationUpdateTRES(update *types.AssociationUpdate) error {
 	if err := m.validateTRESMap(update.GrpTRES, "update.GrpTRES"); err != nil {
 		return err
 	}
@@ -226,7 +242,6 @@ func (m *AssociationBaseManager) ValidateAssociationUpdate(update *types.Associa
 	if err := m.validateTRESMap(update.MinTRES, "update.MinTRES"); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -281,79 +296,29 @@ func (m *AssociationBaseManager) FilterAssociationList(items []types.Association
 
 // matchesAssociationFilters checks if an association matches the given filters
 func (m *AssociationBaseManager) matchesAssociationFilters(association types.Association, opts *types.AssociationListOptions) bool {
-	// Filter by accounts
-	if len(opts.Accounts) > 0 {
-		found := false
-		for _, account := range opts.Accounts {
-			if strings.EqualFold(association.AccountName, account) {
-				found = true
-				break
+	return m.checkStringFilter(opts.Accounts, association.AccountName, true) &&
+		m.checkStringFilter(opts.Clusters, association.Cluster, true) &&
+		m.checkStringFilter(opts.Users, association.UserName, true) &&
+		m.checkStringFilter(opts.Partitions, association.Partition, true) &&
+		(!opts.OnlyDefaults || association.IsDefault) &&
+		(opts.WithDeleted || !association.Deleted)
+}
+
+// checkStringFilter checks if a value matches any of the filters (case-insensitive)
+func (m *AssociationBaseManager) checkStringFilter(filters []string, value string, caseInsensitive bool) bool {
+	if len(filters) == 0 {
+		return true
+	}
+	for _, filter := range filters {
+		if caseInsensitive {
+			if strings.EqualFold(value, filter) {
+				return true
 			}
-		}
-		if !found {
-			return false
-		}
-	}
-
-	// Filter by clusters
-	if len(opts.Clusters) > 0 {
-		found := false
-		for _, cluster := range opts.Clusters {
-			if strings.EqualFold(association.Cluster, cluster) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
+		} else if value == filter {
+			return true
 		}
 	}
-
-	// Filter by users
-	if len(opts.Users) > 0 {
-		found := false
-		for _, user := range opts.Users {
-			if strings.EqualFold(association.UserName, user) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-
-	// Filter by partitions
-	if len(opts.Partitions) > 0 {
-		found := false
-		for _, partition := range opts.Partitions {
-			if strings.EqualFold(association.Partition, partition) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-
-	// Filter only defaults
-	if opts.OnlyDefaults && !association.IsDefault {
-		return false
-	}
-
-	// Filter deleted associations
-	if !opts.WithDeleted && association.Deleted {
-		return false
-	}
-
-	// Filter by update time
-	// This would require API support to track update times
-	// For now, we'll accept all items
-	if opts.UpdateTime != nil {
-	}
-
-	return true
+	return false
 }
 
 // validateTRESMap validates that TRES values are non-negative

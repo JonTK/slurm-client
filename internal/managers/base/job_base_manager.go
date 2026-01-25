@@ -6,6 +6,7 @@ package base
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jontk/slurm-client/internal/common/types"
 	"github.com/jontk/slurm-client/pkg/errors"
@@ -315,112 +316,63 @@ func (m *JobBaseManager) FilterJobList(jobs []types.Job, opts *types.JobListOpti
 
 // matchesJobFilters checks if a job matches the given filters
 func (m *JobBaseManager) matchesJobFilters(job types.Job, opts *types.JobListOptions) bool {
-	// Filter by job IDs
-	if len(opts.JobIDs) > 0 {
-		found := false
-		for _, id := range opts.JobIDs {
-			if job.JobID == id {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
+	return m.checkJobIDFilter(opts.JobIDs, job.JobID) &&
+		m.checkStringFilter(opts.JobNames, job.Name, true) &&
+		m.checkStringFilter(opts.Accounts, job.Account, true) &&
+		m.checkStringFilter(opts.Users, job.UserName, true) &&
+		m.checkStateFilter(opts.States, job.State) &&
+		m.checkStringFilter(opts.Partitions, job.Partition, true) &&
+		m.checkStringFilter(opts.QoS, job.QoS, true) &&
+		m.checkTimeRange(&job.SubmitTime, opts.StartTime, opts.EndTime)
+}
+
+func (m *JobBaseManager) checkJobIDFilter(filterIDs []int32, jobID int32) bool {
+	if len(filterIDs) == 0 {
+		return true
+	}
+	for _, id := range filterIDs {
+		if jobID == id {
+			return true
 		}
 	}
+	return false
+}
 
-	// Filter by job names
-	if len(opts.JobNames) > 0 {
-		found := false
-		for _, name := range opts.JobNames {
-			if strings.EqualFold(job.Name, name) {
-				found = true
-				break
+func (m *JobBaseManager) checkStringFilter(filters []string, value string, caseInsensitive bool) bool {
+	if len(filters) == 0 {
+		return true
+	}
+	for _, filter := range filters {
+		if caseInsensitive {
+			if strings.EqualFold(value, filter) {
+				return true
 			}
-		}
-		if !found {
-			return false
+		} else if value == filter {
+			return true
 		}
 	}
+	return false
+}
 
-	// Filter by accounts
-	if len(opts.Accounts) > 0 {
-		found := false
-		for _, account := range opts.Accounts {
-			if strings.EqualFold(job.Account, account) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
+func (m *JobBaseManager) checkStateFilter(states []types.JobState, jobState types.JobState) bool {
+	if len(states) == 0 {
+		return true
+	}
+	for _, state := range states {
+		if jobState == state {
+			return true
 		}
 	}
+	return false
+}
 
-	// Filter by users
-	if len(opts.Users) > 0 {
-		found := false
-		for _, user := range opts.Users {
-			if strings.EqualFold(job.UserName, user) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-
-	// Filter by states
-	if len(opts.States) > 0 {
-		found := false
-		for _, state := range opts.States {
-			if job.State == state {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-
-	// Filter by partitions
-	if len(opts.Partitions) > 0 {
-		found := false
-		for _, partition := range opts.Partitions {
-			if strings.EqualFold(job.Partition, partition) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-
-	// Filter by QoS
-	if len(opts.QoS) > 0 {
-		found := false
-		for _, qos := range opts.QoS {
-			if strings.EqualFold(job.QoS, qos) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-
-	// Filter by time range
-	if opts.StartTime != nil && job.SubmitTime.Before(*opts.StartTime) {
+func (m *JobBaseManager) checkTimeRange(submitTime, startTime, endTime *time.Time) bool {
+	if startTime != nil && submitTime.Before(*startTime) {
 		return false
 	}
-	if opts.EndTime != nil && job.SubmitTime.After(*opts.EndTime) {
+	if endTime != nil && submitTime.After(*endTime) {
 		return false
 	}
-
 	return true
 }
 
