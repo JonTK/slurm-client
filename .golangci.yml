@@ -94,10 +94,8 @@ linters:
       template-path: .goheader
     gosec:
       excludes:
-        - G104  # Duplicated errcheck
-        - G307  # Duplicated errcheck on file defer Close()
-        - G115  # Integer overflow conversion - SLURM resource counts unlikely to overflow int32
-        - G404  # Use of weak random generator - acceptable for test data and non-cryptographic randomness
+        - G104  # Duplicated errcheck - errcheck linter is more comprehensive
+        - G307  # Duplicated errcheck on file defer Close() - handled by errcheck linter
         - G601  # Implicit memory aliasing - fixed in Go 1.22+ with new loop variable scoping
         - G602  # Slice index out of range - covered by bounds checking
     misspell:
@@ -203,6 +201,18 @@ linters:
           - thelper
           - unparam
         path: _test\.go
+      - linters:
+          - gosec
+        path: (^internal/adapters/|^internal/api/|^internal/factory/|^internal/common/|^tests/|_test\.go$|^tests/mocks/)
+        text: G115  # Integer overflow conversions are safe for SLURM API type transformations and test data
+      - linters:
+          - gosec
+        path: ^pkg/retry/
+        text: G404  # Weak random used for non-cryptographic jitter in exponential backoff
+      - linters:
+          - gosec
+        path: ^internal/api/v0_0_43/
+        text: G404  # Weak random used for generating synthetic test data in simulation functions
       - linters:
           - revive
         path: _test\.go
