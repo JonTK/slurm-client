@@ -497,25 +497,62 @@ func (b *UserBuilder) BuildForUpdate() (*types.UserUpdate, error) {
 
 	update := &types.UserUpdate{}
 
-	// Only include fields that were explicitly set
+	// Assign string fields
+	b.assignStringFields(update)
+	// Assign slice fields
+	b.assignSliceFields(update)
+	// Assign numeric fields
+	b.assignNumericFields(update)
+
+	return update, nil
+}
+
+func (b *UserBuilder) assignStringFields(update *types.UserUpdate) {
 	if b.user.DefaultAccount != "" {
 		update.DefaultAccount = &b.user.DefaultAccount
 	}
 	if b.user.DefaultWCKey != "" {
 		update.DefaultWCKey = &b.user.DefaultWCKey
 	}
-	if b.user.AdminLevel != types.AdminLevelNone { // Not default
-		update.AdminLevel = &b.user.AdminLevel
-	}
-	if len(b.user.Accounts) > 0 {
-		update.Accounts = b.user.Accounts
-	}
 	if b.user.DefaultQoS != "" {
 		update.DefaultQoS = &b.user.DefaultQoS
+	}
+	if b.user.AdminLevel != types.AdminLevelNone {
+		update.AdminLevel = &b.user.AdminLevel
+	}
+}
+
+func (b *UserBuilder) assignSliceFields(update *types.UserUpdate) {
+	if len(b.user.Accounts) > 0 {
+		update.Accounts = b.user.Accounts
 	}
 	if len(b.user.QoSList) > 0 {
 		update.QoSList = b.user.QoSList
 	}
+	if len(b.user.GrpTRES) > 0 {
+		update.GrpTRES = b.user.GrpTRES
+	}
+	if len(b.user.GrpTRESMins) > 0 {
+		update.GrpTRESMins = b.user.GrpTRESMins
+	}
+	if len(b.user.GrpTRESRunMins) > 0 {
+		update.GrpTRESRunMins = b.user.GrpTRESRunMins
+	}
+	if len(b.user.MaxTRES) > 0 {
+		update.MaxTRES = b.user.MaxTRES
+	}
+	if len(b.user.MaxTRESPerNode) > 0 {
+		update.MaxTRESPerNode = b.user.MaxTRESPerNode
+	}
+	if len(b.user.MinTRES) > 0 {
+		update.MinTRES = b.user.MinTRES
+	}
+	if len(b.user.WCKeys) > 0 {
+		update.WCKeys = b.user.WCKeys
+	}
+}
+
+func (b *UserBuilder) assignNumericFields(update *types.UserUpdate) {
 	if b.user.MaxJobs != 0 {
 		update.MaxJobs = &b.user.MaxJobs
 	}
@@ -567,29 +604,6 @@ func (b *UserBuilder) BuildForUpdate() (*types.UserUpdate, error) {
 	if b.user.GrpCPUTime != 0 {
 		update.GrpCPUTime = &b.user.GrpCPUTime
 	}
-	if len(b.user.GrpTRES) > 0 {
-		update.GrpTRES = b.user.GrpTRES
-	}
-	if len(b.user.GrpTRESMins) > 0 {
-		update.GrpTRESMins = b.user.GrpTRESMins
-	}
-	if len(b.user.GrpTRESRunMins) > 0 {
-		update.GrpTRESRunMins = b.user.GrpTRESRunMins
-	}
-	if len(b.user.MaxTRES) > 0 {
-		update.MaxTRES = b.user.MaxTRES
-	}
-	if len(b.user.MaxTRESPerNode) > 0 {
-		update.MaxTRESPerNode = b.user.MaxTRESPerNode
-	}
-	if len(b.user.MinTRES) > 0 {
-		update.MinTRES = b.user.MinTRES
-	}
-	if len(b.user.WCKeys) > 0 {
-		update.WCKeys = b.user.WCKeys
-	}
-
-	return update, nil
 }
 
 // Clone creates a copy of the builder with the same settings
@@ -680,81 +694,91 @@ func (b *UserBuilder) addError(err error) {
 
 // validateBusinessRules applies business logic validation
 func (b *UserBuilder) validateBusinessRules() error {
-	// Validate job limits consistency
+	if err := b.validateJobLimits(); err != nil {
+		return err
+	}
+	if err := b.validateTRESConsistency(); err != nil {
+		return err
+	}
+	if err := b.validateDefaultQoS(); err != nil {
+		return err
+	}
+	if err := b.validateDefaultAccount(); err != nil {
+		return err
+	}
+	if err := b.validateAdminPermissions(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (b *UserBuilder) validateJobLimits() error {
 	if b.user.MaxJobsPerAccount > 0 && b.user.MaxJobs > 0 {
 		if b.user.MaxJobsPerAccount > b.user.MaxJobs {
 			return fmt.Errorf("max jobs per account (%d) cannot exceed max jobs (%d)",
 				b.user.MaxJobsPerAccount, b.user.MaxJobs)
 		}
 	}
-
-	// Validate group vs individual limits
 	if b.user.GrpJobs > 0 && b.user.MaxJobs > 0 {
 		if b.user.GrpJobs > b.user.MaxJobs {
 			return fmt.Errorf("group jobs (%d) should not exceed max jobs (%d)",
 				b.user.GrpJobs, b.user.MaxJobs)
 		}
 	}
+	return nil
+}
 
-	// Validate TRES consistency
+func (b *UserBuilder) validateTRESConsistency() error {
 	if cpuMax, exists := b.user.MaxTRES["cpu"]; exists {
 		if b.user.MaxCPUs > 0 && cpuMax != int64(b.user.MaxCPUs) {
 			return fmt.Errorf("MaxCPUs (%d) and MaxTRES[cpu] (%d) should be consistent",
 				b.user.MaxCPUs, cpuMax)
 		}
 	}
-
-	// Validate memory consistency
 	if memMax, exists := b.user.MaxTRES["mem"]; exists {
 		if b.user.MaxMemory > 0 && memMax != b.user.MaxMemory {
 			return fmt.Errorf("MaxMemory (%d) and MaxTRES[mem] (%d) should be consistent",
 				b.user.MaxMemory, memMax)
 		}
 	}
-
-	// Validate node consistency
 	if nodeMax, exists := b.user.MaxTRES["node"]; exists {
 		if b.user.MaxNodes > 0 && nodeMax != int64(b.user.MaxNodes) {
 			return fmt.Errorf("MaxNodes (%d) and MaxTRES[node] (%d) should be consistent",
 				b.user.MaxNodes, nodeMax)
 		}
 	}
+	return nil
+}
 
-	// Validate QoS consistency
+func (b *UserBuilder) validateDefaultQoS() error {
 	if b.user.DefaultQoS != "" && len(b.user.QoSList) > 0 {
-		found := false
 		for _, qos := range b.user.QoSList {
 			if qos == b.user.DefaultQoS {
-				found = true
-				break
+				return nil
 			}
 		}
-		if !found {
-			return fmt.Errorf("default QoS %s must be in the allowed QoS list", b.user.DefaultQoS)
-		}
+		return fmt.Errorf("default QoS %s must be in the allowed QoS list", b.user.DefaultQoS)
 	}
+	return nil
+}
 
-	// Validate account consistency
+func (b *UserBuilder) validateDefaultAccount() error {
 	if b.user.DefaultAccount != "" && len(b.user.Accounts) > 0 {
-		found := false
 		for _, account := range b.user.Accounts {
 			if account == b.user.DefaultAccount {
-				found = true
-				break
+				return nil
 			}
 		}
-		if !found {
-			return fmt.Errorf("default account %s must be in the allowed accounts list", b.user.DefaultAccount)
-		}
+		return fmt.Errorf("default account %s must be in the allowed accounts list", b.user.DefaultAccount)
 	}
+	return nil
+}
 
-	// Validate admin level permissions
+func (b *UserBuilder) validateAdminPermissions() error {
 	if b.user.AdminLevel == types.AdminLevelAdministrator {
-		// Administrators should have high limits
 		if b.user.MaxJobs > 0 && b.user.MaxJobs < 1000 {
 			return fmt.Errorf("administrators should have at least 1000 max jobs, got %d", b.user.MaxJobs)
 		}
 	}
-
 	return nil
 }

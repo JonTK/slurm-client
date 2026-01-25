@@ -454,15 +454,42 @@ func (b *PartitionBuilder) BuildForUpdate() (*types.PartitionUpdate, error) {
 
 	update := &types.PartitionUpdate{}
 
-	// Only include fields that were explicitly set
+	// Assign string fields
+	b.assignStringFields(update)
+	// Assign slice fields
+	b.assignSliceFields(update)
+	// Assign numeric fields
+	b.assignNumericFields(update)
+	// Assign boolean fields
+	b.assignBooleanFields(update)
+
+	return update, nil
+}
+
+func (b *PartitionBuilder) assignStringFields(update *types.PartitionUpdate) {
 	if b.partition.AllocNodes != "" {
 		update.AllocNodes = &b.partition.AllocNodes
 	}
-	if len(b.partition.AllowAccounts) > 0 {
-		update.AllowAccounts = b.partition.AllowAccounts
-	}
 	if b.partition.AllowAllocNodes != "" {
 		update.AllowAllocNodes = &b.partition.AllowAllocNodes
+	}
+	if b.partition.QoS != "" {
+		update.QoS = &b.partition.QoS
+	}
+	if b.partition.Nodes != "" {
+		update.Nodes = &b.partition.Nodes
+	}
+	if b.partition.TresStr != "" {
+		update.TresStr = &b.partition.TresStr
+	}
+	if b.partition.BillingWeightStr != "" {
+		update.BillingWeightStr = &b.partition.BillingWeightStr
+	}
+}
+
+func (b *PartitionBuilder) assignSliceFields(update *types.PartitionUpdate) {
+	if len(b.partition.AllowAccounts) > 0 {
+		update.AllowAccounts = b.partition.AllowAccounts
 	}
 	if len(b.partition.AllowGroups) > 0 {
 		update.AllowGroups = b.partition.AllowGroups
@@ -476,13 +503,25 @@ func (b *PartitionBuilder) BuildForUpdate() (*types.PartitionUpdate, error) {
 	if len(b.partition.DenyQoS) > 0 {
 		update.DenyQoS = b.partition.DenyQoS
 	}
+	if len(b.partition.PreemptMode) > 0 {
+		update.PreemptMode = b.partition.PreemptMode
+	}
+	if len(b.partition.SelectTypeParameters) > 0 {
+		update.SelectTypeParameters = b.partition.SelectTypeParameters
+	}
+	if len(b.partition.JobDefaults) > 0 {
+		update.JobDefaults = b.partition.JobDefaults
+	}
+}
+
+func (b *PartitionBuilder) assignNumericFields(update *types.PartitionUpdate) {
 	if b.partition.DefaultMemPerCPU != 0 {
 		update.DefaultMemPerCPU = &b.partition.DefaultMemPerCPU
 	}
 	if b.partition.DefaultMemPerNode != 0 {
 		update.DefaultMemPerNode = &b.partition.DefaultMemPerNode
 	}
-	if b.partition.DefaultTime != 60 { // Not default
+	if b.partition.DefaultTime != 60 {
 		update.DefaultTime = &b.partition.DefaultTime
 	}
 	if b.partition.DefMemPerNode != 0 {
@@ -500,25 +539,19 @@ func (b *PartitionBuilder) BuildForUpdate() (*types.PartitionUpdate, error) {
 	if b.partition.MaxMemPerCPU != 0 {
 		update.MaxMemPerCPU = &b.partition.MaxMemPerCPU
 	}
-	if b.partition.MaxNodes != 1000 { // Not default
+	if b.partition.MaxNodes != 1000 {
 		update.MaxNodes = &b.partition.MaxNodes
 	}
-	if b.partition.MaxTime != 1440 { // Not default
+	if b.partition.MaxTime != 1440 {
 		update.MaxTime = &b.partition.MaxTime
 	}
 	if b.partition.MinNodes != 0 {
 		update.MinNodes = &b.partition.MinNodes
 	}
-	if b.partition.Nodes != "" {
-		update.Nodes = &b.partition.Nodes
-	}
 	if b.partition.OverTimeLimit != 0 {
 		update.OverTimeLimit = &b.partition.OverTimeLimit
 	}
-	if len(b.partition.PreemptMode) > 0 {
-		update.PreemptMode = b.partition.PreemptMode
-	}
-	if b.partition.Priority != 1 { // Not default
+	if b.partition.Priority != 1 {
 		update.Priority = &b.partition.Priority
 	}
 	if b.partition.PriorityJobFactor != 0 {
@@ -526,24 +559,6 @@ func (b *PartitionBuilder) BuildForUpdate() (*types.PartitionUpdate, error) {
 	}
 	if b.partition.PriorityTier != 0 {
 		update.PriorityTier = &b.partition.PriorityTier
-	}
-	if b.partition.QoS != "" {
-		update.QoS = &b.partition.QoS
-	}
-	if b.partition.State != types.PartitionStateUp { // Not default
-		update.State = &b.partition.State
-	}
-	if b.partition.TresStr != "" {
-		update.TresStr = &b.partition.TresStr
-	}
-	if b.partition.BillingWeightStr != "" {
-		update.BillingWeightStr = &b.partition.BillingWeightStr
-	}
-	if len(b.partition.SelectTypeParameters) > 0 {
-		update.SelectTypeParameters = b.partition.SelectTypeParameters
-	}
-	if len(b.partition.JobDefaults) > 0 {
-		update.JobDefaults = b.partition.JobDefaults
 	}
 	if b.partition.ResumeTimeout != 0 {
 		update.ResumeTimeout = &b.partition.ResumeTimeout
@@ -553,6 +568,12 @@ func (b *PartitionBuilder) BuildForUpdate() (*types.PartitionUpdate, error) {
 	}
 	if b.partition.SuspendTimeout != 0 {
 		update.SuspendTimeout = &b.partition.SuspendTimeout
+	}
+}
+
+func (b *PartitionBuilder) assignBooleanFields(update *types.PartitionUpdate) {
+	if b.partition.State != types.PartitionStateUp {
+		update.State = &b.partition.State
 	}
 	if b.partition.Hidden {
 		update.Hidden = &b.partition.Hidden
@@ -572,8 +593,6 @@ func (b *PartitionBuilder) BuildForUpdate() (*types.PartitionUpdate, error) {
 	if b.partition.PowerDownOnIdle {
 		update.PowerDownOnIdle = &b.partition.PowerDownOnIdle
 	}
-
-	return update, nil
 }
 
 // Clone creates a copy of the builder with the same settings

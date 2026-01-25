@@ -253,6 +253,73 @@ func (ac *AnalyticsCollector) CollectJobAnalytics(ctx context.Context, jobID str
 	return analytics
 }
 
+func parseCPUUtilization(cpuData map[string]interface{}) CPUUtilization {
+	cpu := CPUUtilization{}
+	if allocCores, ok := cpuData["allocated_cores"].(float64); ok {
+		if usedCores, ok := cpuData["used_cores"].(float64); ok {
+			if utilPct, ok := cpuData["utilization_percent"].(float64); ok {
+				if effPct, ok := cpuData["efficiency_percent"].(float64); ok {
+					cpu = CPUUtilization{
+						AllocatedCores:     int(allocCores),
+						UsedCores:          usedCores,
+						UtilizationPercent: utilPct,
+						EfficiencyPercent:  effPct,
+					}
+				}
+			}
+		}
+	}
+	return cpu
+}
+
+func parseMemoryUtilization(memData map[string]interface{}) MemoryUtilization {
+	mem := MemoryUtilization{}
+	if allocBytes, ok := memData["allocated_bytes"].(float64); ok {
+		if usedBytes, ok := memData["used_bytes"].(float64); ok {
+			if utilPct, ok := memData["utilization_percent"].(float64); ok {
+				if effPct, ok := memData["efficiency_percent"].(float64); ok {
+					mem = MemoryUtilization{
+						AllocatedBytes:     int64(allocBytes),
+						UsedBytes:          int64(usedBytes),
+						UtilizationPercent: utilPct,
+						EfficiencyPercent:  effPct,
+					}
+				}
+			}
+		}
+	}
+	return mem
+}
+
+func parseGPUUtilization(gpuData map[string]interface{}) GPUUtilization {
+	gpu := GPUUtilization{}
+	if deviceCount, ok := getFloat64(gpuData, "device_count"); ok {
+		if utilPct, ok := getFloat64(gpuData, "utilization_percent"); ok {
+			gpu = GPUUtilization{
+				DeviceCount:        int(deviceCount),
+				UtilizationPercent: utilPct,
+			}
+		}
+	}
+	return gpu
+}
+
+func parseIOUtilization(ioData map[string]interface{}) IOUtilization {
+	io := IOUtilization{}
+	if readBytes, ok := getFloat64(ioData, "read_bytes"); ok {
+		if writeBytes, ok := getFloat64(ioData, "write_bytes"); ok {
+			if utilPct, ok := getFloat64(ioData, "utilization_percent"); ok {
+				io = IOUtilization{
+					ReadBytes:          int64(readBytes),
+					WriteBytes:         int64(writeBytes),
+					UtilizationPercent: utilPct,
+				}
+			}
+		}
+	}
+	return io
+}
+
 func (ac *AnalyticsCollector) getJobUtilization(ctx context.Context, jobID string) (*UtilizationData, error) {
 	url := fmt.Sprintf("%s/slurm/v0.0.42/job/%s/utilization", ac.baseURL, jobID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
@@ -283,65 +350,76 @@ func (ac *AnalyticsCollector) getJobUtilization(ctx context.Context, jobID strin
 	utilization := &UtilizationData{}
 
 	if cpuData, ok := utilizationMap["cpu_utilization"].(map[string]interface{}); ok {
-		if allocCores, ok := cpuData["allocated_cores"].(float64); ok {
-			if usedCores, ok := cpuData["used_cores"].(float64); ok {
-				if utilPct, ok := cpuData["utilization_percent"].(float64); ok {
-					if effPct, ok := cpuData["efficiency_percent"].(float64); ok {
-						utilization.CPU = CPUUtilization{
-							AllocatedCores:     int(allocCores),
-							UsedCores:          usedCores,
-							UtilizationPercent: utilPct,
-							EfficiencyPercent:  effPct,
-						}
-					}
-				}
-			}
-		}
+		utilization.CPU = parseCPUUtilization(cpuData)
 	}
 
 	if memData, ok := utilizationMap["memory_utilization"].(map[string]interface{}); ok {
-		if allocBytes, ok := memData["allocated_bytes"].(float64); ok {
-			if usedBytes, ok := memData["used_bytes"].(float64); ok {
-				if utilPct, ok := memData["utilization_percent"].(float64); ok {
-					if effPct, ok := memData["efficiency_percent"].(float64); ok {
-						utilization.Memory = MemoryUtilization{
-							AllocatedBytes:     int64(allocBytes),
-							UsedBytes:          int64(usedBytes),
-							UtilizationPercent: utilPct,
-							EfficiencyPercent:  effPct,
-						}
-					}
-				}
-			}
-		}
+		utilization.Memory = parseMemoryUtilization(memData)
 	}
 
 	if gpuData, ok := getMap(utilizationMap, "gpu_utilization"); ok {
-		if deviceCount, ok := getFloat64(gpuData, "device_count"); ok {
-			if utilPct, ok := getFloat64(gpuData, "utilization_percent"); ok {
-				utilization.GPU = GPUUtilization{
-					DeviceCount:        int(deviceCount),
-					UtilizationPercent: utilPct,
-				}
-			}
-		}
+		utilization.GPU = parseGPUUtilization(gpuData)
 	}
 
 	if ioData, ok := getMap(utilizationMap, "io_utilization"); ok {
-		if readBytes, ok := getFloat64(ioData, "read_bytes"); ok {
-			if writeBytes, ok := getFloat64(ioData, "write_bytes"); ok {
-				if utilPct, ok := getFloat64(ioData, "utilization_percent"); ok {
-					utilization.IO = IOUtilization{
-						ReadBytes:          int64(readBytes),
-						WriteBytes:         int64(writeBytes),
-						UtilizationPercent: utilPct,
+		utilization.IO = parseIOUtilization(ioData)
+	}
+
+	return utilization, nil
+}
+
+func parseResourceWaste(wasteData map[string]interface{}) ResourceWaste {
+	waste := ResourceWaste{}
+	if cpuHours, ok := wasteData["cpu_core_hours"].(float64); ok {
+		if cpuPct, ok := wasteData["cpu_percent"].(float64); ok {
+			if memHours, ok := wasteData["memory_gb_hours"].(float64); ok {
+				if memPct, ok := wasteData["memory_percent"].(float64); ok {
+					waste = ResourceWaste{
+						CPUCoreHours:  cpuHours,
+						CPUPercent:    cpuPct,
+						MemoryGBHours: memHours,
+						MemoryPercent: memPct,
 					}
 				}
 			}
 		}
 	}
+	return waste
+}
 
-	return utilization, nil
+func parseRecommendation(rec map[string]interface{}) OptimizationRecommendation {
+	recommendation := OptimizationRecommendation{}
+	if v, ok := rec["type"].(string); ok {
+		recommendation.Type = v
+	}
+	if v, ok := rec["resource"].(string); ok {
+		recommendation.Resource = v
+	}
+	if v, ok := rec["current"].(float64); ok {
+		recommendation.Current = int(v)
+	}
+	if v, ok := rec["recommended"].(float64); ok {
+		recommendation.Recommended = int(v)
+	}
+	if v, ok := rec["reason"].(string); ok {
+		recommendation.Reason = v
+	}
+	if v, ok := rec["confidence"].(float64); ok {
+		recommendation.Confidence = v
+	}
+	return recommendation
+}
+
+func parseRecommendations(recsData []interface{}) []OptimizationRecommendation {
+	recommendations := []OptimizationRecommendation{}
+	for _, recData := range recsData {
+		rec, ok := recData.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		recommendations = append(recommendations, parseRecommendation(rec))
+	}
+	return recommendations
 }
 
 func (ac *AnalyticsCollector) getJobEfficiency(ctx context.Context, jobID string) (*EfficiencyData, error) {
@@ -386,65 +464,84 @@ func (ac *AnalyticsCollector) getJobEfficiency(ctx context.Context, jobID string
 
 	// Parse resource waste
 	if wasteData, ok := efficiencyMap["resource_waste"].(map[string]interface{}); ok {
-		if cpuHours, ok := wasteData["cpu_core_hours"].(float64); ok {
-			if cpuPct, ok := wasteData["cpu_percent"].(float64); ok {
-				if memHours, ok := wasteData["memory_gb_hours"].(float64); ok {
-					if memPct, ok := wasteData["memory_percent"].(float64); ok {
-						efficiency.ResourceWaste = ResourceWaste{
-							CPUCoreHours:  cpuHours,
-							CPUPercent:    cpuPct,
-							MemoryGBHours: memHours,
-							MemoryPercent: memPct,
+		efficiency.ResourceWaste = parseResourceWaste(wasteData)
+	}
+
+	// Parse recommendations
+	if recsData, ok := efficiencyMap["optimization_recommendations"].([]interface{}); ok {
+		efficiency.Recommendations = parseRecommendations(recsData)
+	}
+
+	return efficiency, nil
+}
+
+func parseCPUAnalytics(cpuData map[string]interface{}) CPUAnalytics {
+	cpu := CPUAnalytics{}
+	if allocCores, ok := getFloat64(cpuData, "allocated_cores"); ok {
+		if usedCores, ok := getFloat64(cpuData, "used_cores"); ok {
+			if utilPct, ok := getFloat64(cpuData, "utilization_percent"); ok {
+				if effPct, ok := getFloat64(cpuData, "efficiency_percent"); ok {
+					if avgFreq, ok := getFloat64(cpuData, "average_frequency"); ok {
+						if maxFreq, ok := getFloat64(cpuData, "max_frequency"); ok {
+							cpu = CPUAnalytics{
+								AllocatedCores:     int(allocCores),
+								UsedCores:          usedCores,
+								UtilizationPercent: utilPct,
+								EfficiencyPercent:  effPct,
+								AverageFrequency:   int(avgFreq),
+								MaxFrequency:       int(maxFreq),
+							}
 						}
 					}
 				}
 			}
 		}
 	}
+	return cpu
+}
 
-	// Parse recommendations
-	if recsData, ok := efficiencyMap["optimization_recommendations"].([]interface{}); ok {
-		for _, recData := range recsData {
-			rec, ok := recData.(map[string]interface{})
-			if !ok {
-				continue
+func parseMemoryAnalytics(memData map[string]interface{}) MemoryAnalytics {
+	mem := MemoryAnalytics{}
+	if allocBytes, ok := getFloat64(memData, "allocated_bytes"); ok {
+		if usedBytes, ok := getFloat64(memData, "used_bytes"); ok {
+			if utilPct, ok := getFloat64(memData, "utilization_percent"); ok {
+				if effPct, ok := getFloat64(memData, "efficiency_percent"); ok {
+					mem = MemoryAnalytics{
+						AllocatedBytes:     int64(allocBytes),
+						UsedBytes:          int64(usedBytes),
+						UtilizationPercent: utilPct,
+						EfficiencyPercent:  effPct,
+					}
+				}
 			}
-			var recType, recResource, recReason string
-			var current, recommended float64
-			var confidence float64
-
-			if v, ok := rec["type"].(string); ok {
-				recType = v
-			}
-			if v, ok := rec["resource"].(string); ok {
-				recResource = v
-			}
-			if v, ok := rec["current"].(float64); ok {
-				current = v
-			}
-			if v, ok := rec["recommended"].(float64); ok {
-				recommended = v
-			}
-			if v, ok := rec["reason"].(string); ok {
-				recReason = v
-			}
-			if v, ok := rec["confidence"].(float64); ok {
-				confidence = v
-			}
-
-			recommendation := OptimizationRecommendation{
-				Type:        recType,
-				Resource:    recResource,
-				Current:     int(current),
-				Recommended: int(recommended),
-				Reason:      recReason,
-				Confidence:  confidence,
-			}
-			efficiency.Recommendations = append(efficiency.Recommendations, recommendation)
 		}
 	}
+	return mem
+}
 
-	return efficiency, nil
+func parseIOAnalytics(ioData map[string]interface{}) IOAnalytics {
+	io := IOAnalytics{}
+	if readBytes, ok := getFloat64(ioData, "read_bytes"); ok {
+		if writeBytes, ok := getFloat64(ioData, "write_bytes"); ok {
+			if readOps, ok := getFloat64(ioData, "read_operations"); ok {
+				if writeOps, ok := getFloat64(ioData, "write_operations"); ok {
+					if avgReadBw, ok := getFloat64(ioData, "average_read_bandwidth"); ok {
+						if avgWriteBw, ok := getFloat64(ioData, "average_write_bandwidth"); ok {
+							io = IOAnalytics{
+								ReadBytes:             int64(readBytes),
+								WriteBytes:            int64(writeBytes),
+								ReadOperations:        int(readOps),
+								WriteOperations:       int(writeOps),
+								AverageReadBandwidth:  avgReadBw,
+								AverageWriteBandwidth: avgWriteBw,
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return io
 }
 
 func (ac *AnalyticsCollector) getJobPerformance(ctx context.Context, jobID string) (*PerformanceData, error) {
@@ -480,71 +577,84 @@ func (ac *AnalyticsCollector) getJobPerformance(ctx context.Context, jobID strin
 
 	// Parse CPU analytics
 	if cpuData, ok := getMap(performanceMap, "cpu_analytics"); ok {
-		if allocCores, ok := getFloat64(cpuData, "allocated_cores"); ok {
-			if usedCores, ok := getFloat64(cpuData, "used_cores"); ok {
-				if utilPct, ok := getFloat64(cpuData, "utilization_percent"); ok {
-					if effPct, ok := getFloat64(cpuData, "efficiency_percent"); ok {
-						if avgFreq, ok := getFloat64(cpuData, "average_frequency"); ok {
-							if maxFreq, ok := getFloat64(cpuData, "max_frequency"); ok {
-								performance.CPUAnalytics = CPUAnalytics{
-									AllocatedCores:     int(allocCores),
-									UsedCores:          usedCores,
-									UtilizationPercent: utilPct,
-									EfficiencyPercent:  effPct,
-									AverageFrequency:   int(avgFreq),
-									MaxFrequency:       int(maxFreq),
-								}
-							}
-						}
-					}
-				}
-			}
-		}
+		performance.CPUAnalytics = parseCPUAnalytics(cpuData)
 	}
 
 	// Parse Memory analytics
 	if memData, ok := getMap(performanceMap, "memory_analytics"); ok {
-		if allocBytes, ok := getFloat64(memData, "allocated_bytes"); ok {
-			if usedBytes, ok := getFloat64(memData, "used_bytes"); ok {
-				if utilPct, ok := getFloat64(memData, "utilization_percent"); ok {
-					if effPct, ok := getFloat64(memData, "efficiency_percent"); ok {
-						performance.MemoryAnalytics = MemoryAnalytics{
-							AllocatedBytes:     int64(allocBytes),
-							UsedBytes:          int64(usedBytes),
-							UtilizationPercent: utilPct,
-							EfficiencyPercent:  effPct,
-						}
-					}
-				}
-			}
-		}
+		performance.MemoryAnalytics = parseMemoryAnalytics(memData)
 	}
 
 	// Parse IO analytics
 	if ioData, ok := getMap(performanceMap, "io_analytics"); ok {
-		if readBytes, ok := getFloat64(ioData, "read_bytes"); ok {
-			if writeBytes, ok := getFloat64(ioData, "write_bytes"); ok {
-				if readOps, ok := getFloat64(ioData, "read_operations"); ok {
-					if writeOps, ok := getFloat64(ioData, "write_operations"); ok {
-						if avgReadBw, ok := getFloat64(ioData, "average_read_bandwidth"); ok {
-							if avgWriteBw, ok := getFloat64(ioData, "average_write_bandwidth"); ok {
-								performance.IOAnalytics = IOAnalytics{
-									ReadBytes:             int64(readBytes),
-									WriteBytes:            int64(writeBytes),
-									ReadOperations:        int(readOps),
-									WriteOperations:       int(writeOps),
-									AverageReadBandwidth:  avgReadBw,
-									AverageWriteBandwidth: avgWriteBw,
-								}
-							}
-						}
+		performance.IOAnalytics = parseIOAnalytics(ioData)
+	}
+
+	return performance, nil
+}
+
+func parseCPUUsage(cpuData map[string]interface{}) CPUUsage {
+	cpu := CPUUsage{}
+	if current, ok := getFloat64(cpuData, "current"); ok {
+		if average, ok := getFloat64(cpuData, "average"); ok {
+			if peak, ok := getFloat64(cpuData, "peak"); ok {
+				if util, ok := getFloat64(cpuData, "utilization"); ok {
+					cpu = CPUUsage{
+						Current:     current,
+						Average:     average,
+						Peak:        peak,
+						Utilization: util,
 					}
 				}
 			}
 		}
 	}
+	return cpu
+}
 
-	return performance, nil
+func parseMemoryUsage(memData map[string]interface{}) MemoryUsage {
+	mem := MemoryUsage{}
+	if current, ok := getFloat64(memData, "current"); ok {
+		if average, ok := getFloat64(memData, "average"); ok {
+			if peak, ok := getFloat64(memData, "peak"); ok {
+				if util, ok := getFloat64(memData, "utilization"); ok {
+					mem = MemoryUsage{
+						Current:     int64(current),
+						Average:     int64(average),
+						Peak:        int64(peak),
+						Utilization: util,
+					}
+				}
+			}
+		}
+	}
+	return mem
+}
+
+func parseDiskUsage(diskData map[string]interface{}) DiskUsage {
+	disk := DiskUsage{}
+	if readRate, ok := getFloat64(diskData, "read_rate_mbps"); ok {
+		if writeRate, ok := getFloat64(diskData, "write_rate_mbps"); ok {
+			disk = DiskUsage{
+				ReadRateMBps:  readRate,
+				WriteRateMBps: writeRate,
+			}
+		}
+	}
+	return disk
+}
+
+func parseNetworkUsage(netData map[string]interface{}) NetworkUsage {
+	net := NetworkUsage{}
+	if inRate, ok := getFloat64(netData, "in_rate_mbps"); ok {
+		if outRate, ok := getFloat64(netData, "out_rate_mbps"); ok {
+			net = NetworkUsage{
+				InRateMBps:  inRate,
+				OutRateMBps: outRate,
+			}
+		}
+	}
+	return net
 }
 
 func (ac *AnalyticsCollector) getJobLiveMetrics(ctx context.Context, jobID string) (*LiveMetricsData, error) {
@@ -580,62 +690,22 @@ func (ac *AnalyticsCollector) getJobLiveMetrics(ctx context.Context, jobID strin
 
 	// Parse CPU usage
 	if cpuData, ok := getMap(metricsMap, "cpu_usage"); ok {
-		if current, ok := getFloat64(cpuData, "current"); ok {
-			if average, ok := getFloat64(cpuData, "average"); ok {
-				if peak, ok := getFloat64(cpuData, "peak"); ok {
-					if util, ok := getFloat64(cpuData, "utilization"); ok {
-						liveMetrics.CPUUsage = CPUUsage{
-							Current:     current,
-							Average:     average,
-							Peak:        peak,
-							Utilization: util,
-						}
-					}
-				}
-			}
-		}
+		liveMetrics.CPUUsage = parseCPUUsage(cpuData)
 	}
 
 	// Parse Memory usage
 	if memData, ok := getMap(metricsMap, "memory_usage"); ok {
-		if current, ok := getFloat64(memData, "current"); ok {
-			if average, ok := getFloat64(memData, "average"); ok {
-				if peak, ok := getFloat64(memData, "peak"); ok {
-					if util, ok := getFloat64(memData, "utilization"); ok {
-						liveMetrics.MemoryUsage = MemoryUsage{
-							Current:     int64(current),
-							Average:     int64(average),
-							Peak:        int64(peak),
-							Utilization: util,
-						}
-					}
-				}
-			}
-		}
+		liveMetrics.MemoryUsage = parseMemoryUsage(memData)
 	}
 
 	// Parse Disk usage
 	if diskData, ok := getMap(metricsMap, "disk_usage"); ok {
-		if readRate, ok := getFloat64(diskData, "read_rate_mbps"); ok {
-			if writeRate, ok := getFloat64(diskData, "write_rate_mbps"); ok {
-				liveMetrics.DiskUsage = DiskUsage{
-					ReadRateMBps:  readRate,
-					WriteRateMBps: writeRate,
-				}
-			}
-		}
+		liveMetrics.DiskUsage = parseDiskUsage(diskData)
 	}
 
 	// Parse Network usage
 	if netData, ok := getMap(metricsMap, "network_usage"); ok {
-		if inRate, ok := getFloat64(netData, "in_rate_mbps"); ok {
-			if outRate, ok := getFloat64(netData, "out_rate_mbps"); ok {
-				liveMetrics.NetworkUsage = NetworkUsage{
-					InRateMBps:  inRate,
-					OutRateMBps: outRate,
-				}
-			}
-		}
+		liveMetrics.NetworkUsage = parseNetworkUsage(netData)
 	}
 
 	return liveMetrics, nil
@@ -716,181 +786,185 @@ func (ac *AnalyticsCollector) getJobResourceTrends(ctx context.Context, jobID st
 // Analysis and Reporting Functions
 
 // GenerateUtilizationReport generates a comprehensive utilization analysis report
-func GenerateUtilizationReport(analytics *JobAnalyticsData) string {
-	var report strings.Builder
+func reportUtilizationSection(report *strings.Builder, util *UtilizationData) {
+	if util == nil {
+		return
+	}
+	report.WriteString("RESOURCE UTILIZATION ANALYSIS\n")
+	report.WriteString("-" + strings.Repeat("-", 30) + "\n")
 
-	report.WriteString("=" + strings.Repeat("=", 60) + "\n")
-	report.WriteString(fmt.Sprintf("Job Analytics Report for Job ID: %s\n", analytics.JobID))
-	report.WriteString("=" + strings.Repeat("=", 60) + "\n\n")
+	// CPU Analysis
+	cpu := util.CPU
+	report.WriteString("CPU Utilization:\n")
+	fmt.Fprintf(report, "  • Allocated Cores: %d\n", cpu.AllocatedCores)
+	fmt.Fprintf(report, "  • Used Cores: %.2f (%.1f%% utilization)\n", cpu.UsedCores, cpu.UtilizationPercent)
+	fmt.Fprintf(report, "  • Efficiency: %.1f%%\n", cpu.EfficiencyPercent)
 
-	if analytics.Utilization != nil {
-		report.WriteString("RESOURCE UTILIZATION ANALYSIS\n")
-		report.WriteString("-" + strings.Repeat("-", 30) + "\n")
+	if cpu.UtilizationPercent < 50 {
+		report.WriteString("  ⚠️  WARNING: Low CPU utilization detected\n")
+	} else if cpu.UtilizationPercent > 90 {
+		report.WriteString("  ✅ Excellent CPU utilization\n")
+	}
+	report.WriteString("\n")
 
-		// CPU Analysis
-		cpu := analytics.Utilization.CPU
-		report.WriteString("CPU Utilization:\n")
-		report.WriteString(fmt.Sprintf("  • Allocated Cores: %d\n", cpu.AllocatedCores))
-		report.WriteString(fmt.Sprintf("  • Used Cores: %.2f (%.1f%% utilization)\n", cpu.UsedCores, cpu.UtilizationPercent))
-		report.WriteString(fmt.Sprintf("  • Efficiency: %.1f%%\n", cpu.EfficiencyPercent))
+	// Memory Analysis
+	mem := util.Memory
+	report.WriteString("Memory Utilization:\n")
+	fmt.Fprintf(report, "  • Allocated: %s\n", formatBytes(mem.AllocatedBytes))
+	fmt.Fprintf(report, "  • Used: %s (%.1f%% utilization)\n", formatBytes(mem.UsedBytes), mem.UtilizationPercent)
+	fmt.Fprintf(report, "  • Efficiency: %.1f%%\n", mem.EfficiencyPercent)
 
-		if cpu.UtilizationPercent < 50 {
-			report.WriteString("  ⚠️  WARNING: Low CPU utilization detected\n")
-		} else if cpu.UtilizationPercent > 90 {
-			report.WriteString("  ✅ Excellent CPU utilization\n")
+	if mem.UtilizationPercent < 30 {
+		report.WriteString("  ⚠️  WARNING: Low memory utilization detected\n")
+	} else if mem.UtilizationPercent > 85 {
+		report.WriteString("  ✅ Good memory utilization\n")
+	}
+	report.WriteString("\n")
+
+	// GPU Analysis
+	if util.GPU.DeviceCount > 0 {
+		gpu := util.GPU
+		report.WriteString("GPU Utilization:\n")
+		fmt.Fprintf(report, "  • GPU Devices: %d\n", gpu.DeviceCount)
+		fmt.Fprintf(report, "  • Utilization: %.1f%%\n", gpu.UtilizationPercent)
+
+		if gpu.UtilizationPercent < 60 {
+			report.WriteString("  ⚠️  WARNING: Low GPU utilization detected\n")
+		} else if gpu.UtilizationPercent > 90 {
+			report.WriteString("  ✅ Excellent GPU utilization\n")
 		}
 		report.WriteString("\n")
+	}
 
-		// Memory Analysis
-		mem := analytics.Utilization.Memory
-		report.WriteString("Memory Utilization:\n")
-		report.WriteString(fmt.Sprintf("  • Allocated: %s\n", formatBytes(mem.AllocatedBytes)))
-		report.WriteString(fmt.Sprintf("  • Used: %s (%.1f%% utilization)\n", formatBytes(mem.UsedBytes), mem.UtilizationPercent))
-		report.WriteString(fmt.Sprintf("  • Efficiency: %.1f%%\n", mem.EfficiencyPercent))
+	// I/O Analysis
+	io := util.IO
+	report.WriteString("I/O Utilization:\n")
+	fmt.Fprintf(report, "  • Read: %s\n", formatBytes(io.ReadBytes))
+	fmt.Fprintf(report, "  • Write: %s\n", formatBytes(io.WriteBytes))
+	fmt.Fprintf(report, "  • I/O Utilization: %.1f%%\n", io.UtilizationPercent)
+	report.WriteString("\n")
+}
 
-		if mem.UtilizationPercent < 30 {
-			report.WriteString("  ⚠️  WARNING: Low memory utilization detected\n")
-		} else if mem.UtilizationPercent > 85 {
-			report.WriteString("  ✅ Good memory utilization\n")
-		}
-		report.WriteString("\n")
+func reportEfficiencySection(report *strings.Builder, eff *EfficiencyData) {
+	if eff == nil {
+		return
+	}
+	report.WriteString("EFFICIENCY ANALYSIS\n")
+	report.WriteString("-" + strings.Repeat("-", 18) + "\n")
 
-		// GPU Analysis
-		if analytics.Utilization.GPU.DeviceCount > 0 {
-			gpu := analytics.Utilization.GPU
-			report.WriteString("GPU Utilization:\n")
-			report.WriteString(fmt.Sprintf("  • GPU Devices: %d\n", gpu.DeviceCount))
-			report.WriteString(fmt.Sprintf("  • Utilization: %.1f%%\n", gpu.UtilizationPercent))
+	fmt.Fprintf(report, "Overall Efficiency Score: %.1f%%\n", eff.OverallEfficiency)
+	fmt.Fprintf(report, "CPU Efficiency: %.1f%%\n", eff.CPUEfficiency)
+	fmt.Fprintf(report, "Memory Efficiency: %.1f%%\n", eff.MemoryEfficiency)
+	fmt.Fprintf(report, "GPU Efficiency: %.1f%%\n", eff.GPUEfficiency)
+	report.WriteString("\n")
 
-			if gpu.UtilizationPercent < 60 {
-				report.WriteString("  ⚠️  WARNING: Low GPU utilization detected\n")
-			} else if gpu.UtilizationPercent > 90 {
-				report.WriteString("  ✅ Excellent GPU utilization\n")
-			}
+	// Resource Waste Analysis
+	waste := eff.ResourceWaste
+	report.WriteString("Resource Waste Analysis:\n")
+	fmt.Fprintf(report, "  • CPU Waste: %.2f core-hours (%.1f%%)\n", waste.CPUCoreHours, waste.CPUPercent)
+	fmt.Fprintf(report, "  • Memory Waste: %.2f GB-hours (%.1f%%)\n", waste.MemoryGBHours, waste.MemoryPercent)
+	report.WriteString("\n")
+
+	// Optimization Recommendations
+	if len(eff.Recommendations) > 0 {
+		report.WriteString("OPTIMIZATION RECOMMENDATIONS\n")
+		report.WriteString("-" + strings.Repeat("-", 28) + "\n")
+		for i, rec := range eff.Recommendations {
+			fmt.Fprintf(report, "%d. %s %s:\n", i+1, cases.Title(language.English).String(rec.Type), rec.Resource)
+			fmt.Fprintf(report, "   Current: %d → Recommended: %d\n", rec.Current, rec.Recommended)
+			fmt.Fprintf(report, "   Reason: %s\n", rec.Reason)
+			fmt.Fprintf(report, "   Confidence: %.0f%%\n", rec.Confidence*100)
 			report.WriteString("\n")
 		}
+	}
+}
 
-		// I/O Analysis
-		io := analytics.Utilization.IO
-		report.WriteString("I/O Utilization:\n")
-		report.WriteString(fmt.Sprintf("  • Read: %s\n", formatBytes(io.ReadBytes)))
-		report.WriteString(fmt.Sprintf("  • Write: %s\n", formatBytes(io.WriteBytes)))
-		report.WriteString(fmt.Sprintf("  • I/O Utilization: %.1f%%\n", io.UtilizationPercent))
-		report.WriteString("\n")
+func reportPerformanceSection(report *strings.Builder, perf *PerformanceData) {
+	if perf == nil {
+		return
+	}
+	report.WriteString("PERFORMANCE ANALYSIS\n")
+	report.WriteString("-" + strings.Repeat("-", 19) + "\n")
+
+	fmt.Fprintf(report, "Overall Performance: %.1f%%\n", perf.OverallEfficiency)
+
+	// CPU Performance
+	cpu := perf.CPUAnalytics
+	report.WriteString("CPU Performance:\n")
+	fmt.Fprintf(report, "  • Utilization: %.1f%% (%.2f/%.d cores)\n",
+		cpu.UtilizationPercent, cpu.UsedCores, cpu.AllocatedCores)
+	fmt.Fprintf(report, "  • Frequency: %d MHz (max: %d MHz)\n",
+		cpu.AverageFrequency, cpu.MaxFrequency)
+	report.WriteString("\n")
+
+	// Memory Performance
+	mem := perf.MemoryAnalytics
+	report.WriteString("Memory Performance:\n")
+	fmt.Fprintf(report, "  • Utilization: %.1f%% (%s/%s)\n",
+		mem.UtilizationPercent, formatBytes(mem.UsedBytes), formatBytes(mem.AllocatedBytes))
+	report.WriteString("\n")
+
+	// I/O Performance
+	io := perf.IOAnalytics
+	report.WriteString("I/O Performance:\n")
+	fmt.Fprintf(report, "  • Read: %s (%d ops, %.1f MB/s)\n",
+		formatBytes(io.ReadBytes), io.ReadOperations, io.AverageReadBandwidth)
+	fmt.Fprintf(report, "  • Write: %s (%d ops, %.1f MB/s)\n",
+		formatBytes(io.WriteBytes), io.WriteOperations, io.AverageWriteBandwidth)
+	report.WriteString("\n")
+}
+
+func reportMetricsSection(report *strings.Builder, live *LiveMetricsData) {
+	if live == nil {
+		return
+	}
+	report.WriteString("LIVE METRICS SNAPSHOT\n")
+	report.WriteString("-" + strings.Repeat("-", 21) + "\n")
+
+	timestamp := time.Unix(live.Timestamp, 0)
+	fmt.Fprintf(report, "Snapshot Time: %s\n", timestamp.Format(time.DateTime))
+
+	report.WriteString("Current Usage:\n")
+	fmt.Fprintf(report, "  • CPU: %.1f%% (avg: %.1f%%, peak: %.1f%%)\n",
+		live.CPUUsage.Current, live.CPUUsage.Average, live.CPUUsage.Peak)
+	fmt.Fprintf(report, "  • Memory: %s (avg: %s, peak: %s)\n",
+		formatBytes(live.MemoryUsage.Current), formatBytes(live.MemoryUsage.Average), formatBytes(live.MemoryUsage.Peak))
+	fmt.Fprintf(report, "  • Disk I/O: %.1f MB/s read, %.1f MB/s write\n",
+		live.DiskUsage.ReadRateMBps, live.DiskUsage.WriteRateMBps)
+	fmt.Fprintf(report, "  • Network: %.1f MB/s in, %.1f MB/s out\n",
+		live.NetworkUsage.InRateMBps, live.NetworkUsage.OutRateMBps)
+	report.WriteString("\n")
+}
+
+func reportTrendsSection(report *strings.Builder, trends *TrendsData) {
+	if trends == nil || len(trends.CPUTrend.DataPoints) == 0 {
+		return
+	}
+	report.WriteString("RESOURCE TRENDS ANALYSIS\n")
+	report.WriteString("-" + strings.Repeat("-", 24) + "\n")
+
+	fmt.Fprintf(report, "Time Window: %s\n", trends.TimeWindow)
+
+	// CPU Trend Analysis
+	if len(trends.CPUTrend.DataPoints) > 0 {
+		cpuTrend := analyzeTrend(trends.CPUTrend.DataPoints)
+		fmt.Fprintf(report, "CPU Trend: %s\n", cpuTrend)
 	}
 
-	if analytics.Efficiency != nil {
-		report.WriteString("EFFICIENCY ANALYSIS\n")
-		report.WriteString("-" + strings.Repeat("-", 18) + "\n")
-
-		eff := analytics.Efficiency
-		report.WriteString(fmt.Sprintf("Overall Efficiency Score: %.1f%%\n", eff.OverallEfficiency))
-		report.WriteString(fmt.Sprintf("CPU Efficiency: %.1f%%\n", eff.CPUEfficiency))
-		report.WriteString(fmt.Sprintf("Memory Efficiency: %.1f%%\n", eff.MemoryEfficiency))
-		report.WriteString(fmt.Sprintf("GPU Efficiency: %.1f%%\n", eff.GPUEfficiency))
-		report.WriteString("\n")
-
-		// Resource Waste Analysis
-		waste := eff.ResourceWaste
-		report.WriteString("Resource Waste Analysis:\n")
-		report.WriteString(fmt.Sprintf("  • CPU Waste: %.2f core-hours (%.1f%%)\n", waste.CPUCoreHours, waste.CPUPercent))
-		report.WriteString(fmt.Sprintf("  • Memory Waste: %.2f GB-hours (%.1f%%)\n", waste.MemoryGBHours, waste.MemoryPercent))
-		report.WriteString("\n")
-
-		// Optimization Recommendations
-		if len(eff.Recommendations) > 0 {
-			report.WriteString("OPTIMIZATION RECOMMENDATIONS\n")
-			report.WriteString("-" + strings.Repeat("-", 28) + "\n")
-			for i, rec := range eff.Recommendations {
-				report.WriteString(fmt.Sprintf("%d. %s %s:\n", i+1, cases.Title(language.English).String(rec.Type), rec.Resource))
-				report.WriteString(fmt.Sprintf("   Current: %d → Recommended: %d\n", rec.Current, rec.Recommended))
-				report.WriteString(fmt.Sprintf("   Reason: %s\n", rec.Reason))
-				report.WriteString(fmt.Sprintf("   Confidence: %.0f%%\n", rec.Confidence*100))
-				report.WriteString("\n")
-			}
-		}
+	// Memory Trend Analysis
+	if len(trends.MemoryTrend.DataPoints) > 0 {
+		memTrend := analyzeTrend(trends.MemoryTrend.DataPoints)
+		fmt.Fprintf(report, "Memory Trend: %s\n", memTrend)
 	}
+	report.WriteString("\n")
+}
 
-	if analytics.Performance != nil {
-		report.WriteString("PERFORMANCE ANALYSIS\n")
-		report.WriteString("-" + strings.Repeat("-", 19) + "\n")
-
-		perf := analytics.Performance
-		report.WriteString(fmt.Sprintf("Overall Performance: %.1f%%\n", perf.OverallEfficiency))
-
-		// CPU Performance
-		cpu := perf.CPUAnalytics
-		report.WriteString("CPU Performance:\n")
-		report.WriteString(fmt.Sprintf("  • Utilization: %.1f%% (%.2f/%.d cores)\n",
-			cpu.UtilizationPercent, cpu.UsedCores, cpu.AllocatedCores))
-		report.WriteString(fmt.Sprintf("  • Frequency: %d MHz (max: %d MHz)\n",
-			cpu.AverageFrequency, cpu.MaxFrequency))
-		report.WriteString("\n")
-
-		// Memory Performance
-		mem := perf.MemoryAnalytics
-		report.WriteString("Memory Performance:\n")
-		report.WriteString(fmt.Sprintf("  • Utilization: %.1f%% (%s/%s)\n",
-			mem.UtilizationPercent, formatBytes(mem.UsedBytes), formatBytes(mem.AllocatedBytes)))
-		report.WriteString("\n")
-
-		// I/O Performance
-		io := perf.IOAnalytics
-		report.WriteString("I/O Performance:\n")
-		report.WriteString(fmt.Sprintf("  • Read: %s (%d ops, %.1f MB/s)\n",
-			formatBytes(io.ReadBytes), io.ReadOperations, io.AverageReadBandwidth))
-		report.WriteString(fmt.Sprintf("  • Write: %s (%d ops, %.1f MB/s)\n",
-			formatBytes(io.WriteBytes), io.WriteOperations, io.AverageWriteBandwidth))
-		report.WriteString("\n")
-	}
-
-	if analytics.LiveMetrics != nil {
-		report.WriteString("LIVE METRICS SNAPSHOT\n")
-		report.WriteString("-" + strings.Repeat("-", 21) + "\n")
-
-		live := analytics.LiveMetrics
-		timestamp := time.Unix(live.Timestamp, 0)
-		report.WriteString(fmt.Sprintf("Snapshot Time: %s\n", timestamp.Format(time.DateTime)))
-
-		report.WriteString("Current Usage:\n")
-		report.WriteString(fmt.Sprintf("  • CPU: %.1f%% (avg: %.1f%%, peak: %.1f%%)\n",
-			live.CPUUsage.Current, live.CPUUsage.Average, live.CPUUsage.Peak))
-		report.WriteString(fmt.Sprintf("  • Memory: %s (avg: %s, peak: %s)\n",
-			formatBytes(live.MemoryUsage.Current), formatBytes(live.MemoryUsage.Average), formatBytes(live.MemoryUsage.Peak)))
-		report.WriteString(fmt.Sprintf("  • Disk I/O: %.1f MB/s read, %.1f MB/s write\n",
-			live.DiskUsage.ReadRateMBps, live.DiskUsage.WriteRateMBps))
-		report.WriteString(fmt.Sprintf("  • Network: %.1f MB/s in, %.1f MB/s out\n",
-			live.NetworkUsage.InRateMBps, live.NetworkUsage.OutRateMBps))
-		report.WriteString("\n")
-	}
-
-	if analytics.Trends != nil && len(analytics.Trends.CPUTrend.DataPoints) > 0 {
-		report.WriteString("RESOURCE TRENDS ANALYSIS\n")
-		report.WriteString("-" + strings.Repeat("-", 24) + "\n")
-
-		trends := analytics.Trends
-		report.WriteString(fmt.Sprintf("Time Window: %s\n", trends.TimeWindow))
-
-		// CPU Trend Analysis
-		if len(trends.CPUTrend.DataPoints) > 0 {
-			cpuTrend := analyzeTrend(trends.CPUTrend.DataPoints)
-			report.WriteString(fmt.Sprintf("CPU Trend: %s\n", cpuTrend))
-		}
-
-		// Memory Trend Analysis
-		if len(trends.MemoryTrend.DataPoints) > 0 {
-			memTrend := analyzeTrend(trends.MemoryTrend.DataPoints)
-			report.WriteString(fmt.Sprintf("Memory Trend: %s\n", memTrend))
-		}
-		report.WriteString("\n")
-	}
-
-	// Overall Assessment
+func reportOverallAssessment(report *strings.Builder, analytics *JobAnalyticsData) {
 	report.WriteString("OVERALL ASSESSMENT\n")
 	report.WriteString("-" + strings.Repeat("-", 18) + "\n")
 
 	overallScore := calculateOverallScore(analytics)
-	report.WriteString(fmt.Sprintf("Job Efficiency Score: %.1f/100\n", overallScore))
+	fmt.Fprintf(report, "Job Efficiency Score: %.1f/100\n", overallScore)
 
 	if overallScore >= 80 {
 		report.WriteString("✅ EXCELLENT: Job is running efficiently with optimal resource usage\n")
@@ -901,6 +975,21 @@ func GenerateUtilizationReport(analytics *JobAnalyticsData) string {
 	} else {
 		report.WriteString("❌ POOR: Job has significant resource waste and needs optimization\n")
 	}
+}
+
+func GenerateUtilizationReport(analytics *JobAnalyticsData) string {
+	var report strings.Builder
+
+	report.WriteString("=" + strings.Repeat("=", 60) + "\n")
+	fmt.Fprintf(&report, "Job Analytics Report for Job ID: %s\n", analytics.JobID)
+	report.WriteString("=" + strings.Repeat("=", 60) + "\n\n")
+
+	reportUtilizationSection(&report, analytics.Utilization)
+	reportEfficiencySection(&report, analytics.Efficiency)
+	reportPerformanceSection(&report, analytics.Performance)
+	reportMetricsSection(&report, analytics.LiveMetrics)
+	reportTrendsSection(&report, analytics.Trends)
+	reportOverallAssessment(&report, analytics)
 
 	return report.String()
 }

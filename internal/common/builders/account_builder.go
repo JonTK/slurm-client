@@ -491,18 +491,34 @@ func (b *AccountBuilder) BuildForUpdate() (*types.AccountUpdate, error) {
 
 	update := &types.AccountUpdate{}
 
-	// Only include fields that were explicitly set
+	// Assign string fields
+	b.assignStringFields(update)
+	// Assign slice fields
+	b.assignSliceFields(update)
+	// Assign numeric fields
+	b.assignNumericFields(update)
+
+	return update, nil
+}
+
+func (b *AccountBuilder) assignStringFields(update *types.AccountUpdate) {
 	if b.account.Description != "" {
 		update.Description = &b.account.Description
 	}
 	if b.account.Organization != "" {
 		update.Organization = &b.account.Organization
 	}
-	if len(b.account.Coordinators) > 0 {
-		update.Coordinators = b.account.Coordinators
-	}
 	if b.account.DefaultQoS != "" {
 		update.DefaultQoS = &b.account.DefaultQoS
+	}
+	if b.account.DefaultPartition != "" {
+		update.DefaultPartition = &b.account.DefaultPartition
+	}
+}
+
+func (b *AccountBuilder) assignSliceFields(update *types.AccountUpdate) {
+	if len(b.account.Coordinators) > 0 {
+		update.Coordinators = b.account.Coordinators
 	}
 	if len(b.account.QoSList) > 0 {
 		update.QoSList = b.account.QoSList
@@ -510,18 +526,48 @@ func (b *AccountBuilder) BuildForUpdate() (*types.AccountUpdate, error) {
 	if len(b.account.AllowedPartitions) > 0 {
 		update.AllowedPartitions = b.account.AllowedPartitions
 	}
-	if b.account.DefaultPartition != "" {
-		update.DefaultPartition = &b.account.DefaultPartition
+	if len(b.account.GrpTRES) > 0 {
+		update.GrpTRES = b.account.GrpTRES
 	}
-	if b.account.FairShare != 1 { // Not default
+	if len(b.account.GrpTRESMins) > 0 {
+		update.GrpTRESMins = b.account.GrpTRESMins
+	}
+	if len(b.account.GrpTRESRunMins) > 0 {
+		update.GrpTRESRunMins = b.account.GrpTRESRunMins
+	}
+	if len(b.account.MaxTRES) > 0 {
+		update.MaxTRES = b.account.MaxTRES
+	}
+	if len(b.account.MaxTRESPerNode) > 0 {
+		update.MaxTRESPerNode = b.account.MaxTRESPerNode
+	}
+	if len(b.account.MinTRES) > 0 {
+		update.MinTRES = b.account.MinTRES
+	}
+}
+
+func (b *AccountBuilder) assignNumericFields(update *types.AccountUpdate) {
+	b.assignShareAndPriorityFields(update)
+	b.assignMaxLimitFields(update)
+	b.assignGroupLimitFields(update)
+}
+
+func (b *AccountBuilder) assignShareAndPriorityFields(update *types.AccountUpdate) {
+	if b.account.FairShare != 1 {
 		update.FairShare = &b.account.FairShare
 	}
-	if b.account.SharesRaw != 1 { // Not default
+	if b.account.SharesRaw != 1 {
 		update.SharesRaw = &b.account.SharesRaw
 	}
 	if b.account.Priority != 0 {
 		update.Priority = &b.account.Priority
 	}
+	if b.account.MinPriorityThreshold != 0 {
+		update.MinPriorityThreshold = &b.account.MinPriorityThreshold
+	}
+}
+
+func (b *AccountBuilder) assignMaxLimitFields(update *types.AccountUpdate) {
 	if b.account.MaxJobs != 0 {
 		update.MaxJobs = &b.account.MaxJobs
 	}
@@ -546,9 +592,9 @@ func (b *AccountBuilder) BuildForUpdate() (*types.AccountUpdate, error) {
 	if b.account.MaxMemory != 0 {
 		update.MaxMemory = &b.account.MaxMemory
 	}
-	if b.account.MinPriorityThreshold != 0 {
-		update.MinPriorityThreshold = &b.account.MinPriorityThreshold
-	}
+}
+
+func (b *AccountBuilder) assignGroupLimitFields(update *types.AccountUpdate) {
 	if b.account.GrpJobs != 0 {
 		update.GrpJobs = &b.account.GrpJobs
 	}
@@ -573,26 +619,6 @@ func (b *AccountBuilder) BuildForUpdate() (*types.AccountUpdate, error) {
 	if b.account.GrpCPUTime != 0 {
 		update.GrpCPUTime = &b.account.GrpCPUTime
 	}
-	if len(b.account.GrpTRES) > 0 {
-		update.GrpTRES = b.account.GrpTRES
-	}
-	if len(b.account.GrpTRESMins) > 0 {
-		update.GrpTRESMins = b.account.GrpTRESMins
-	}
-	if len(b.account.GrpTRESRunMins) > 0 {
-		update.GrpTRESRunMins = b.account.GrpTRESRunMins
-	}
-	if len(b.account.MaxTRES) > 0 {
-		update.MaxTRES = b.account.MaxTRES
-	}
-	if len(b.account.MaxTRESPerNode) > 0 {
-		update.MaxTRESPerNode = b.account.MaxTRESPerNode
-	}
-	if len(b.account.MinTRES) > 0 {
-		update.MinTRES = b.account.MinTRES
-	}
-
-	return update, nil
 }
 
 // Clone creates a copy of the builder with the same settings
@@ -686,78 +712,89 @@ func (b *AccountBuilder) addError(err error) {
 
 // validateBusinessRules applies business logic validation
 func (b *AccountBuilder) validateBusinessRules() error {
-	// Validate job limits consistency
+	if err := b.validateJobLimits(); err != nil {
+		return err
+	}
+	if err := b.validateTRESConsistency(); err != nil {
+		return err
+	}
+	if err := b.validateParentRelationship(); err != nil {
+		return err
+	}
+	if err := b.validateDefaultQoS(); err != nil {
+		return err
+	}
+	if err := b.validateDefaultPartition(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (b *AccountBuilder) validateJobLimits() error {
 	if b.account.MaxJobsPerUser > 0 && b.account.MaxJobs > 0 {
 		if b.account.MaxJobsPerUser > b.account.MaxJobs {
 			return fmt.Errorf("max jobs per user (%d) cannot exceed max jobs (%d)",
 				b.account.MaxJobsPerUser, b.account.MaxJobs)
 		}
 	}
-
-	// Validate group vs individual limits
 	if b.account.GrpJobs > 0 && b.account.MaxJobs > 0 {
 		if b.account.GrpJobs > b.account.MaxJobs {
 			return fmt.Errorf("group jobs (%d) should not exceed max jobs (%d)",
 				b.account.GrpJobs, b.account.MaxJobs)
 		}
 	}
+	return nil
+}
 
-	// Validate TRES consistency
+func (b *AccountBuilder) validateTRESConsistency() error {
 	if cpuMax, exists := b.account.MaxTRES["cpu"]; exists {
 		if b.account.MaxCPUs > 0 && cpuMax != int64(b.account.MaxCPUs) {
 			return fmt.Errorf("MaxCPUs (%d) and MaxTRES[cpu] (%d) should be consistent",
 				b.account.MaxCPUs, cpuMax)
 		}
 	}
-
-	// Validate memory consistency
 	if memMax, exists := b.account.MaxTRES["mem"]; exists {
 		if b.account.MaxMemory > 0 && memMax != b.account.MaxMemory {
 			return fmt.Errorf("MaxMemory (%d) and MaxTRES[mem] (%d) should be consistent",
 				b.account.MaxMemory, memMax)
 		}
 	}
-
-	// Validate node consistency
 	if nodeMax, exists := b.account.MaxTRES["node"]; exists {
 		if b.account.MaxNodes > 0 && nodeMax != int64(b.account.MaxNodes) {
 			return fmt.Errorf("MaxNodes (%d) and MaxTRES[node] (%d) should be consistent",
 				b.account.MaxNodes, nodeMax)
 		}
 	}
+	return nil
+}
 
-	// Validate parent-child relationship
+func (b *AccountBuilder) validateParentRelationship() error {
 	if b.account.ParentName != "" && b.account.ParentName == b.account.Name {
 		return fmt.Errorf("account cannot be its own parent")
 	}
+	return nil
+}
 
-	// Validate QoS consistency
+func (b *AccountBuilder) validateDefaultQoS() error {
 	if b.account.DefaultQoS != "" && len(b.account.QoSList) > 0 {
-		found := false
 		for _, qos := range b.account.QoSList {
 			if qos == b.account.DefaultQoS {
-				found = true
-				break
+				return nil
 			}
 		}
-		if !found {
-			return fmt.Errorf("default QoS %s must be in the allowed QoS list", b.account.DefaultQoS)
-		}
+		return fmt.Errorf("default QoS %s must be in the allowed QoS list", b.account.DefaultQoS)
 	}
+	return nil
+}
 
-	// Validate partition consistency
+func (b *AccountBuilder) validateDefaultPartition() error {
 	if b.account.DefaultPartition != "" && len(b.account.AllowedPartitions) > 0 {
-		found := false
 		for _, partition := range b.account.AllowedPartitions {
 			if partition == b.account.DefaultPartition {
-				found = true
-				break
+				return nil
 			}
 		}
-		if !found {
-			return fmt.Errorf("default partition %s must be in the allowed partitions list", b.account.DefaultPartition)
-		}
+		return fmt.Errorf("default partition %s must be in the allowed partitions list", b.account.DefaultPartition)
 	}
-
 	return nil
 }

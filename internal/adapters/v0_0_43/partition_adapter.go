@@ -254,6 +254,89 @@ func (a *PartitionAdapter) matchesPartitionFilters(partition types.Partition, op
 }
 
 // convertAPIPartitionToCommon converts a v0.0.43 API Partition to common Partition type
+// extractPartitionState extracts the partition state from API structure
+func (a *PartitionAdapter) extractPartitionState(apiPartition api.V0043PartitionInfo) types.PartitionState {
+	if apiPartition.Partition != nil && apiPartition.Partition.State != nil && len(*apiPartition.Partition.State) > 0 {
+		return types.PartitionState((*apiPartition.Partition.State)[0])
+	}
+	return ""
+}
+
+// extractPartitionNodes extracts node information from API structure
+func (a *PartitionAdapter) extractPartitionNodes(apiPartition api.V0043PartitionInfo) (string, int32) {
+	var nodes string
+	var totalNodes int32
+	if apiPartition.Nodes != nil {
+		if apiPartition.Nodes.Configured != nil {
+			nodes = *apiPartition.Nodes.Configured
+		}
+		if apiPartition.Nodes.Total != nil {
+			totalNodes = *apiPartition.Nodes.Total
+		}
+	}
+	return nodes, totalNodes
+}
+
+// extractPartitionLimits extracts time and node limits from API structure
+func (a *PartitionAdapter) extractPartitionLimits(apiPartition api.V0043PartitionInfo) (int32, int32, int32, int32) {
+	var maxNodes, maxTime, minNodes, defaultTime int32
+	if apiPartition.Maximums != nil {
+		if apiPartition.Maximums.Nodes != nil && apiPartition.Maximums.Nodes.Number != nil {
+			maxNodes = *apiPartition.Maximums.Nodes.Number
+		}
+		if apiPartition.Maximums.Time != nil && apiPartition.Maximums.Time.Number != nil {
+			maxTime = *apiPartition.Maximums.Time.Number
+		}
+	}
+	if apiPartition.Minimums != nil && apiPartition.Minimums.Nodes != nil {
+		minNodes = *apiPartition.Minimums.Nodes
+	}
+	if apiPartition.Defaults != nil && apiPartition.Defaults.Time != nil && apiPartition.Defaults.Time.Number != nil {
+		defaultTime = *apiPartition.Defaults.Time.Number
+	}
+	return maxNodes, maxTime, minNodes, defaultTime
+}
+
+// extractPartitionPriority extracts priority information from API structure
+func (a *PartitionAdapter) extractPartitionPriority(apiPartition api.V0043PartitionInfo) int32 {
+	if apiPartition.Priority != nil && apiPartition.Priority.JobFactor != nil {
+		return *apiPartition.Priority.JobFactor
+	}
+	return 0
+}
+
+// extractPartitionAccounts extracts account allow/deny lists from API structure
+func (a *PartitionAdapter) extractPartitionAccounts(apiPartition api.V0043PartitionInfo) ([]string, []string) {
+	var allowAccounts, denyAccounts []string
+	if apiPartition.Accounts != nil {
+		if apiPartition.Accounts.Allowed != nil {
+			allowAccounts = strings.Split(*apiPartition.Accounts.Allowed, ",")
+		}
+		if apiPartition.Accounts.Deny != nil {
+			denyAccounts = strings.Split(*apiPartition.Accounts.Deny, ",")
+		}
+	}
+	return allowAccounts, denyAccounts
+}
+
+// extractPartitionQoS extracts QoS information from API structure
+func (a *PartitionAdapter) extractPartitionQoS(apiPartition api.V0043PartitionInfo) ([]string, []string, string) {
+	var allowQoS, denyQoS []string
+	var assignedQoS string
+	if apiPartition.Qos != nil {
+		if apiPartition.Qos.Allowed != nil {
+			allowQoS = strings.Split(*apiPartition.Qos.Allowed, ",")
+		}
+		if apiPartition.Qos.Deny != nil {
+			denyQoS = strings.Split(*apiPartition.Qos.Deny, ",")
+		}
+		if apiPartition.Qos.Assigned != nil {
+			assignedQoS = *apiPartition.Qos.Assigned
+		}
+	}
+	return allowQoS, denyQoS, assignedQoS
+}
+
 func (a *PartitionAdapter) convertAPIPartitionToCommon(apiPartition api.V0043PartitionInfo) *types.Partition {
 	partition := &types.Partition{}
 
@@ -263,78 +346,22 @@ func (a *PartitionAdapter) convertAPIPartitionToCommon(apiPartition api.V0043Par
 	}
 
 	// State
-	if apiPartition.Partition != nil && apiPartition.Partition.State != nil {
-		// Convert from slice to string if needed
-		if len(*apiPartition.Partition.State) > 0 {
-			partition.State = types.PartitionState((*apiPartition.Partition.State)[0])
-		}
-	}
+	partition.State = a.extractPartitionState(apiPartition)
 
 	// Nodes
-	if apiPartition.Nodes != nil {
-		if apiPartition.Nodes.Configured != nil {
-			partition.Nodes = *apiPartition.Nodes.Configured
-		}
-		if apiPartition.Nodes.Total != nil {
-			partition.TotalNodes = *apiPartition.Nodes.Total
-		}
-	}
+	partition.Nodes, partition.TotalNodes = a.extractPartitionNodes(apiPartition)
 
-	// Limits and timeouts
-	if apiPartition.Maximums != nil {
-		if apiPartition.Maximums.Nodes != nil && apiPartition.Maximums.Nodes.Number != nil {
-			partition.MaxNodes = *apiPartition.Maximums.Nodes.Number
-		}
-		if apiPartition.Maximums.Time != nil && apiPartition.Maximums.Time.Number != nil {
-			partition.MaxTime = *apiPartition.Maximums.Time.Number
-		}
-	}
-
-	if apiPartition.Minimums != nil {
-		if apiPartition.Minimums.Nodes != nil {
-			partition.MinNodes = *apiPartition.Minimums.Nodes
-		}
-	}
-
-	if apiPartition.Defaults != nil {
-		if apiPartition.Defaults.Time != nil && apiPartition.Defaults.Time.Number != nil {
-			partition.DefaultTime = *apiPartition.Defaults.Time.Number
-		}
-	}
+	// Limits
+	partition.MaxNodes, partition.MaxTime, partition.MinNodes, partition.DefaultTime = a.extractPartitionLimits(apiPartition)
 
 	// Priority
-	if apiPartition.Priority != nil {
-		if apiPartition.Priority.JobFactor != nil {
-			partition.Priority = *apiPartition.Priority.JobFactor
-		}
-	}
+	partition.Priority = a.extractPartitionPriority(apiPartition)
 
 	// Accounts
-	if apiPartition.Accounts != nil {
-		if apiPartition.Accounts.Allowed != nil {
-			// Convert comma-separated string to slice
-			partition.AllowAccounts = strings.Split(*apiPartition.Accounts.Allowed, ",")
-		}
-		if apiPartition.Accounts.Deny != nil {
-			// Convert comma-separated string to slice
-			partition.DenyAccounts = strings.Split(*apiPartition.Accounts.Deny, ",")
-		}
-	}
+	partition.AllowAccounts, partition.DenyAccounts = a.extractPartitionAccounts(apiPartition)
 
 	// QoS
-	if apiPartition.Qos != nil {
-		if apiPartition.Qos.Allowed != nil {
-			// Convert comma-separated string to slice
-			partition.AllowQoS = strings.Split(*apiPartition.Qos.Allowed, ",")
-		}
-		if apiPartition.Qos.Deny != nil {
-			// Convert comma-separated string to slice
-			partition.DenyQoS = strings.Split(*apiPartition.Qos.Deny, ",")
-		}
-		if apiPartition.Qos.Assigned != nil {
-			partition.QoS = *apiPartition.Qos.Assigned
-		}
-	}
+	partition.AllowQoS, partition.DenyQoS, partition.QoS = a.extractPartitionQoS(apiPartition)
 
 	// Flags - v0.0.43 doesn't have a direct Flags field
 	// These might be determined from other fields or defaults
