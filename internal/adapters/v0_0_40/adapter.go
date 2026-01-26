@@ -25,6 +25,7 @@ type Adapter struct {
 	reservationAdapter *ReservationAdapter
 	associationAdapter *AssociationAdapter
 	standaloneAdapter  *StandaloneAdapter
+	infoAdapter        *InfoAdapter
 }
 
 // NewAdapter creates a new v0.0.40 adapter
@@ -41,6 +42,7 @@ func NewAdapter(client *api.ClientWithResponses) *Adapter {
 		reservationAdapter: NewReservationAdapter(client),
 		associationAdapter: NewAssociationAdapter(client),
 		standaloneAdapter:  NewStandaloneAdapter(client),
+		infoAdapter:        NewInfoAdapter(client),
 	}
 }
 
@@ -122,4 +124,9 @@ func (n *NotImplementedClusterAdapter) Delete(_ context.Context, _ string) error
 // GetWCKeyManager returns nil as WCKey management is not supported in v0.0.40
 func (a *Adapter) GetWCKeyManager() common.WCKeyAdapter {
 	return nil
+}
+
+// GetInfoManager returns the Info adapter for this version
+func (a *Adapter) GetInfoManager() common.InfoAdapter {
+	return a.infoAdapter
 }

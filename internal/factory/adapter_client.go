@@ -27,9 +27,8 @@ import (
 
 // AdapterClient wraps a version-specific adapter to implement the SlurmClient interface
 type AdapterClient struct {
-	adapter     common.VersionAdapter
-	version     string
-	infoManager interfaces.InfoManager // For v0.0.44+ InfoManager implementation
+	adapter common.VersionAdapter
+	version string
 }
 
 // NewAdapterClient creates a new adapter-based client for the specified version
@@ -85,17 +84,9 @@ func NewAdapterClient(version string, config *interfaces.ClientConfig) (SlurmCli
 			return nil, fmt.Errorf("failed to create v0.0.44 client: %w", err)
 		}
 		adapter := v044adapter.NewAdapter(client)
-
-		// Also create a wrapper client to access the properly implemented InfoManager
-		wrapperClient, err := v044api.NewWrapperClient(config)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create v0.0.44 wrapper client: %w", err)
-		}
-
 		return &AdapterClient{
-			adapter:     adapter,
-			version:     version,
-			infoManager: wrapperClient.Info(),
+			adapter: adapter,
+			version: version,
 		}, nil
 
 	default:
@@ -125,12 +116,10 @@ func (c *AdapterClient) Partitions() interfaces.PartitionManager {
 
 // Info returns the InfoManager
 func (c *AdapterClient) Info() interfaces.InfoManager {
-	// If we have a version-specific InfoManager (v0.0.44+), use it
-	if c.infoManager != nil {
-		return c.infoManager
+	return &adapterInfoManager{
+		adapter: c.adapter.GetInfoManager(),
+		version: c.version,
 	}
-	// Fall back to basic implementation for older versions without InfoManager
-	return &adapterInfoManager{version: c.version}
 }
 
 // Reservations returns the ReservationManager
@@ -1131,38 +1120,86 @@ func convertQoSToInterface(qos types.QoS) interfaces.QoS {
 	}
 }
 
-// adapterInfoManager provides basic info operations
+// adapterInfoManager provides info operations via the adapter
 type adapterInfoManager struct {
+	adapter common.InfoAdapter
 	version string
 }
 
 func (m *adapterInfoManager) Ping(ctx context.Context) error {
-	// Basic ping - always succeeds if we get here
-	return nil
+	return m.adapter.Ping(ctx)
 }
 
 func (m *adapterInfoManager) Get(ctx context.Context) (*interfaces.ClusterInfo, error) {
-	// Not implemented
-	return nil, fmt.Errorf("cluster info not implemented in adapter")
+	result, err := m.adapter.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return convertTypesClusterInfoToInterface(result), nil
 }
 
 func (m *adapterInfoManager) Stats(ctx context.Context) (*interfaces.ClusterStats, error) {
-	// Not implemented
-	return nil, fmt.Errorf("cluster stats not implemented in adapter")
+	result, err := m.adapter.Stats(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return convertTypesClusterStatsToInterface(result), nil
 }
 
 func (m *adapterInfoManager) Version(ctx context.Context) (*interfaces.APIVersion, error) {
-	return &interfaces.APIVersion{
-		Version:     m.version,
-		Release:     "stable",
-		Description: "SLURM REST API",
-		Deprecated:  false,
-	}, nil
+	result, err := m.adapter.Version(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return convertTypesAPIVersionToInterface(result), nil
 }
 
-// PingDatabase tests connectivity to the SLURM database (not supported by legacy adapters)
 func (m *adapterInfoManager) PingDatabase(ctx context.Context) error {
-	return fmt.Errorf("database ping not supported by legacy adapters")
+	return m.adapter.PingDatabase(ctx)
+}
+
+// Type converters for Info types
+func convertTypesClusterInfoToInterface(t *types.ClusterInfo) *interfaces.ClusterInfo {
+	if t == nil {
+		return nil
+	}
+	return &interfaces.ClusterInfo{
+		ClusterName: t.ClusterName,
+		Version:     t.Version,
+		Release:     t.Release,
+		APIVersion:  t.APIVersion,
+		Uptime:      t.Uptime,
+	}
+}
+
+func convertTypesClusterStatsToInterface(t *types.ClusterStats) *interfaces.ClusterStats {
+	if t == nil {
+		return nil
+	}
+	return &interfaces.ClusterStats{
+		TotalNodes:     t.TotalNodes,
+		IdleNodes:      t.IdleNodes,
+		AllocatedNodes: t.AllocatedNodes,
+		TotalCPUs:      t.TotalCPUs,
+		IdleCPUs:       t.IdleCPUs,
+		AllocatedCPUs:  t.AllocatedCPUs,
+		TotalJobs:      t.TotalJobs,
+		RunningJobs:    t.RunningJobs,
+		PendingJobs:    t.PendingJobs,
+		CompletedJobs:  t.CompletedJobs,
+	}
+}
+
+func convertTypesAPIVersionToInterface(t *types.APIVersion) *interfaces.APIVersion {
+	if t == nil {
+		return nil
+	}
+	return &interfaces.APIVersion{
+		Version:     t.Version,
+		Release:     t.Release,
+		Description: t.Description,
+		Deprecated:  t.Deprecated,
+	}
 }
 
 // Other manager implementations...
