@@ -160,7 +160,7 @@ func (a *ClusterAdapter) Create(ctx context.Context, cluster *types.ClusterCreat
 	}
 
 	if cluster.SelectPlugin != "" {
-		apiCluster.SelectPlugin = &cluster.SelectPlugin //nolint:staticcheck // SA1019: Deprecated upstream but required for backward compatibility
+		apiCluster.SelectPlugin = &cluster.SelectPlugin
 	}
 
 	if len(cluster.Flags) > 0 {
@@ -251,7 +251,6 @@ func (a *ClusterAdapter) convertAPIClusterToCommon(apiCluster api.V0040ClusterRe
 		cluster.RpcVersion = *apiCluster.RpcVersion
 	}
 
-	//nolint:staticcheck // SA1019: Deprecated upstream but required for backward compatibility
 	if apiCluster.SelectPlugin != nil {
 		cluster.SelectPlugin = *apiCluster.SelectPlugin
 	}
