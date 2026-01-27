@@ -214,37 +214,43 @@ func (a *StandaloneAdapter) GetShares(ctx context.Context, opts *types.GetShares
 	// Convert API shares to common types
 	shares := make([]types.Share, 0, len(*resp.JSON200.Shares.Shares))
 	for _, apiShare := range *resp.JSON200.Shares.Shares {
-		share := types.Share{}
-
-		if apiShare.Name != nil {
-			// This could be account or user name
-			share.Account = *apiShare.Name
-		}
-		if apiShare.Partition != nil {
-			share.Partition = *apiShare.Partition
-		}
-
-		// Convert share numbers using the NoValStruct pattern
-		if apiShare.Shares != nil && apiShare.Shares.Number != nil {
-			share.RawShares = int(*apiShare.Shares.Number)
-		}
-		if apiShare.Usage != nil {
-			share.RawUsage = *apiShare.Usage
-		}
-		if apiShare.Fairshare != nil && apiShare.Fairshare.Level != nil && apiShare.Fairshare.Level.Number != nil {
-			share.FairshareLevel = *apiShare.Fairshare.Level.Number
-		}
-		if apiShare.SharesNormalized != nil && apiShare.SharesNormalized.Number != nil {
-			// SharesNormalized.Number is float64, convert to int
-			share.FairshareShares = int(*apiShare.SharesNormalized.Number)
-		}
-
+		share := a.convertAPIShareToCommon(apiShare)
 		shares = append(shares, share)
 	}
 
 	return &types.SharesList{
 		Shares: shares,
 	}, nil
+}
+
+// convertAPIShareToCommon converts a single API share to common type
+func (a *StandaloneAdapter) convertAPIShareToCommon(apiShare api.V0044AssocSharesObjWrap) types.Share {
+	share := types.Share{}
+
+	if apiShare.Name != nil {
+		// This could be account or user name
+		share.Account = *apiShare.Name
+	}
+	if apiShare.Partition != nil {
+		share.Partition = *apiShare.Partition
+	}
+
+	// Convert share numbers using the NoValStruct pattern
+	if apiShare.Shares != nil && apiShare.Shares.Number != nil {
+		share.RawShares = int(*apiShare.Shares.Number)
+	}
+	if apiShare.Usage != nil {
+		share.RawUsage = *apiShare.Usage
+	}
+	if apiShare.Fairshare != nil && apiShare.Fairshare.Level != nil && apiShare.Fairshare.Level.Number != nil {
+		share.FairshareLevel = *apiShare.Fairshare.Level.Number
+	}
+	if apiShare.SharesNormalized != nil && apiShare.SharesNormalized.Number != nil {
+		// SharesNormalized.Number is float64, convert to int
+		share.FairshareShares = int(*apiShare.SharesNormalized.Number)
+	}
+
+	return share
 }
 
 // GetConfig retrieves SLURM configuration

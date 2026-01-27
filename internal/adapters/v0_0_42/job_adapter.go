@@ -542,81 +542,88 @@ func (a *JobAdapter) extractInt32IfSet(valStruct *api.V0042Uint32NoValStruct) in
 func (a *JobAdapter) convertAPIJobToCommon(apiJob api.V0042JobInfo) (*types.Job, error) {
 	job := &types.Job{}
 
-	// Set basic fields
+	a.setBasicJobFields(job, apiJob)
+	a.setJobResourceFields(job, apiJob)
+	a.setJobTimeFields(job, apiJob)
+	a.setJobExitCode(job, apiJob)
+	a.setJobMemory(job, apiJob)
+
+	return job, nil
+}
+
+// setBasicJobFields sets the basic identification and user fields
+func (a *JobAdapter) setBasicJobFields(job *types.Job, apiJob api.V0042JobInfo) {
 	if apiJob.JobId != nil {
 		job.JobID = *apiJob.JobId
 	}
-
 	if apiJob.Name != nil {
 		job.Name = *apiJob.Name
 	}
-
 	if apiJob.Account != nil {
 		job.Account = *apiJob.Account
 	}
-
 	if apiJob.Partition != nil {
 		job.Partition = *apiJob.Partition
 	}
-
 	if apiJob.UserId != nil {
 		job.UserID = *apiJob.UserId
 	}
-
 	if apiJob.GroupId != nil {
 		job.GroupID = *apiJob.GroupId
 	}
-
 	if apiJob.UserName != nil {
 		job.UserName = *apiJob.UserName
 	}
+	if apiJob.Command != nil {
+		job.Command = *apiJob.Command
+	}
+}
 
+// setJobResourceFields sets resource-related fields (CPUs, nodes, state)
+func (a *JobAdapter) setJobResourceFields(job *types.Job, apiJob api.V0042JobInfo) {
 	// Job state conversion
 	if apiJob.JobState != nil && len(*apiJob.JobState) > 0 {
-		job.State = types.JobState((*apiJob.JobState)[0]) // Take the first state and convert to JobState type
+		job.State = types.JobState((*apiJob.JobState)[0])
 	}
-
 	// Resource information - CPU count is directly available in JobResources
 	if apiJob.JobResources != nil {
 		job.CPUs = apiJob.JobResources.Cpus
 	}
-
 	if apiJob.Nodes != nil {
 		job.NodeList = *apiJob.Nodes
 	}
+}
 
-	// Time fields - convert from Unix timestamp to time.Time
+// setJobTimeFields sets time-related fields
+func (a *JobAdapter) setJobTimeFields(job *types.Job, apiJob api.V0042JobInfo) {
 	job.SubmitTime = a.extractTimeRequired(apiJob.SubmitTime)
 	job.StartTime = a.extractTimeIfSet(apiJob.StartTime)
 	job.EndTime = a.extractTimeIfSet(apiJob.EndTime)
 	job.TimeLimit = a.extractInt32IfSet(apiJob.TimeLimit)
+}
 
-	// Working directory is not available in v0.0.42 JobInfo structure
-
-	// Command
-	if apiJob.Command != nil {
-		job.Command = *apiJob.Command
-	}
-
-	// Exit code - ProcessExitCodeVerbose structure (critical for performance metrics)
+// setJobExitCode sets the exit code from ProcessExitCodeVerbose structure
+func (a *JobAdapter) setJobExitCode(job *types.Job, apiJob api.V0042JobInfo) {
 	if apiJob.ExitCode != nil && apiJob.ExitCode.ReturnCode != nil &&
 		apiJob.ExitCode.ReturnCode.Set != nil && *apiJob.ExitCode.ReturnCode.Set &&
 		apiJob.ExitCode.ReturnCode.Number != nil {
 		job.ExitCode = *apiJob.ExitCode.ReturnCode.Number
 	}
+}
 
-	// Memory handling - use ResourceRequests for proper structure
+// setJobMemory sets memory fields from MemoryPerNode or MemoryPerCpu (MB to bytes)
+func (a *JobAdapter) setJobMemory(job *types.Job, apiJob api.V0042JobInfo) {
 	// MemoryPerNode (NoValStruct, in MB - convert to bytes)
 	if apiJob.MemoryPerNode != nil && apiJob.MemoryPerNode.Set != nil &&
 		*apiJob.MemoryPerNode.Set && apiJob.MemoryPerNode.Number != nil {
-		job.ResourceRequests.Memory = int64(*apiJob.MemoryPerNode.Number) * 1024 * 1024 // MB to bytes
-	} else if apiJob.MemoryPerCpu != nil && apiJob.MemoryPerCpu.Set != nil &&
-		*apiJob.MemoryPerCpu.Set && apiJob.MemoryPerCpu.Number != nil {
-		// MemoryPerCPU (NoValStruct, in MB - convert to bytes)
-		job.ResourceRequests.MemoryPerCPU = int64(*apiJob.MemoryPerCpu.Number) * 1024 * 1024 // MB to bytes
+		job.ResourceRequests.Memory = *apiJob.MemoryPerNode.Number * 1024 * 1024
+		return
 	}
-
-	return job, nil
+	// MemoryPerCPU (NoValStruct, in MB - convert to bytes)
+	if apiJob.MemoryPerCpu != nil && apiJob.MemoryPerCpu.Set != nil &&
+		*apiJob.MemoryPerCpu.Set && apiJob.MemoryPerCpu.Number != nil {
+		job.ResourceRequests.MemoryPerCPU = *apiJob.MemoryPerCpu.Number * 1024 * 1024
+	}
 }
 
 // convertAPIJobSubmitResponseToCommon converts API job submit response to common type
