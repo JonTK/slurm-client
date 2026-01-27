@@ -893,6 +893,21 @@ func (a *JobAdapter) convertAPIJobToCommon(apiJob api.V0043JobInfo) *types.Job {
 		apiJob.ExitCode.ReturnCode.Number != nil {
 		job.ExitCode = *apiJob.ExitCode.ReturnCode.Number
 	}
+
+	// Resource information - CPUs (NoValStruct)
+	if apiJob.Cpus != nil && apiJob.Cpus.Set != nil && *apiJob.Cpus.Set && apiJob.Cpus.Number != nil {
+		job.CPUs = *apiJob.Cpus.Number
+	}
+
+	// Memory handling - use ResourceRequests for proper structure
+	// MemoryPerNode (NoValStruct, in MB - convert to bytes)
+	if apiJob.MemoryPerNode != nil && apiJob.MemoryPerNode.Set != nil && *apiJob.MemoryPerNode.Set && apiJob.MemoryPerNode.Number != nil {
+		job.ResourceRequests.Memory = int64(*apiJob.MemoryPerNode.Number) * 1024 * 1024 // MB to bytes
+	} else if apiJob.MemoryPerCpu != nil && apiJob.MemoryPerCpu.Set != nil && *apiJob.MemoryPerCpu.Set && apiJob.MemoryPerCpu.Number != nil {
+		// MemoryPerCPU (NoValStruct, in MB - convert to bytes)
+		job.ResourceRequests.MemoryPerCPU = int64(*apiJob.MemoryPerCpu.Number) * 1024 * 1024 // MB to bytes
+	}
+
 	// TODO: Add more field conversions as needed
 	return job
 }

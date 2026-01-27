@@ -663,7 +663,7 @@ func convertJobToInterface(job types.Job) interfaces.Job {
 		StartTime:   job.StartTime,
 		EndTime:     job.EndTime,
 		CPUs:        int(job.CPUs),
-		Memory:      int(job.MinMemory), // Use MinMemory as the closest match
+		Memory:      int(job.ResourceRequests.Memory), // Use actual allocated memory (in bytes)
 		TimeLimit:   int(job.TimeLimit),
 		WorkingDir:  job.WorkingDirectory,
 		Command:     job.Command,
