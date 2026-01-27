@@ -298,7 +298,8 @@ jobs:
         cache: true
 
     - name: Install benchstat
-      run: go install golang.org/x/perf/cmd/benchstat@v0.0.0-20241210162007-16b3e5c6f68b
+      run: go install golang.org/x/perf/cmd/benchstat@v0.0.0-20241210162007-16b3e5c6f68b || echo "benchstat installation failed, continuing without it"
+      continue-on-error: true
 
     - name: Install oapi-codegen
       run: go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
@@ -313,9 +314,11 @@ jobs:
 
     - name: Compare with baseline
       run: |
-        if [ -f benchmarks/baseline.txt ]; then
+        if command -v benchstat &> /dev/null && [ -f benchmarks/baseline.txt ]; then
           echo "## Benchmark Comparison" >> $GITHUB_STEP_SUMMARY
           benchstat benchmarks/baseline.txt benchmark-new.txt >> $GITHUB_STEP_SUMMARY 2>&1 || true
+        elif [ -f benchmarks/baseline.txt ]; then
+          echo "benchstat not available - skipping comparison" >> $GITHUB_STEP_SUMMARY
         else
           echo "No baseline found - skipping comparison" >> $GITHUB_STEP_SUMMARY
         fi
