@@ -863,6 +863,30 @@ func (a *JobAdapter) convertAPIJobToCommon(apiJob api.V0043JobInfo) *types.Job {
 	if apiJob.GroupId != nil {
 		job.GroupID = *apiJob.GroupId
 	}
+
+	// State - critical for performance metrics (filtering completed jobs)
+	if apiJob.JobState != nil && len(*apiJob.JobState) > 0 {
+		job.State = types.JobState((*apiJob.JobState)[0])
+	}
+
+	// Time fields - critical for performance histogram metrics
+	// Submit time (NoValStruct)
+	if apiJob.SubmitTime != nil && apiJob.SubmitTime.Set != nil && *apiJob.SubmitTime.Set && apiJob.SubmitTime.Number != nil {
+		job.SubmitTime = time.Unix(*apiJob.SubmitTime.Number, 0)
+	}
+
+	// Start time (NoValStruct, validate > 0 to avoid epoch zero)
+	if apiJob.StartTime != nil && apiJob.StartTime.Set != nil && *apiJob.StartTime.Set && apiJob.StartTime.Number != nil && *apiJob.StartTime.Number > 0 {
+		startTime := time.Unix(*apiJob.StartTime.Number, 0)
+		job.StartTime = &startTime
+	}
+
+	// End time (NoValStruct, validate > 0 to avoid epoch zero)
+	if apiJob.EndTime != nil && apiJob.EndTime.Set != nil && *apiJob.EndTime.Set && apiJob.EndTime.Number != nil && *apiJob.EndTime.Number > 0 {
+		endTime := time.Unix(*apiJob.EndTime.Number, 0)
+		job.EndTime = &endTime
+	}
+
 	// Exit code - ProcessExitCodeVerbose structure (critical for performance metrics)
 	if apiJob.ExitCode != nil && apiJob.ExitCode.ReturnCode != nil &&
 		apiJob.ExitCode.ReturnCode.Set != nil && *apiJob.ExitCode.ReturnCode.Set &&
