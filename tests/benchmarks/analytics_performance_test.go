@@ -461,7 +461,7 @@ func TestPerformanceSmokeTest(t *testing.T) {
 
 	// Perform 100 requests to ensure stability
 	start := time.Now()
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		resp, err := makeHTTPRequest(endpoint)
 		if err != nil {
 			t.Fatalf("Request %d failed: %v", i, err)
