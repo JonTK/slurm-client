@@ -180,8 +180,21 @@ func (a *StandaloneAdapter) GetDiagnostics(ctx context.Context) (*types.Diagnost
 		Meta: extractMeta(resp.JSON200.Meta),
 	}
 
-	// Map statistics fields
+	// Map statistics fields using helper functions
 	stats := resp.JSON200.Statistics
+	a.setJobCountMetrics(diag, stats)
+	a.setBackfillMetrics(diag, stats)
+	a.setScheduleCycleMetrics(diag, stats)
+	a.setAgentThreadMetrics(diag, stats)
+
+	// RPC statistics
+	// Note: v0.0.42 doesn't have RPC statistics in the same structure
+
+	return diag, nil
+}
+
+// setJobCountMetrics sets job count statistics (submitted, started, completed, etc.)
+func (a *StandaloneAdapter) setJobCountMetrics(diag *types.Diagnostics, stats api.V0042StatsMsg) {
 	if stats.JobsSubmitted != nil {
 		diag.JobsSubmitted = int(*stats.JobsSubmitted)
 	}
@@ -203,11 +216,54 @@ func (a *StandaloneAdapter) GetDiagnostics(ctx context.Context) (*types.Diagnost
 	if stats.JobsRunning != nil {
 		diag.JobsRunning = int(*stats.JobsRunning)
 	}
+}
 
-	// RPC statistics
-	// Note: v0.0.42 doesn't have RPC statistics in the same structure
+// setBackfillMetrics sets backfill scheduler metrics
+func (a *StandaloneAdapter) setBackfillMetrics(diag *types.Diagnostics, stats api.V0042StatsMsg) {
+	if stats.BfCycleCounter != nil {
+		diag.BFCycle = int(*stats.BfCycleCounter)
+	}
+	if stats.BfCycleMean != nil {
+		diag.BFCycleMean = *stats.BfCycleMean
+	}
+	if stats.BfCycleMax != nil {
+		diag.BFCycleMax = int64(*stats.BfCycleMax)
+	}
+	if stats.BfCycleLast != nil {
+		diag.BFCycleMean = int64(*stats.BfCycleLast) // Store last in a mean-like field
+	}
+}
 
-	return diag, nil
+// setScheduleCycleMetrics sets schedule cycle metrics
+func (a *StandaloneAdapter) setScheduleCycleMetrics(diag *types.Diagnostics, stats api.V0042StatsMsg) {
+	if stats.ScheduleCycleTotal != nil {
+		diag.ScheduleCycleCounter = int(*stats.ScheduleCycleTotal)
+	}
+	if stats.ScheduleCycleMean != nil {
+		diag.ScheduleCycleMean = *stats.ScheduleCycleMean
+	}
+	if stats.ScheduleCycleMax != nil {
+		diag.ScheduleCycleMax = int64(*stats.ScheduleCycleMax)
+	}
+	if stats.ScheduleCycleLast != nil {
+		diag.ScheduleCycleLast = int64(*stats.ScheduleCycleLast)
+	}
+}
+
+// setAgentThreadMetrics sets agent and thread metrics
+func (a *StandaloneAdapter) setAgentThreadMetrics(diag *types.Diagnostics, stats api.V0042StatsMsg) {
+	if stats.AgentCount != nil {
+		diag.AgentCount = int(*stats.AgentCount)
+	}
+	if stats.AgentThreadCount != nil {
+		diag.AgentThreadCount = int(*stats.AgentThreadCount)
+	}
+	if stats.DbdAgentQueueSize != nil {
+		diag.DBDAgentCount = int(*stats.DbdAgentQueueSize)
+	}
+	if stats.ServerThreadCount != nil {
+		diag.ServerThreadCount = int(*stats.ServerThreadCount)
+	}
 }
 
 // GetDBDiagnostics retrieves SLURM database diagnostics information

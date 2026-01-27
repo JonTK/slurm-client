@@ -23,6 +23,7 @@ type Job struct {
 	SubmitTime       time.Time         `json:"submit_time"`
 	StartTime        *time.Time        `json:"start_time,omitempty"`
 	EndTime          *time.Time        `json:"end_time,omitempty"`
+	ExitCode         int32             `json:"exit_code"`
 	Priority         int32             `json:"priority"`
 	CPUs             int32             `json:"cpus"`
 	Nodes            int32             `json:"nodes"`

@@ -144,8 +144,7 @@ func (c *AdapterClient) Users() interfaces.UserManager {
 
 // Clusters returns the ClusterManager
 func (c *AdapterClient) Clusters() interfaces.ClusterManager {
-	// Clusters are not supported in the adapter pattern yet
-	return nil
+	return &adapterClusterManager{adapter: c.adapter.GetClusterManager()}
 }
 
 // Associations returns the AssociationManager
@@ -664,13 +663,13 @@ func convertJobToInterface(job types.Job) interfaces.Job {
 		StartTime:   job.StartTime,
 		EndTime:     job.EndTime,
 		CPUs:        int(job.CPUs),
-		Memory:      int(job.MinMemory), // Use MinMemory as the closest match
+		Memory:      int(job.ResourceRequests.Memory), // Use actual allocated memory (in bytes)
 		TimeLimit:   int(job.TimeLimit),
 		WorkingDir:  job.WorkingDirectory,
 		Command:     job.Command,
 		Environment: job.Environment,
 		Nodes:       nodes,
-		ExitCode:    0, // Not available in types.Job
+		ExitCode:    int(job.ExitCode),
 		Metadata:    make(map[string]interface{}),
 	}
 }
@@ -2067,6 +2066,109 @@ func convertAssociationToInterface(association types.Association) interfaces.Ass
 		QoSList:         association.QoSList,
 		Flags:           []string{}, // Not available in types.Association
 	}
+}
+
+// adapterClusterManager wraps a common.ClusterAdapter to implement interfaces.ClusterManager
+type adapterClusterManager struct {
+	adapter common.ClusterAdapter
+}
+
+func (m *adapterClusterManager) List(ctx context.Context, opts *interfaces.ListClustersOptions) (*interfaces.ClusterList, error) {
+	// Call adapter (types.ClusterListOptions doesn't have Names field, filtering done after)
+	adapterOpts := &types.ClusterListOptions{}
+
+	// Call adapter
+	result, err := m.adapter.List(ctx, adapterOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert result
+	clusterList := &interfaces.ClusterList{
+		Clusters: make([]*interfaces.Cluster, 0, len(result.Clusters)),
+		Total:    len(result.Clusters),
+	}
+
+	for _, cluster := range result.Clusters {
+		converted := convertClusterToInterface(cluster)
+
+		// Apply client-side filtering by names if specified
+		if opts != nil && len(opts.Names) > 0 {
+			found := false
+			for _, name := range opts.Names {
+				if cluster.Name == name {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+		}
+
+		clusterList.Clusters = append(clusterList.Clusters, &converted)
+	}
+
+	// Update total to match filtered count
+	clusterList.Total = len(clusterList.Clusters)
+
+	return clusterList, nil
+}
+
+func (m *adapterClusterManager) Get(ctx context.Context, clusterName string) (*interfaces.Cluster, error) {
+	cluster, err := m.adapter.Get(ctx, clusterName)
+	if err != nil {
+		return nil, err
+	}
+	result := convertClusterToInterface(*cluster)
+	return &result, nil
+}
+
+func (m *adapterClusterManager) Create(ctx context.Context, cluster *interfaces.ClusterCreate) (*interfaces.ClusterCreateResponse, error) {
+	return nil, fmt.Errorf("cluster creation not implemented in adapter pattern")
+}
+
+func (m *adapterClusterManager) Update(ctx context.Context, clusterName string, update *interfaces.ClusterUpdate) error {
+	return fmt.Errorf("cluster update not implemented in adapter pattern")
+}
+
+func (m *adapterClusterManager) Delete(ctx context.Context, clusterName string) error {
+	return fmt.Errorf("cluster deletion not implemented in adapter pattern")
+}
+
+// convertClusterToInterface converts types.Cluster to interfaces.Cluster
+func convertClusterToInterface(cluster types.Cluster) interfaces.Cluster {
+	result := interfaces.Cluster{
+		Name:        cluster.Name,
+		ControlHost: cluster.ControllerHost,
+		ControlPort: int(cluster.ControllerPort),
+		RPCVersion:  int(cluster.RpcVersion),
+		Features:    cluster.Flags,
+		Metadata:    cluster.Meta,
+	}
+
+	// Handle TRES list
+	if len(cluster.TRES) > 0 {
+		result.TRESList = make([]string, 0, len(cluster.TRES))
+		for _, tres := range cluster.TRES {
+			result.TRESList = append(result.TRESList, tres.Type)
+		}
+	}
+
+	// Handle timestamps
+	if cluster.CreatedTime != nil {
+		result.Created = *cluster.CreatedTime
+	} else {
+		result.Created = time.Now()
+	}
+
+	if cluster.ModifiedTime != nil {
+		result.Modified = *cluster.ModifiedTime
+	} else {
+		result.Modified = time.Now()
+	}
+
+	return result
 }
 
 // adapterWCKeyManager wraps a common.WCKeyAdapter to implement interfaces.WCKeyManager
