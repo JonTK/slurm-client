@@ -226,3 +226,23 @@ func WithTLSConfig(tlsConfig *http.Transport) ClientOption {
 		return nil
 	}
 }
+
+// WithUseAdapters enables the use of adapter pattern instead of wrapper clients.
+// This is recommended for better version compatibility, especially for older versions
+// (v0.0.40, v0.0.41, v0.0.42, v0.0.43) where wrapper clients have limited functionality.
+//
+// When enabled, the client uses the adapter pattern which provides more complete
+// implementation of standalone operations like GetShares(), GetTRES(), GetDiagnostics(), etc.
+//
+// Example:
+//
+//	client, err := slurm.NewClientWithVersion(ctx, "v0.0.42",
+//	    slurm.WithBaseURL("http://localhost:6820"),
+//	    slurm.WithAuth(authProvider),
+//	    slurm.WithUseAdapters(true),  // Enable adapters
+//	)
+func WithUseAdapters(useAdapters bool) ClientOption {
+	return func(f *factory.ClientFactory) error {
+		return factory.WithUseAdapters(useAdapters)(f)
+	}
+}

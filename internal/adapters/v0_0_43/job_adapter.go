@@ -845,6 +845,18 @@ func (a *JobAdapter) validateJobNotifyRequest(req *types.JobNotifyRequest) error
 // Simplified converter methods for job management
 func (a *JobAdapter) convertAPIJobToCommon(apiJob api.V0043JobInfo) *types.Job {
 	job := &types.Job{}
+
+	a.setBasicJobFields(job, apiJob)
+	a.setJobResourceFields(job, apiJob)
+	a.setJobTimeFields(job, apiJob)
+	a.setJobExitCode(job, apiJob)
+	a.setJobMemory(job, apiJob)
+
+	return job
+}
+
+// setBasicJobFields sets the basic identification and user fields
+func (a *JobAdapter) setBasicJobFields(job *types.Job, apiJob api.V0043JobInfo) {
 	if apiJob.JobId != nil {
 		job.JobID = *apiJob.JobId
 	}
@@ -863,8 +875,64 @@ func (a *JobAdapter) convertAPIJobToCommon(apiJob api.V0043JobInfo) *types.Job {
 	if apiJob.GroupId != nil {
 		job.GroupID = *apiJob.GroupId
 	}
-	// TODO: Add more field conversions as needed
-	return job
+}
+
+// setJobResourceFields sets resource-related fields (CPUs, state)
+func (a *JobAdapter) setJobResourceFields(job *types.Job, apiJob api.V0043JobInfo) {
+	// State - critical for performance metrics (filtering completed jobs)
+	if apiJob.JobState != nil && len(*apiJob.JobState) > 0 {
+		job.State = types.JobState((*apiJob.JobState)[0])
+	}
+
+	// Resource information - CPUs (NoValStruct)
+	if apiJob.Cpus != nil && apiJob.Cpus.Set != nil && *apiJob.Cpus.Set && apiJob.Cpus.Number != nil {
+		job.CPUs = *apiJob.Cpus.Number
+	}
+}
+
+// setJobTimeFields sets time-related fields
+func (a *JobAdapter) setJobTimeFields(job *types.Job, apiJob api.V0043JobInfo) {
+	// Submit time (NoValStruct)
+	if apiJob.SubmitTime != nil && apiJob.SubmitTime.Set != nil && *apiJob.SubmitTime.Set && apiJob.SubmitTime.Number != nil {
+		job.SubmitTime = time.Unix(*apiJob.SubmitTime.Number, 0)
+	}
+
+	// Start time (NoValStruct, validate > 0 to avoid epoch zero)
+	if apiJob.StartTime != nil && apiJob.StartTime.Set != nil && *apiJob.StartTime.Set && apiJob.StartTime.Number != nil && *apiJob.StartTime.Number > 0 {
+		startTime := time.Unix(*apiJob.StartTime.Number, 0)
+		job.StartTime = &startTime
+	}
+
+	// End time (NoValStruct, validate > 0 to avoid epoch zero)
+	if apiJob.EndTime != nil && apiJob.EndTime.Set != nil && *apiJob.EndTime.Set && apiJob.EndTime.Number != nil && *apiJob.EndTime.Number > 0 {
+		endTime := time.Unix(*apiJob.EndTime.Number, 0)
+		job.EndTime = &endTime
+	}
+}
+
+// setJobExitCode sets the exit code from ProcessExitCodeVerbose structure
+func (a *JobAdapter) setJobExitCode(job *types.Job, apiJob api.V0043JobInfo) {
+	// Exit code - ProcessExitCodeVerbose structure (critical for performance metrics)
+	if apiJob.ExitCode != nil && apiJob.ExitCode.ReturnCode != nil &&
+		apiJob.ExitCode.ReturnCode.Set != nil && *apiJob.ExitCode.ReturnCode.Set &&
+		apiJob.ExitCode.ReturnCode.Number != nil {
+		job.ExitCode = *apiJob.ExitCode.ReturnCode.Number
+	}
+}
+
+// setJobMemory sets memory fields from MemoryPerNode or MemoryPerCpu (MB to bytes)
+func (a *JobAdapter) setJobMemory(job *types.Job, apiJob api.V0043JobInfo) {
+	// MemoryPerNode (NoValStruct, in MB - convert to bytes)
+	if apiJob.MemoryPerNode != nil && apiJob.MemoryPerNode.Set != nil &&
+		*apiJob.MemoryPerNode.Set && apiJob.MemoryPerNode.Number != nil {
+		job.ResourceRequests.Memory = *apiJob.MemoryPerNode.Number * 1024 * 1024
+		return
+	}
+	// MemoryPerCPU (NoValStruct, in MB - convert to bytes)
+	if apiJob.MemoryPerCpu != nil && apiJob.MemoryPerCpu.Set != nil &&
+		*apiJob.MemoryPerCpu.Set && apiJob.MemoryPerCpu.Number != nil {
+		job.ResourceRequests.MemoryPerCPU = *apiJob.MemoryPerCpu.Number * 1024 * 1024
+	}
 }
 
 func (a *JobAdapter) convertCommonJobCreateToAPI(create *types.JobCreate) *api.V0043Job {
