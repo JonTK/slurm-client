@@ -402,6 +402,13 @@ func (m *JobManagerImpl) convertJobToInterface(job *V0044JobInfo) *interfaces.Jo
 		result.Command = *job.Command
 	}
 
+	// Exit code - ProcessExitCodeVerbose structure (critical for performance metrics)
+	if job.ExitCode != nil && job.ExitCode.ReturnCode != nil &&
+		job.ExitCode.ReturnCode.Set != nil && *job.ExitCode.ReturnCode.Set &&
+		job.ExitCode.ReturnCode.Number != nil {
+		result.ExitCode = int(*job.ExitCode.ReturnCode.Number)
+	}
+
 	// Environment variables - Initialize empty map since not directly available in JobInfo
 	result.Environment = make(map[string]string)
 

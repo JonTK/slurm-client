@@ -863,6 +863,12 @@ func (a *JobAdapter) convertAPIJobToCommon(apiJob api.V0043JobInfo) *types.Job {
 	if apiJob.GroupId != nil {
 		job.GroupID = *apiJob.GroupId
 	}
+	// Exit code - ProcessExitCodeVerbose structure (critical for performance metrics)
+	if apiJob.ExitCode != nil && apiJob.ExitCode.ReturnCode != nil &&
+		apiJob.ExitCode.ReturnCode.Set != nil && *apiJob.ExitCode.ReturnCode.Set &&
+		apiJob.ExitCode.ReturnCode.Number != nil {
+		job.ExitCode = *apiJob.ExitCode.ReturnCode.Number
+	}
 	// TODO: Add more field conversions as needed
 	return job
 }

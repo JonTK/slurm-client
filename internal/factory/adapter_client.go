@@ -669,7 +669,7 @@ func convertJobToInterface(job types.Job) interfaces.Job {
 		Command:     job.Command,
 		Environment: job.Environment,
 		Nodes:       nodes,
-		ExitCode:    0, // Not available in types.Job
+		ExitCode:    int(job.ExitCode),
 		Metadata:    make(map[string]interface{}),
 	}
 }
