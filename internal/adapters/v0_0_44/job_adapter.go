@@ -888,6 +888,12 @@ func (a *JobAdapter) setBasicJobFields(job *types.Job, apiJob api.V0044JobInfo) 
 	if apiJob.GroupId != nil {
 		job.GroupID = *apiJob.GroupId
 	}
+	// Note: Command field in API returns null for most jobs
+	// The script/command contents are usually empty in the job query response
+	// They would need to be fetched separately or populated from submission records
+	if apiJob.CurrentWorkingDirectory != nil {
+		job.WorkingDirectory = *apiJob.CurrentWorkingDirectory
+	}
 }
 
 // setJobResourceFields sets resource-related fields (CPUs, state)
