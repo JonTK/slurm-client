@@ -50,10 +50,28 @@ func (a *NodeAdapter) convertAPINodeToCommon(apiNode interface{}) (*types.Node, 
 	}
 
 	// State
+	// SLURM API returns state as an array (e.g. ["IDLE", "DRAIN"])
+	// Concatenate all states with "+" to preserve all flags (e.g. "IDLE+DRAIN")
 	if v, ok := nodeData["state"]; ok {
 		if states, ok := v.([]interface{}); ok && len(states) > 0 {
-			if state, ok := states[0].(string); ok {
-				node.State = types.NodeState(state)
+			if len(states) == 1 {
+				if state, ok := states[0].(string); ok {
+					node.State = types.NodeState(state)
+				}
+			} else {
+				// Join multiple states with "+"
+				var stateStr string
+				for i, s := range states {
+					if state, ok := s.(string); ok {
+						if i > 0 {
+							stateStr += "+"
+						}
+						stateStr += state
+					}
+				}
+				if stateStr != "" {
+					node.State = types.NodeState(stateStr)
+				}
 			}
 		}
 	}

@@ -32,9 +32,23 @@ func (a *NodeAdapter) convertAPINodeToCommon(apiNode api.V0040Node) *types.Node 
 	}
 
 	// State - handle safely
+	// SLURM API returns state as an array (e.g. ["IDLE", "DRAIN"])
+	// Concatenate all states with "+" to preserve all flags (e.g. "IDLE+DRAIN")
 	if apiNode.State != nil && len(*apiNode.State) > 0 {
-		stateStr := (*apiNode.State)[0]
-		node.State = types.NodeState(strings.ToUpper(stateStr))
+		states := *apiNode.State
+		if len(states) == 1 {
+			node.State = types.NodeState(strings.ToUpper(states[0]))
+		} else {
+			// Join multiple states with "+" (e.g. "IDLE+DRAIN")
+			var stateStr string
+			for i, s := range states {
+				if i > 0 {
+					stateStr += "+"
+				}
+				stateStr += strings.ToUpper(s)
+			}
+			node.State = types.NodeState(stateStr)
+		}
 	}
 
 	// Resources - handle safely
